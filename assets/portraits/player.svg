@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 1040" role="img" aria-label="玩家角色立绘">
+<defs>
+  <linearGradient id="robe" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#263b2e"/><stop offset=".52" stop-color="#142119"/><stop offset="1" stop-color="#080d0a"/></linearGradient>
+  <linearGradient id="skin" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#d6c5aa"/><stop offset=".55" stop-color="#b79e82"/><stop offset="1" stop-color="#806b58"/></linearGradient>
+  <linearGradient id="hair" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#18201b"/><stop offset="1" stop-color="#050806"/></linearGradient>
+  <radialGradient id="aura"><stop stop-color="#c9b16f" stop-opacity=".23"/><stop offset="1" stop-color="#c9b16f" stop-opacity="0"/></radialGradient>
+  <filter id="shadow"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<ellipse cx="325" cy="880" rx="240" ry="92" fill="#000" opacity=".28" filter="url(#shadow)"/>
+<ellipse cx="305" cy="360" rx="250" ry="310" fill="url(#aura)"/>
+<!-- long hair -->
+<path d="M213 244c-30 74-42 178-31 284l-45 224 103-49 73-281 84 283 94 43-51-220c13-122-3-225-43-296-54-68-137-65-184 12z" fill="url(#hair)"/>
+<!-- robe silhouette -->
+<path d="M187 475c-69 61-100 176-128 344l64 39 22-109-19 242h371l-28-251 30 113 65-43c-32-173-70-279-143-337l-82 18-72-5z" fill="url(#robe)" stroke="#51634f" stroke-opacity=".45" stroke-width="3"/>
+<!-- inner robe -->
+<path d="M249 477l57 119 61-119 54 4-68 191 49 320H217l49-320-68-190z" fill="#0e1712" opacity=".9"/>
+<path d="M247 480l59 116 58-118" fill="none" stroke="#b49a5e" stroke-opacity=".72" stroke-width="8"/>
+<path d="M209 565c47 37 84 56 112 56 31 0 64-17 103-52" fill="none" stroke="#6e7e65" stroke-width="4" opacity=".42"/>
+<!-- neck -->
+<path d="M269 407h84l13 91c-24 26-79 25-105 0z" fill="url(#skin)"/>
+<!-- face -->
+<path d="M231 244c2-75 48-128 103-128 59 0 109 53 110 132l-12 117c-9 58-57 104-103 103-44-1-88-46-98-103z" fill="url(#skin)" stroke="#6a594a" stroke-opacity=".45" stroke-width="3"/>
+<!-- hair cap -->
+<path d="M219 278c-9-103 39-188 117-188 82 0 128 74 117 187-23-11-40-42-48-76-48 45-102 57-163 34-2 18-9 32-23 43z" fill="url(#hair)"/>
+<path d="M246 202c46-61 116-74 177-31" fill="none" stroke="#3a463d" stroke-width="5" opacity=".55"/>
+<!-- hair knot -->
+<path d="M303 108c-2-49 28-83 67-82 42 1 64 34 59 76-34-18-76-15-126 6z" fill="#080b09"/>
+<path d="M323 91l69-47" stroke="#a99058" stroke-width="7" stroke-linecap="round" opacity=".8"/>
+<!-- eyebrows/eyes -->
+<path d="M256 299c26-14 48-15 69-5M353 294c24-13 44-10 63 3" fill="none" stroke="#24251f" stroke-width="9" stroke-linecap="round"/>
+<path d="M264 321c19 12 38 12 57 0M356 320c18 11 36 11 54-1" fill="none" stroke="#2d3029" stroke-width="6" stroke-linecap="round"/>
+<circle cx="294" cy="320" r="5" fill="#101510"/><circle cx="382" cy="319" r="5" fill="#101510"/>
+<!-- nose/mouth -->
+<path d="M338 324l-6 54 19 5" fill="none" stroke="#8f7661" stroke-width="4" opacity=".6"/>
+<path d="M305 411c27 10 52 9 77-2" fill="none" stroke="#6e5149" stroke-width="5" stroke-linecap="round"/>
+<!-- sash -->
+<path d="M154 728c111 33 229 33 348 0l7 51c-119 39-241 38-365 0z" fill="#26372c" stroke="#8b784d" stroke-opacity=".65" stroke-width="3"/>
+<rect x="287" y="728" width="82" height="63" rx="5" fill="#1a251d" stroke="#b29a61" stroke-width="4"/>
+<path d="M311 744h35v31h-35z" fill="none" stroke="#b29a61" stroke-width="3"/>
+<!-- sleeves and hands -->
+<path d="M157 580c-48 85-69 178-83 274l71 14 62-221zM452 578c54 83 82 172 104 264l-68 27-75-220z" fill="#17231b" stroke="#536552" stroke-opacity=".45" stroke-width="3"/>
+<path d="M142 836c-10 35 12 67 42 69 24 1 37-26 18-47-16-18-35-27-60-22zM494 837c8 35-13 65-43 66-24 0-36-26-16-47 17-18 35-26 59-19z" fill="url(#skin)"/>
+<!-- subtle aperture motif -->
+<circle cx="330" cy="635" r="48" fill="none" stroke="#d3b96e" stroke-opacity=".18" stroke-width="2"/>
+<circle cx="330" cy="635" r="31" fill="none" stroke="#d3b96e" stroke-opacity=".22" stroke-width="2" stroke-dasharray="5 8"/>
+</svg>
