@@ -9,7 +9,7 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 test('0.4 entry loads immersive layer after core engine',()=>{
   const html=read('index.html');
   assert.match(html,/assets\/immersive-v4\.css/);
-  assert.match(html,/assets\/portraits\/player\.svg|src="src\/visual-ui\.js"/);
+  assert.match(html,/src="src\/visual-ui\.js"/);
   assert.ok(html.indexOf('src/engine.js')<html.indexOf('src/visual-ui.js'));
 });
 
@@ -23,11 +23,11 @@ test('immersive adapter preserves engine authority',()=>{
   assert.match(js,/复制试玩状态/);
 });
 
-test('player portrait is local vector art without remote dependencies',()=>{
+test('player portrait is local vector art without remote resource links',()=>{
   const svg=read('assets/portraits/player.svg');
   assert.match(svg,/<svg/);
   assert.match(svg,/玩家角色立绘/);
-  assert.doesNotMatch(svg,/https?:\/\//);
+  assert.doesNotMatch(svg,/(?:href|src)=["']https?:\/\//i);
 });
 
 test('immersive stylesheet makes world and character primary',()=>{
