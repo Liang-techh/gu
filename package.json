@@ -1,0 +1,8 @@
+{
+  "name": "gu-qingmao-text-sandbox",
+  "version": "0.2.0",
+  "private": true,
+  "description": "原文术语、条件分支与延迟后果的蛊真人同人文字游戏",
+  "scripts": {"test": "node --test tests/engine.test.cjs", "check:canon": "node scripts/check-canon.cjs"},
+  "engines": {"node": ">=18"}
+}
