@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -13,6 +13,7 @@
   if (!Brain) throw new Error('GuSimulationBrain must load before simulation.js');
   if (!History) throw new Error('GuSimulationHistory must load before simulation.js');
   if (!ZoneBuilder) throw new Error('GuSimulationZoneBuilder must load before simulation.js');
+  if (!ZoneRuntime) throw new Error('GuSimulationZoneRuntime must load before simulation.js');
   if (!NpcAI) throw new Error('GuSimulationNpcAI must load before simulation.js');
   if (!Entity) throw new Error('GuSimulationEntity must load before simulation.js');
   if (!Conversation) throw new Error('GuSimulationConversation must load before simulation.js');
@@ -160,6 +161,7 @@
       else state.entities[id] = Entity.createEntity(id, seedData);
     }
     state.zones = ZoneBuilder.buildZones(LOCATIONS);
+    ZoneRuntime.ensureState(state, state.entities.player.position.location);
     ZoneBuilder.seedPopulation(state, { locations: LOCATIONS, populationTables: POPULATION_TABLES, random, createEntity: Entity.createEntity });
     for (const id of Object.keys(state.entities)) remember(state, id, 'world', { kind: 'origin', text: '青茅山的雨季刚刚开始。', facts: { region: '青茅山' } });
     relation(state, 'player', 'fangyuan').fear = 4;
@@ -223,6 +225,7 @@
     const p = state.entities.player;
     for (const entity of Object.values(state.entities || {})) { Knowledge.ensure(entity); Identity.ensure(entity, Knowledge); Brain.ensure(entity); }
     Engine.initializeComponents(state);
+    ZoneRuntime.ensureState(state, p?.position?.location);
     state.contracts ||= { available: [], active: {}, completed: [] };
     state.contracts.available ||= []; state.contracts.active ||= {}; state.contracts.completed ||= [];
     state.arena ||= { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 };
@@ -510,15 +513,7 @@
       for (const episode of npc.memory.episodes) episode.valence *= 0.985;
     }
     const p = state.entities.player;
-    for (const zone of Object.values(state.zones)) {
-      zone.activity = Math.max(0, zone.activity - 12);
-      zone.danger = clamp(zone.danger + (zone.activity > 45 ? 2 : -1), 0, 100);
-      if (zone.resources.water !== undefined) zone.resources.water = Math.min(12, zone.resources.water + 2);
-      if (zone.resources.moonPetal !== undefined) zone.resources.moonPetal = Math.min(16, zone.resources.moonPetal + 3);
-      if (zone.resources.food !== undefined) zone.resources.food = Math.min(8, zone.resources.food + 1);
-      if (zone.resources.relicFragment !== undefined && state.flags.relicDiscovered) zone.resources.relicFragment = Math.min(3, zone.resources.relicFragment + 0.2);
-      zone.weather = random(state) < 0.65 ? '雨' : random(state) < 0.5 ? '晴' : '雾';
-    }
+    ZoneRuntime.dailyTick(state, { playerLocation: p.position.location, random });
     const rel = relation(state, 'player', 'guYue');
     state.factions.guYue.tension += p.cultivation.rank > 1 ? 1 : 0;
     state.factions.bai.tension += state.factions.guYue.tension > 45 ? 1 : 0;
@@ -673,6 +668,7 @@
       const target = command.location;
       if (!LOCATIONS[target] || !LOCATIONS[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
       const from = p.position.location; p.position.location = target;
+      ZoneRuntime.transition(state, from, target, { engine: Engine, clock: state.clock });
       Engine.emit(state, 'world.travel', { actorId: 'player', from, to: target });
       remember(state, 'player', 'world', { kind: 'travel', text: `从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`, facts: { [target]: true } });
       log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);
@@ -799,7 +795,7 @@
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => { const identity = Identity.visible(e, 'player', Knowledge); return { id: e.id, name: identity.name, role: identity.role, tags: identity.tags, masked: identity.masked, goal: e.goals.active, brain: { mode: e.brain?.mode || 'idle', current: e.brain?.current?.goal || e.goals.active, plan: copy(e.brain?.plan || []).slice(0, 3), lastPerceptionClock: e.brain?.blackboard?.lastPerceptionClock ?? null }, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null, suspicion: Knowledge.suspicion(e, 'player') }; }),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude, market: copy(f.market || null) })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), intel: copy(state.intel), pursuit: copy(state.pursuit), agency: copy(state.agency), market: copy(state.market), worldWar: copy(state.worldWar), eternalWar: copy(state.eternalWar), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), domainEvents: copy(state.events.recent || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), zones: Object.fromEntries(Object.entries(state.zones).map(([id, zone]) => [id, ZoneRuntime.snapshot(zone)])), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), intel: copy(state.intel), pursuit: copy(state.pursuit), agency: copy(state.agency), market: copy(state.market), worldWar: copy(state.worldWar), eternalWar: copy(state.eternalWar), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), domainEvents: copy(state.events.recent || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
   }
 
@@ -819,5 +815,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, BRAIN: Brain, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, BRAIN: Brain, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

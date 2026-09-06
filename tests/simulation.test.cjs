@@ -51,6 +51,23 @@ test('zone builder reconstructs content-driven zones without depending on the UI
   assert.equal(typeof S.ZONE_BUILDER.seedPopulation, 'function');
 });
 
+test('zone runtime suspends, settles offline time and reactivates the player area', () => {
+  let state = open(S.newWorld({ seed: 'zone-runtime' }), 'observe');
+  assert.equal(state.zones.academy.runtime.active, true);
+  assert.equal(state.zones.village.runtime.suspended, true);
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  assert.equal(state.zones.academy.runtime.suspended, true);
+  assert.equal(state.zones.village.runtime.active, true);
+  state = ok(state, { type: 'action', id: 'wait', hours: 24 });
+  assert.ok(state.zones.academy.runtime.offline.hours > 0);
+  assert.ok(state.zones.academy.runtime.offline.ticks >= 1);
+  state = ok(state, { type: 'action', id: 'travel', location: 'academy' });
+  assert.equal(state.zones.academy.runtime.active, true);
+  assert.equal(state.zones.academy.runtime.suspended, false);
+  assert.ok(state.zones.academy.runtime.offline.hours >= 24);
+  assert.ok(state.zones.academy.runtime.lastSettlementClock <= state.clock);
+});
+
 test('same seed and same commands produce the same world state', () => {
   let a = S.newWorld({ seed: 'fixed' });
   let b = S.newWorld({ seed: 'fixed' });
@@ -659,6 +676,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.REPEATABLE_SYSTEMS.arenaMatch, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.dreamDive, 'function');
   assert.equal(typeof S.MARKET.trade, 'function');
+  assert.equal(typeof S.ZONE_RUNTIME.transition, 'function');
   assert.equal(typeof S.DIRECTOR_RULES.registerRules, 'function');
   assert.equal(typeof S.EVENT_RULES.registerHandlers, 'function');
   assert.equal(typeof S.DIRECTOR.tick, 'function');
