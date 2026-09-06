@@ -886,6 +886,11 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.ENTITY.createEntity, 'function');
   assert.equal(typeof S.NPC_AI.selectGoal, 'function');
   assert.equal(typeof S.DEFAULT_GOALS.register, 'function');
+  assert.equal(typeof S.GU_ACTIONS.register, 'function');
+  assert.equal(typeof S.GU_GOALS.register, 'function');
+  assert.equal(typeof S.GU_LISTENERS.register, 'function');
+  assert.equal(typeof S.GU_SYSTEMS.register, 'function');
+  assert.equal(typeof S.GU_COMPONENTS.register, 'function');
   assert.equal(typeof S.ABILITY.activate, 'function');
   assert.equal(typeof S.CONDITION.apply, 'function');
   assert.equal(typeof S.EFFECTS.apply, 'function');
