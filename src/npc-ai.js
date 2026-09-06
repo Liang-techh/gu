@@ -9,14 +9,17 @@
     const faction = npc.faction ? state.factions[npc.faction] : null;
     const queueIndex = npc.goals.queue.indexOf(goal);
     const personality = npc.personality || {};
+    const suspicion = Number(npc.knowledge?.suspicion?.player?.value || 0);
     let score = queueIndex >= 0 ? 2.2 - queueIndex * 0.18 : 0.05;
     if (goal === 'avoidPlayer') score += rel.fear * 0.06 + (faction?.attitude < -25 ? 3 : 0);
+    if (goal === 'avoidPlayer') score += suspicion * 0.045;
     if (goal === 'findFood' || goal === 'hunt' || goal === 'forage') score += Math.max(0, npc.needs.hunger - 45) * 0.08;
     if (goal === 'survive' || goal === 'returnHome') score += Math.max(0, 65 - npc.needs.safety) * 0.05;
     if (goal === 'prepareWar' || goal === 'patrol' || goal === 'ambush') score += (faction?.tension || 0) * 0.055;
     if (goal === 'maintainOrder' || goal === 'mediate') score += (faction?.tension || 0) * 0.035;
     if (goal === 'gainRecognition' || goal === 'proveWorth') score += personality.ambition * 0.035 + state.director.pressure * 0.4;
     if (goal === 'collectRumors' || goal === 'investigate' || goal === 'observe') score += personality.curiosity * 0.025;
+    if (goal === 'collectRumors' || goal === 'investigate' || goal === 'observe') score += suspicion * 0.035;
     if (goal === 'protectClan' || goal === 'protectBrother' || goal === 'protectFather' || goal === 'protectDaughter') score += personality.loyalty * 0.025;
     if (goal === 'trade' || goal === 'auction') score += personality.greed * 0.018;
     const recent = (npc.goals.history || []).filter(item => item.goal === goal && day(state) - item.day <= 1).length;
@@ -30,6 +33,7 @@
     const faction = npc.faction ? state.factions[npc.faction] : null;
     if (npc.conditions?.active?.some(condition => condition.id === 'afraid')) return 'avoidPlayer';
     if (rel.fear > 30) return 'avoidPlayer';
+    if (Number(npc.knowledge?.suspicion?.player?.value || 0) >= 78 && faction?.attitude < 0) return 'avoidPlayer';
     const candidates = [...new Set([...(npc.goals.queue || []), 'findFood', 'avoidPlayer', 'survive', 'gainRecognition'])];
     if (npc.needs.hunger <= 70) candidates.splice(candidates.indexOf('findFood'), 1);
     if (rel.fear <= 30 && !npc.goals.queue.includes('avoidPlayer') && faction?.attitude >= -25) candidates.splice(candidates.indexOf('avoidPlayer'), 1);

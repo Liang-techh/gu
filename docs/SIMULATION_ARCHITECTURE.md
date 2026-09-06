@@ -50,6 +50,8 @@ Projection / UI / 存档 / 日志
 
 实体还可以拥有运行时 `conditions.active` 状态效果。`src/condition.js` 提供状态的附着、刷新、查询、移除和计时；当前威胁会附着 `afraid`，冲突会附着 `wounded`，小时系统负责过期事件，NPC 目标选择会优先响应恐惧。这是对 Qud Parts/Events 边界的轻量抽象：状态不是一次性文本，而是可以被多个系统观察的组件。
 
+`src/knowledge.js` 把记忆中的事实进一步结构化为 `value / confidence / kind / clock / source`，并维护每个实体对其他实体的 `suspicion` 与身份 `masks`。传闻默认低置信度，亲历观察和秘密线索置信度更高；怀疑度达到阈值后，NPC AI 会优先调查、观察或避开玩家。这样“谁知道什么”成为世界状态，而不只是日志文本。
+
 动作也通过同一运行时注册。当前委托接受/交付、商家城演武、三王传承闯关、北原巡逻、真阳楼闯层和内容驱动对话已经由 Action Registry 调度；未迁移的基础动作仍走兼容分支。迁移策略是先把有独立资源、事件和失败后果的动作注册化，再逐步消除旧的条件链。
 
 对话定义位于内容包的 `CONVERSATION_DEFS`，由 `src/conversation.js` 根据地点、旗标、时间和关系门槛筛选。选项后果不直接操作 UI，而是通过关系、势力、记忆和 History 账本写入世界状态。

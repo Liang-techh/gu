@@ -71,6 +71,8 @@ test('NPC social interaction changes relation and creates durable memory', () =>
   const relation = state.relationships['fangzheng::player'];
   assert.ok(relation.trust >= 13);
   assert.ok(state.entities.fangzheng.memory.episodes.some(item => item.kind === 'help'));
+  assert.equal(S.KNOWLEDGE.get(state.entities.fangzheng, 'player', 'helped').value, true);
+  assert.ok(S.KNOWLEDGE.get(state.entities.fangzheng, 'player', 'helped').confidence >= 0.7);
   const before = state.entities.fangzheng.memory.episodes.length;
   state = ok(state, { type: 'action', id: 'wait', hours: 2 });
   assert.ok(state.entities.fangzheng.memory.episodes.length >= before);
@@ -82,6 +84,7 @@ test('domain events persist as a ledger and spread local rumors to uninvolved NP
   assert.ok(uninvolved);
   state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'threaten' });
   assert.ok(state.events.recent.some(event => event.type === 'social.interaction'));
+  assert.ok(S.KNOWLEDGE.suspicion(state.entities.fangzheng, 'player') > 0);
   assert.ok(S.snapshot(state).domainEvents.some(event => event.type === 'social.interaction'));
   assert.ok(state.entities[uninvolved.id].memory.episodes.some(item => item.kind === 'rumor-social'));
   assert.equal(state.entities[uninvolved.id].memory.facts.fangzheng.heardInteraction !== undefined, true);
@@ -473,11 +476,13 @@ test('engine registries expose component queries, goal handlers, interactions an
   let state = open(S.newWorld({ seed: 'engine-api' }), 'observe');
   assert.ok(S.ENGINE.COMPONENTS.includes('memory'));
   assert.ok(S.ENGINE.COMPONENTS.includes('conditions'));
+  assert.ok(S.ENGINE.COMPONENTS.includes('knowledge'));
   assert.equal(typeof S.ENTITY.createEntity, 'function');
   assert.equal(typeof S.NPC_AI.selectGoal, 'function');
   assert.equal(typeof S.DEFAULT_GOALS.register, 'function');
   assert.equal(typeof S.ABILITY.activate, 'function');
   assert.equal(typeof S.CONDITION.apply, 'function');
+  assert.equal(typeof S.KNOWLEDGE.raiseSuspicion, 'function');
   assert.equal(typeof S.CONTRACTS.accept, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.arenaMatch, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.dreamDive, 'function');
