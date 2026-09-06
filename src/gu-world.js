@@ -144,6 +144,7 @@
         } },
         eternalWar: { divineEmperor: false, twoHeavens: false, madDemonCave: false, dream: false, starHost: false, dreamPressure: 0, cosmicHeat: 0, dives: 0, successes: 0, failures: 0 },
         dreamRealm: { active: false, control: 46, pressure: 18, resources: 26, contamination: 12, lastTickDay: 0, sequence: 0, claims: { dreamPathForces: 42, centralSects: 32, twoHeavensForces: 26 }, operations: [] },
+        coalitions: { sequence: 0, diplomacyPressure: 0, lastTickDay: 0, pacts: {}, history: [] },
         intel: { leads: [], cases: {} },
         pursuit: { teams: {}, sequence: 0, alert: 0, contacts: 0 },
         agency: { commissions: {}, sequence: 0, reputation: 0, completed: 0, failed: 0 },

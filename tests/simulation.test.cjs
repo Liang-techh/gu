@@ -891,6 +891,27 @@ test('dream battlefield persists contested ownership, NPC claims and resource co
   assert.ok(state.consequences.records.some(record => record.kind === 'dream_realm_sabotage'));
 });
 
+test('coalition ledger turns diplomacy into durable promises and deterministic defections', () => {
+  let state = open(S.newWorld({ seed: 'coalition-ledger' }), 'observe');
+  state.entities.player.position.location = 'village';
+  state.entities.player.inventory.stones = 20;
+  assert.equal(S.interpret('撮合结盟', state).command.id, 'coalition_action');
+  assert.equal(S.interpret('撮合结盟', state).command.mode, 'broker');
+  state = ok(state, { type: 'action', id: 'coalition_action', mode: 'broker' });
+  const pact = state.coalitions.pacts['bai::guYue::xiong'];
+  assert.ok(pact);
+  assert.equal(pact.status, 'active');
+  assert.ok(S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS }).some(action => action.id === 'coalition_action:pledge'));
+  const before = S.snapshot(state).coalitions;
+  pact.status = 'strained'; pact.legitimacy = 0; pact.cohesion = 8; pact.supply = 4;
+  state = ok(state, { type: 'action', id: 'wait', hours: 72 });
+  const pactAfter = state.coalitions.pacts['bai::guYue::xiong'];
+  assert.ok(['defected', 'broken'].includes(pactAfter.status));
+  assert.ok(state.coalitions.history.some(entry => entry.kind === 'defection'));
+  assert.notDeepEqual(state.coalitions, before);
+  assert.deepEqual(S.validate(JSON.stringify(state)).coalitions, state.coalitions);
+});
+
 test('save validation preserves components, memories, relationships and deterministic RNG', () => {
   let state = open(S.newWorld({ seed: 'save' }), 'observe');
   state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'listen' });
@@ -1126,12 +1147,12 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
-  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'dream_realm_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
+  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'dream_realm_action', 'coalition_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
   assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'effectTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
-  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'marketShockTick', 'blessedLandTick', 'wolfCrisisTick', 'shadowNetworkTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'dreamRealmTick', 'eternalWarTick', 'worldDaySummary']);
+  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'marketShockTick', 'blessedLandTick', 'wolfCrisisTick', 'shadowNetworkTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'coalitionTick', 'dreamRealmTick', 'eternalWarTick', 'worldDaySummary']);
 });
 
 test('action catalog derives available commands from world state instead of UI conditionals', () => {

@@ -12,7 +12,7 @@
     requireSameLocation, beginConflict, ability, body, equipment,
     conversation, conversationDefs, day, affectFaction, identity, knowledge,
     contractRuntime, repeatableRuntime, pursuitRuntime, agencyRuntime, combatRuntime,
-    marketRuntime, rebirth
+    marketRuntime, rebirth, factionPacts
   }) {
     function performConversation(state, command, p) {
       const npc = requireSameLocation(state, command.target);
@@ -217,6 +217,52 @@
       advance(state, mode === 'stabilize' ? 3 : 4, `dream_realm_${mode}`);
     }
 
+    function coalitionAction(state, command, p) {
+      const locationMembers = {
+        village: ['guYue', 'bai', 'xiong'],
+        centralContinent: ['centralSects', 'shadowSect'],
+        southernBorder: ['southernSuperClans', 'centralSects'],
+        westernDesert: ['westernDesertFang', 'centralSects'],
+        heavenlyCourt: ['heavenlyCourt', 'twoHeavensForces'],
+        longLifeHeaven: ['longLifeHeaven', 'twoHeavensForces'],
+        dreamRealms: ['dreamPathForces', 'centralSects', 'twoHeavensForces']
+      };
+      const members = command.members?.length ? command.members : locationMembers[p.position.location];
+      if (!members?.every(id => state.factions[id])) throw new Error('当前位置没有可谈判的势力关系');
+      const pact = factionPacts.upsert(state, members, { day: day(state), source: 'playerDiplomacy', legitimacy: 42, cohesion: 38, supply: 36 });
+      const mode = command.mode || 'broker';
+      if (mode === 'broker') {
+        if ((p.inventory.stones || 0) < 2) throw new Error('撮合盟约至少需要两枚元石');
+        p.inventory.stones -= 2; pact.legitimacy += 12; pact.cohesion += 8; pact.supply += 5;
+        for (const id of pact.members) { pact.obligations[id] = Math.min(100, (pact.obligations[id] || 0) + 4); state.factions[id].tension = Math.max(0, state.factions[id].tension - 1.5); state.factions[id].attitude += 2; }
+        remember(state, 'player', 'world', { kind: 'coalition-broker', valence: 4, text: `你用资源把${pact.members.join('、')}暂时拴在同一张契约上。`, facts: { pactId: pact.id, coalitionAction: mode } });
+        log(state, 'coalition_broker', '你撮合了一项可被世界继续检验的势力盟约。', { pactId: pact.id, members: pact.members, legitimacy: pact.legitimacy });
+      } else if (mode === 'pledge') {
+        if ((p.inventory.stones || 0) < 1) throw new Error('兑现承诺至少需要一枚元石');
+        p.inventory.stones -= 1; pact.supply += 12; pact.legitimacy += 6; pact.cohesion += 4; pact.obligations[p.faction] = Math.max(0, (pact.obligations[p.faction] || 0) - 12);
+        for (const id of pact.members) state.factions[id].attitude += id === p.faction ? 3 : 1;
+        log(state, 'coalition_pledge', '你兑现了一笔具体承诺，盟约获得补给而不是口头上的声望。', { pactId: pact.id, supply: pact.supply, obligations: pact.obligations });
+      } else if (mode === 'expose') {
+        if (p.cultivation.insight < 3) throw new Error('拆穿盟约至少需要三点洞察');
+        p.cultivation.insight -= 3; pact.legitimacy -= 15; pact.cohesion -= 10; pact.supply = Math.max(0, pact.supply - 3); state.coalitions.diplomacyPressure += 8;
+        for (const id of pact.members) state.factions[id].tension += 3;
+        consequence(state, { kind: 'coalition_exposure', actorId: p.id, factionId: pact.members[0], source: 'coalitionAction', location: p.position.location, reason: '你公开盟约中的未兑现承诺，短期制造筹码，也让多方信任一起受损。', data: { pactId: pact.id, legitimacy: pact.legitimacy, cohesion: pact.cohesion }, tension: 2, pressure: 0.35 });
+        log(state, 'coalition_expose', '你揭开盟约的隐性条件，势力之间开始重新计算彼此的价格。', { pactId: pact.id, legitimacy: pact.legitimacy, status: pact.status });
+      } else if (mode === 'defect') {
+        if (!pact.members.includes(p.faction)) throw new Error('你不属于这项盟约，无法代表其中一方倒戈');
+        pact.members = pact.members.filter(id => id !== p.faction); pact.defections += 1; pact.status = pact.members.length < 2 ? 'broken' : 'defected'; pact.legitimacy -= 18; pact.cohesion -= 14; state.coalitions.diplomacyPressure += 10;
+        factionPacts.record(state, pact, { day: day(state), kind: 'player_defection', actorId: p.faction, members: [...pact.members], reason: '玩家公开退出盟约，把承诺转换为新的谈判筹码。' });
+        for (const id of pact.members) { state.factions[id].tension += 4; state.factions[id].attitude -= 5; }
+        consequence(state, { kind: 'player_coalition_defection', actorId: p.id, factionId: p.faction, source: 'coalitionAction', location: p.position.location, reason: '玩家退出势力盟约，剩余成员把这视为可传播的背叛范例。', data: { pactId: pact.id, departed: p.faction, members: pact.members }, tension: 3, pressure: 0.5 });
+        remember(state, 'player', 'world', { kind: 'defection', valence: -2, text: '你亲手撕开了一项势力盟约，新的筹码建立在旧的信用废墟上。', facts: { pactId: pact.id, coalitionDefection: true } });
+        log(state, 'coalition_defect', '你退出了当前盟约，短期摆脱义务，长期让所有势力重新评估你。', { pactId: pact.id, status: pact.status });
+      } else throw new Error('未知的势力外交行动');
+      pact.legitimacy = Math.max(-100, Math.min(100, pact.legitimacy)); pact.cohesion = Math.max(0, Math.min(100, pact.cohesion)); pact.supply = Math.max(0, Math.min(100, pact.supply));
+      factionPacts.record(state, pact, { day: day(state), kind: mode, actorId: p.id, members: [...pact.members], legitimacy: pact.legitimacy, cohesion: pact.cohesion, supply: pact.supply });
+      engine.emit(state, 'faction.coalition_changed', { actorId: p.id, pactId: pact.id, mode, status: pact.status, members: [...pact.members], legitimacy: pact.legitimacy, cohesion: pact.cohesion, supply: pact.supply });
+      advance(state, mode === 'expose' ? 2 : 3, `coalition_${mode}`);
+    }
+
     engine.registerAction('wait', ({ state, command }) => {
       advance(state, Number(command.hours) || 2, 'wait');
       log(state, 'action', '你等待了一段时间，观察世界如何自行变化。');
@@ -367,6 +413,7 @@
     engine.registerAction('commission_agent', ({ state, command, p }) => agencyRuntime.recruit(state, p, command));
     engine.registerAction('dream_dive', ({ state, p }) => repeatableRuntime.dreamDive(state, p));
     engine.registerAction('dream_realm_action', ({ state, command, p }) => dreamRealmAction(state, command, p));
+    engine.registerAction('coalition_action', ({ state, command, p }) => coalitionAction(state, command, p));
     engine.registerAction('conversation', ({ state, command, p }) => performConversation(state, command, p));
     engine.registerActionHook('after', '*', 'actionMetrics', ({ state, command }) => {
       state.facts.actionCounts ||= {};

@@ -9,7 +9,7 @@
   function register({
     engine, history, zoneRuntime, npcAI, brain, social, combat, market, pursuit, agency,
     condition, effect, locations, phase, hour, day, random, clamp, relation, remember,
-    log, relValence, consequence, damageEntity
+    log, relValence, consequence, damageEntity, factionPacts
   }) {
     engine.registerSystem('hour', 'conditionTick', ({ state }) => {
       for (const entity of engine.queryWith(state, 'conditions')) {
@@ -263,6 +263,55 @@
         engine.emit(state, 'world-war.front_tick', { frontId: front.id, day: day(state), supply: front.supply, pressure: front.pressure, control: front.control, battles: front.battles, casualties: front.casualties });
       }
     }, 50);
+
+    engine.registerSystem('day', 'coalitionTick', ({ state }) => {
+      const ledger = factionPacts.ensure(state);
+      if (!Object.keys(ledger.pacts).length) return;
+      ledger.lastTickDay = day(state);
+      const fronts = Object.values(state.worldWar?.fronts || {});
+      const frontPressure = members => fronts.filter(front => front.active && (members.includes(front.primaryFaction) || members.includes(front.opposingFaction))).reduce((sum, front) => sum + front.pressure * 0.018, 0);
+      for (const pact of Object.values(ledger.pacts)) {
+        if (['broken', 'defected'].includes(pact.status) || pact.members.length < 2) continue;
+        const factions = pact.members.map(id => state.factions[id]).filter(Boolean);
+        if (factions.length < 2) { pact.status = 'broken'; continue; }
+        const avgInfluence = factions.reduce((sum, faction) => sum + (faction.influence || 0), 0) / factions.length;
+        const avgTension = factions.reduce((sum, faction) => sum + (faction.tension || 0), 0) / factions.length;
+        let relationScore = 0; let relationCount = 0;
+        for (let i = 0; i < pact.members.length; i += 1) for (let j = i + 1; j < pact.members.length; j += 1) {
+          const left = state.factions[pact.members[i]]; const right = state.factions[pact.members[j]];
+          relationScore += ((left?.relations?.[right.id] || 0) + (right?.relations?.[left.id] || 0)) / 2;
+          relationCount += 1;
+        }
+        relationScore /= Math.max(1, relationCount);
+        const obligationLoad = pact.members.reduce((sum, id) => sum + (pact.obligations[id] || 0), 0) / pact.members.length;
+        const pressure = frontPressure(pact.members) + (state.dreamRealm?.active && pact.members.includes('centralSects') ? state.dreamRealm.pressure * 0.012 : 0) + (state.shadowNetwork?.exposure && pact.members.includes('shadowSect') ? state.shadowNetwork.exposure * 0.01 : 0);
+        const marketRelief = state.facts.marketActivity ? 0.28 : 0;
+        pact.supply = clamp(pact.supply + marketRelief + avgInfluence * 0.003 - pressure - obligationLoad * 0.012, 0, 100);
+        pact.legitimacy = clamp(pact.legitimacy + relationScore * 0.012 + avgInfluence * 0.002 - avgTension * 0.003 + (pact.supply > 55 ? 0.12 : -0.18), -100, 100);
+        pact.cohesion = clamp(pact.cohesion + relationScore * 0.008 + (pact.supply > 42 ? 0.16 : -0.35) - avgTension * 0.002 - pressure * 0.12, 0, 100);
+        for (const faction of factions) {
+          const burden = faction.tension > 65 ? 0.26 : -0.14;
+          pact.obligations[faction.id] = clamp((pact.obligations[faction.id] || 0) + burden - (avgInfluence > 65 ? 0.08 : 0), 0, 100);
+        }
+        if (pact.legitimacy < 30 || pact.cohesion < 28 || pact.supply < 18) pact.status = 'strained';
+        else if (pact.status === 'strained' && pact.legitimacy > 48 && pact.cohesion > 42 && pact.supply > 35) pact.status = 'active';
+        if (pact.status === 'strained' && day(state) % 3 === 0 && (pact.legitimacy < 8 || pact.cohesion < 14 || pact.supply < 6)) {
+          const departed = factions.slice().sort((a, b) => (a.influence - a.tension * 0.8) - (b.influence - b.tension * 0.8))[0];
+          pact.members = pact.members.filter(id => id !== departed.id);
+          pact.defections += 1;
+          pact.status = pact.members.length < 2 ? 'broken' : 'defected';
+          ledger.diplomacyPressure = clamp(ledger.diplomacyPressure + 5, 0, 100);
+          const record = factionPacts.record(state, pact, { day: day(state), kind: 'defection', actorId: departed.id, members: [...pact.members], reason: '承诺负担、战线压力与资源断裂使一方退出联盟。' });
+          for (const member of pact.members) { const faction = state.factions[member]; if (faction) { faction.tension += 2.5; faction.attitude -= 3; } }
+          const witness = engine.query(state, entity => entity.alive && entity.faction === departed.id)[0];
+          if (witness) remember(state, witness.id, 'world', { kind: 'defection', valence: -3, text: `${departed.name || departed.id}退出了一项旧有承诺，联盟从此留下裂口。`, facts: { pactId: pact.id, defection: departed.id } });
+          consequence(state, { kind: 'faction_defection', actorId: departed.id, factionId: departed.id, source: 'coalitionTick', location: witness?.position?.location, reason: '持续世界中的联盟因资源、压力与信任失衡自动倒戈。', data: { pactId: pact.id, departed: departed.id, members: pact.members, recordId: record.id }, tension: 2, pressure: 0.42 });
+          engine.emit(state, 'faction.coalition_changed', { pactId: pact.id, status: pact.status, change: 'defection', departed: departed.id, members: [...pact.members], legitimacy: pact.legitimacy, cohesion: pact.cohesion, supply: pact.supply });
+        }
+        engine.emit(state, 'faction.coalition_tick', { pactId: pact.id, status: pact.status, members: [...pact.members], legitimacy: pact.legitimacy, cohesion: pact.cohesion, supply: pact.supply, obligations: { ...pact.obligations } });
+      }
+      ledger.diplomacyPressure = clamp(ledger.diplomacyPressure * 0.995 + Object.values(ledger.pacts).filter(pact => pact.status === 'strained').length * 0.08, 0, 100);
+    }, 48);
 
     engine.registerSystem('day', 'dreamRealmTick', ({ state }) => {
       const realm = state.dreamRealm;

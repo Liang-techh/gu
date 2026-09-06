@@ -7,7 +7,7 @@
   // Gu-specific GoalHandlers. The Brain/GoalHandler runtime stays content
   // agnostic; this package turns the novel's people, rivalries and resources
   // into world mutations registered at boot.
-  function register({ engine, locations, clamp, relation, remember, log }) {
+  function register({ engine, locations, clamp, relation, remember, log, factionPacts }) {
     engine.registerGoal('secureResources', ({ state, npc, faction }) => {
       if (!['bambooForest', 'riverbank'].includes(npc.position.location)) return false;
       const zone = state.zones[npc.position.location];
@@ -70,7 +70,7 @@
     });
     engine.registerGoal('prepareAlliance', ({ state, npc }) => {
       state.facts.allianceInterest = (state.facts.allianceInterest || 0) + 1;
-      if (npc.faction === 'guYue') state.factions.guYue.relations.bai += 0.2;
+      if (npc.faction === 'guYue') { state.factions.guYue.relations.bai = (state.factions.guYue.relations.bai || 0) + 0.2; const pact = factionPacts?.upsert(state, ['guYue', 'bai'], { day: Math.floor(state.clock / 24) + 1, source: 'npcAlliancePreparation', legitimacy: 32, cohesion: 28, supply: 26 }); if (pact) { pact.legitimacy += 0.4; pact.obligations.guYue = Math.max(0, (pact.obligations.guYue || 0) - 0.1); } }
       return true;
     });
     return ['secureResources', 'findRelic', 'winRivalry', 'trade', 'protectBrother', 'avoidPlayer', 'findFood', 'gainRecognition', 'prepareAlliance'];

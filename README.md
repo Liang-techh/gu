@@ -50,6 +50,7 @@
 - 影宗隐秘网络：`shadowNetwork` 保存遗址、福地和中洲节点的控制、补给、隐蔽性、招募、情报、凝聚力和暴露度；NPC 可自主重建，玩家可招募、整理情报、隐藏或出卖暗线，网络会在日级系统中继续运转；
 - 状态反应型 AI 导演：影宗暴露度达到阈值后会动态生成 `shadowNetworkExposure` 局势窗口，玩家可以抹痕、套利、举报或忽略；导演不再只依赖固定章节日期和一次性旗标；
 - 持续梦境争夺：`dreamRealm` 保存梦道势力、中洲与两天异族的控制权、资源、污染和压力；NPC 学习、玩家梦境探索以及锚定、收割、稳定、破坏都会改变所有权，离线时仍会产生争夺行动；
+- 动态势力契约：`state.coalitions` 保存跨势力盟约的成员、信誉、凝聚力、补给、逐方义务、状态和倒戈历史；`coalitionTick` 会根据战争压力、市场供给、势力关系和紧张度自动恢复、承压、破裂或驱动一方倒戈；玩家可撮合盟约、兑现承诺、揭露隐性条件或公开退出，NPC 的备战、保护与调停目标也会为同一账本补充或消耗信用；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：30 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；
 - 小说事件结算包 [src/gu-event-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-event-rules.js>)：导演选择后的旗标、资源、关系、记忆、势力和战争后果通过统一事件注册表结算，模拟内核不再承载卷章事件处理器；
@@ -108,7 +109,7 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       54/54 passing
+ npm test       65/65 passing
 npm run check:canon  91/91 term/source checks
 npm run check:content  content schema valid
 npm run audit:long  365-day world audit

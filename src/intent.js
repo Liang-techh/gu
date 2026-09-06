@@ -43,6 +43,10 @@
       const mode = /抬价|抬高|加价/.test(q) ? 'raise' : /抵押|借元石|借钱/.test(q) ? 'mortgage' : /核验|验证|查证/.test(q) ? 'verify' : /观察|看看/.test(q) ? 'observe' : /情报|传闻/.test(q) ? 'rumor' : 'bid';
       return { ok: true, command: { type: 'action', id: 'auction_lot', mode }, label: `处理一笔拍卖会${mode === 'bid' ? '竞拍' : mode === 'observe' ? '行情观察' : mode === 'rumor' ? '情报交易' : mode === 'raise' ? '抬价' : mode === 'mortgage' ? '信用借贷' : '情报核验'}` };
     }
+    if (/撮合盟约|促成结盟|谈联盟|结盟/.test(q)) return { ok: true, command: { type: 'action', id: 'coalition_action', mode: 'broker' }, label: '撮合势力盟约' };
+    if (/兑现承诺|履行盟约|补给盟友/.test(q)) return { ok: true, command: { type: 'action', id: 'coalition_action', mode: 'pledge' }, label: '兑现势力承诺' };
+    if (/揭开盟约|公开条件|拆穿联盟/.test(q)) return { ok: true, command: { type: 'action', id: 'coalition_action', mode: 'expose' }, label: '揭开盟约隐性条件' };
+    if (/退出盟约|公开倒戈|背叛联盟|倒戈/.test(q)) return { ok: true, command: { type: 'action', id: 'coalition_action', mode: 'defect' }, label: '公开退出盟约' };
     if (/梦境.*锚点|建立锚点|占据梦境/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_realm_action', mode: 'stake' }, label: '建立梦境锚点' };
     if (/收割梦道|收割梦境|梦境资源/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_realm_action', mode: 'harvest' }, label: '收割梦道资源' };
     if (/稳定梦境|稳定边界|净化梦境/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_realm_action', mode: 'stabilize' }, label: '稳定梦境边界' };
