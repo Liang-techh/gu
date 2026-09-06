@@ -3,6 +3,8 @@
 > 研究范围：只使用 `reference/novel` 现有原文，并对照 `src/content.js`、`src/simulation.js`、`src/repeatable-systems.js`、`src/gu-director-rules.js` 与 `docs/SIMULATION_ARCHITECTURE.md`。
 >
 > 目标：把原文中最有驱动力的“爽点”拆成可重复行动、导演事件、NPC 记忆和势力状态，让玩家自由行动时仍能产生类似的紧张、反转和跃迁感；不把小说章节改写成线性任务树。
+>
+> 本轮独立研究 agent 对 `reference/novel` 做了全量只读核对：共 2,335 个文本文件，包含序章与第 1–6 卷，章节编号连续，未发现缺章。关键词分布显示“资源—传承—情报—身份—灾变”贯穿全书，因此以下设计优先模拟系统性爽点，而不是只复刻少数名场面。
 
 ## 一、结论摘要
 
