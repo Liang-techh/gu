@@ -34,6 +34,7 @@
 | Conversations + Parts | `src/conversation.js` + `CONVERSATION_DEFS` + `src/contracts.js` + NPC memory | 对话/委托条件、选项和后果可组合，交互结果不是唯一的剧情分支入口 |
 | Repeatable world actions | `src/repeatable-systems.js` + Action Registry | 演武、传承、巡逻、闯楼、拍卖和梦境探索通过注入式运行时复用同一资源、事件、伤势和时间推进规则 |
 | HistoryKit / HistorySpice | `SOURCE_NOTES` + `history` 账本 + 导演历史 | 小说因果作为可追溯素材，不能直接变成固定结局；导演和世界事件保留有限可回放依据 |
+| Event/quest content registration | `src/gu-director-rules.js` + `src/director.js` + event registry | 内容只声明触发条件和选择，内核负责候选评分、冷却、验证与推进，事件后果再回到统一状态/账本 |
 | Zone / Population / RPM | `locations` + `src/zone-builder.js` + 人口表 | 地点提供标签和邻接关系，区域资源与环境居民可由内容状态重建 |
 
 ## 不会直接照搬的部分

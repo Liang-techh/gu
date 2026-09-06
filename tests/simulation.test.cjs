@@ -481,6 +481,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.CONTRACTS.accept, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.arenaMatch, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.dreamDive, 'function');
+  assert.equal(typeof S.DIRECTOR_RULES.registerRules, 'function');
   assert.equal(typeof S.DIRECTOR.tick, 'function');
   assert.equal(typeof S.DIRECTOR.resolve, 'function');
   assert.ok(S.ENGINE.queryWith(state, 'identity', 'position', 'memory').length >= 10);
@@ -497,6 +498,8 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
+  assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
+  assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
   assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'playerNeeds', 'npcSimulation']);
   assert.deepEqual(snap.engine.registries.systems.day, ['worldDailyTick']);
