@@ -73,7 +73,44 @@
     engine.registerEventListener('local.object_follow', 'localTracePressure', ({ state, event }) => {
       if (['trace', 'relic'].includes(event.payload.kind)) state.director.pressure = clamp(state.director.pressure + (event.payload.actorId === 'player' ? 0.1 : 0.06), 0, 10);
     });
-    return ['rumorPropagation', 'zoneVisitAccounting', 'arenaCrowdActivity', 'inheritanceFrontierPressure', 'frontierWarPressure', 'towerCompetitionPressure', 'auctionMarketActivity', 'marketActivity', 'dreamRealmPressure', 'localResourceActivity', 'localTracePressure'];
+    engine.registerEventListener('npc.local_contact', 'localContactEncounter', ({ state, event }) => {
+      const npc = state.entities[event.payload.npcId];
+      if (!npc) return;
+      state.encounters ||= { sequence: 0, recent: [], lastByNpc: {} };
+      state.encounters.lastByNpc ||= {};
+      if (state.encounters.lastByNpc[npc.id] === state.clock) return;
+      state.encounters.sequence = (Number(state.encounters.sequence) || 0) + 1;
+      const encounter = {
+        id: `enc-${state.encounters.sequence}`,
+        npcId: npc.id,
+        targetId: event.payload.targetId || 'player',
+        location: event.payload.location,
+        cell: { ...(event.payload.cell || npc.position.cell) },
+        goal: event.payload.goal || npc.goals?.active || 'idle',
+        clock: state.clock,
+        status: 'new'
+      };
+      state.encounters.recent.unshift(encounter);
+      state.encounters.recent = state.encounters.recent.slice(0, 128);
+      state.encounters.lastByNpc[npc.id] = state.clock;
+      remember(state, 'player', npc.id, { kind: 'local-contact', valence: 1, text: `你在${locations[encounter.location]?.name || encounter.location}内与${npc.identity.name}近距离擦肩而过。`, facts: { lastLocalContact: state.clock, lastContactLocation: encounter.location, lastContactCell: encounter.cell } });
+      log(state, 'local_contact', `${npc.identity.name}进入了你的近距离遭遇范围。`, { npcId: npc.id, location: encounter.location, cell: encounter.cell, goal: encounter.goal });
+      const zone = state.zones[encounter.location];
+      if (zone) zone.activity += 1;
+    });
+    engine.registerEventListener('social.interaction', 'encounterInteraction', ({ state, event }) => {
+      if (event.payload.actorId !== 'player' && event.payload.targetId !== 'player') return;
+      const npcId = event.payload.actorId === 'player' ? event.payload.targetId : event.payload.actorId;
+      const encounter = [...(state.encounters?.recent || [])].find(item => item.npcId === npcId && item.status === 'new');
+      if (encounter) encounter.status = 'engaged';
+    });
+    engine.registerEventListener('combat.started', 'encounterCombat', ({ state, event }) => {
+      if (event.payload.attackerId !== 'player' && event.payload.defenderId !== 'player') return;
+      const npcId = event.payload.attackerId === 'player' ? event.payload.defenderId : event.payload.attackerId;
+      const encounter = [...(state.encounters?.recent || [])].find(item => item.npcId === npcId && item.status === 'new');
+      if (encounter) encounter.status = 'engaged';
+    });
+    return ['rumorPropagation', 'zoneVisitAccounting', 'arenaCrowdActivity', 'inheritanceFrontierPressure', 'frontierWarPressure', 'towerCompetitionPressure', 'auctionMarketActivity', 'marketActivity', 'dreamRealmPressure', 'localResourceActivity', 'localTracePressure', 'localContactEncounter', 'encounterInteraction', 'encounterCombat'];
   }
 
   return { register };

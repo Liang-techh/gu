@@ -174,6 +174,21 @@ test('active NPCs move inside the player area and emit local contact events', ()
   assert.ok(state.events.recent.some(event => event.type === 'npc.step'));
 });
 
+test('local contact becomes a durable encounter and is consumed by social interaction', () => {
+  let state = open(S.newWorld({ seed: 'encounter-ledger' }), 'observe');
+  const npc = state.entities.fangzheng;
+  state.entities.player.position.location = 'academy';
+  state.entities.player.position.cell = { x: 3, y: 2 };
+  npc.position.location = 'academy';
+  npc.position.cell = { x: 3, y: 1 };
+  S.ENGINE.emit(state, 'npc.local_contact', { npcId: npc.id, targetId: 'player', location: 'academy', cell: { ...npc.position.cell }, goal: 'socialize' });
+  assert.equal(state.encounters.recent[0].npcId, 'fangzheng');
+  assert.equal(state.encounters.recent[0].status, 'new');
+  assert.ok(state.entities.player.memory.episodes.some(item => item.kind === 'local-contact' && item.subjectId === 'fangzheng'));
+  state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'listen' });
+  assert.equal(state.encounters.recent[0].status, 'engaged');
+});
+
 test('environment affordances expose composable observe, forage, relic search and scouting interactions', () => {
   let state = open(S.newWorld({ seed: 'affordances' }), 'observe');
   assert.deepEqual(S.AFFORDANCES.available(state, state.entities.player).map(item => item.id), ['observeZone']);

@@ -81,11 +81,15 @@
       const latest = e.memory.episodes[0];
       const distance = S.LOCAL_MAP.distance(playerCell, e.position.cell);
       const proximity = distance === 0 ? '就在你身边' : distance === 1 ? '离你只有一步' : '几步之外';
+      const canInteract = distance <= 1;
       const familiarity = Number(r.fear || 0) >= 20 ? `对你保持警惕 · ${proximity}` : Number(r.trust || 0) >= 10 ? `愿意听你说话 · ${proximity}` : `尚未熟悉 · ${proximity}`;
       const offers = (s.contracts?.available || []).map(id => S.CONTRACT_DEFS.find(def => def.id === id)).filter(def => def?.giver === e.id && def.locations.includes(p.position.location));
       const active = Object.values(s.contracts?.active || {}).map(item => S.CONTRACT_DEFS.find(def => def.id === item.id)).filter(def => def?.giver === e.id);
       const conversations = S.CONVERSATION_RUNTIME.list(S.CONVERSATION_DEFS, s, e.id, { day: S.day });
-      return `<article class="person-card"><div class="person-heading"><span class="person-token">●</span><div><strong>${esc(e.identity.name)}</strong><span>${esc(e.identity.role)}</span></div></div><p class="familiarity">${familiarity}</p>${latest ? `<small>${esc(latest.text)}</small>` : ''}<div class="inline-actions">${button('交谈', { type: 'action', id: 'talk', target: e.id, mode: 'listen' })}${button('帮助', { type: 'action', id: 'talk', target: e.id, mode: 'help' })}${button('施压', { type: 'action', id: 'talk', target: e.id, mode: 'threaten' })}${button('挑战', { type: 'action', id: 'challenge', target: e.id }, false, 'danger')}${conversations.flatMap(def => def.choices.map(choice => button(choice.label, { type: 'action', id: 'conversation', target: e.id, conversationId: def.id, choiceId: choice.id }, false, 'choice'))).join('')}${offers.map(def => button('接受委托', { type: 'action', id: 'accept_contract', contractId: def.id }, false, 'choice')).join('')}${active.map(def => button('交付委托', { type: 'action', id: 'complete_contract', contractId: def.id }, false, 'choice')).join('')}</div></article>`;
+      const actionMarkup = canInteract
+        ? `${button('交谈', { type: 'action', id: 'talk', target: e.id, mode: 'listen' })}${button('帮助', { type: 'action', id: 'talk', target: e.id, mode: 'help' })}${button('施压', { type: 'action', id: 'talk', target: e.id, mode: 'threaten' })}${button('挑战', { type: 'action', id: 'challenge', target: e.id }, false, 'danger')}${conversations.flatMap(def => def.choices.map(choice => button(choice.label, { type: 'action', id: 'conversation', target: e.id, conversationId: def.id, choiceId: choice.id }, false, 'choice'))).join('')}${offers.map(def => button('接受委托', { type: 'action', id: 'accept_contract', contractId: def.id }, false, 'choice')).join('')}${active.map(def => button('交付委托', { type: 'action', id: 'complete_contract', contractId: def.id }, false, 'choice')).join('')}`
+        : '<small class="approach-hint">还隔着几步，先沿格点靠近。</small>';
+      return `<article class="person-card"><div class="person-heading"><span class="person-token">●</span><div><strong>${esc(e.identity.name)}</strong><span>${esc(e.identity.role)}</span></div></div><p class="familiarity">${familiarity}</p>${latest ? `<small>${esc(latest.text)}</small>` : ''}<div class="inline-actions">${actionMarkup}</div></article>`;
     }).join('');
   }
 

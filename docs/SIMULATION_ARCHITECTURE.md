@@ -190,6 +190,8 @@ NPC 目标还必须产出世界侧结果：采集会改变资源与势力影响�
 
 局部对象不只服务玩家 UI。`secureResources` 和 `findRelic` 目标会复用 `localObjects.visible/interact`，NPC 先在格点内接近资源或痕迹，再执行与玩家同一套消耗、调查、记忆和事件规则；因此资源可能在玩家抵达前被环境居民采走，线索也可能由 NPC 先发现并进入 `intel.leads`。玩家看到的是世界状态的局部投影，而不是专为玩家保留的交互按钮。
 
+`npc.local_contact` 是局部空间和社会运行时之间的边界事件：事件监听器会创建持久 `encounters` 记录、写入玩家对 NPC 的局部记忆并增加地点活动度；后续 `social.interaction` 或 `combat.started` 会消费这条遭遇。UI 因此只把近距离实体显示为可交涉对象，远处 NPC 即使已经被看见，也仍然需要玩家继续移动才能交谈或开战。
+
 ## 事件和 AI 导演
 
 事件分为两类：
