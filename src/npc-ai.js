@@ -65,7 +65,7 @@
     return [...new Set(candidates)];
   }
 
-  function tick(state, { engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence, brain, social }) {
+  function tick(state, { engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence, brain, social, combat }) {
     const currentPhase = phase(state);
     for (const npc of engine.queryWith(state, 'identity', 'position', 'needs', 'goals', 'schedule')) {
       if (npc.id === 'player' || !npc.alive || npc.agent) continue;
@@ -100,7 +100,11 @@
           const action = brain.takeAction(npc, engine, { state, npc, faction: npc.faction && state.factions[npc.faction] });
           npc.goals.history[0].status = action.status;
           npc.goals.history[0].result = action.result;
-          if (social && ['ambush', 'collectRumors', 'mediate', 'protectBrother', 'protectClan', 'socialize', 'trade'].includes(goal)) {
+          if (combat && ['ambush', 'patrol'].includes(goal)) {
+            const exchange = combat.npcAttack(state, npc, { engine, goal });
+            if (exchange) npc.goals.history[0].combatId = exchange.id;
+          }
+          if (social && ['collectRumors', 'mediate', 'protectBrother', 'protectClan', 'socialize', 'trade'].includes(goal)) {
             const interaction = social.act(state, npc, goal, { engine });
             if (interaction) npc.goals.history[0].interactionId = interaction.id;
           }
@@ -116,7 +120,11 @@
         }
         const result = engine.runGoal(goal, { state, npc, faction: npc.faction && state.factions[npc.faction] });
         if (npc.position.location === target) npc.goals.history[0].status = result === false ? 'failed' : 'complete';
-        if (social && ['ambush', 'collectRumors', 'mediate', 'protectBrother', 'protectClan', 'socialize', 'trade'].includes(goal) && npc.position.location === target) {
+        if (combat && ['ambush', 'patrol'].includes(goal) && npc.position.location === target) {
+          const exchange = combat.npcAttack(state, npc, { engine, goal });
+          if (exchange) npc.goals.history[0].combatId = exchange.id;
+        }
+        if (social && ['collectRumors', 'mediate', 'protectBrother', 'protectClan', 'socialize', 'trade'].includes(goal) && npc.position.location === target) {
           const interaction = social.act(state, npc, goal, { engine });
           if (interaction) npc.goals.history[0].interactionId = interaction.id;
         }

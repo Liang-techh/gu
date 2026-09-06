@@ -54,7 +54,7 @@ Projection / UI / 存档 / 日志
 
 实体还可以拥有运行时 `conditions.active` 状态效果。`src/condition.js` 提供状态的附着、刷新、查询、移除和计时；当前威胁会附着 `afraid`，冲突会附着 `wounded`，小时系统负责过期事件，NPC 目标选择会优先响应恐惧。这是对 Qud Parts/Events 边界的轻量抽象：状态不是一次性文本，而是可以被多个系统观察的组件。
 
-在此之上，`src/effect.js` 提供 Qud `EffectRack` 的通用实例层：效果拥有独立 `kind/id`、持续时间、强度、来源、叠加策略、数据载荷和 `onApply/onRefresh/onTick/onExpire/onRemove` 生命周期。当前冲突会给每次命中附着可叠加的 `wound` 效果，小时系统逐实体推进并发出 `effect.expired` 领域事件；因此“伤势”“中毒”“蛊虫反噬”“临时增益”可以共用同一运行时，而不必继续扩张条件或战斗专用分支。
+在此之上，`src/effect.js` 提供 Qud `EffectRack` 的通用实例层：效果拥有独立 `kind/id`、持续时间、强度、来源、叠加策略、数据载荷和 `onApply/onRefresh/onTick/onExpire/onRemove` 生命周期。当前冲突会给每次命中附着可叠加的 `wound` 效果，小时系统逐实体推进并发出 `effect.expired` 领域事件；因此“伤势”“中毒”“蛊虫反噬”“临时增益”可以共用同一运行时，而不必继续扩张条件或战斗专用分支。`src/combat.js` 是统一战斗解析器：玩家连续冲突、环境伤害、离线冲突和活跃 NPC 伏击都经由同一个 `damage/attack` 入口，自动写入部位、伤势、死亡、记忆、事件 provenance 和持久后果；NPC 额外使用 pair cooldown，避免同一小时重复交换。
 
 `src/knowledge.js` 把记忆中的事实进一步结构化为 `value / confidence / kind / clock / source / provenance`，并维护每个实体对其他实体的 `suspicion` 与身份 `masks`。传闻默认低置信度，亲历观察和秘密线索置信度更高；怀疑度达到阈值后，NPC AI 会优先调查、观察或避开玩家。这样“谁知道什么”成为世界状态，而不只是日志文本。
 
@@ -113,7 +113,7 @@ Projection / UI / 存档 / 日志
 
 `src/body.js` 把 Body 从普通 JSON 字段提升为可组合运行时：部位完整度、失能阈值、随机命中、伤口记录和治疗都有独立 API。`src/equipment.js` 进一步提供 Qud `Equipment`/装载部件边界：蛊虫可以占用槽位，装备记录装卸历史，并在装备时验证所需身体部位。`src/ability.js` 在发动蛊术时读取 Body 约束，因此伤势会改变可用能力，而不是只改变一条生命值；伤害结算仍通过 `combat.damage` 领域事件通知记忆、状态和势力系统。`src/effect.js` 则把效果实例从 Body/Combat 中拆开，允许后续把蛊虫副作用、环境危害、药效和临时修行状态接入同一套生命周期。
 
-NPC 行为运行时位于 `src/npc-ai.js`。它只依赖组件查询、地点图、时钟、随机源和 GoalHandler 回调：先把恐惧、饥饿、安全感、性格、势力紧张、玩家关系和近期目标历史转换成效用分数，再沿地点图移动，最后执行目标并记录遭遇记忆。具体的 `secureResources`、`prepareAlliance` 等目标仍由内容规则注册，因此同一 AI 层可以服务青茅山 NPC、北原部族或未来其他内容包；`goals.history` 会降低短期重复目标，避免 NPC 只按数组轮询。
+NPC 行为运行时位于 `src/npc-ai.js`。它只依赖组件查询、地点图、时钟、随机源和 GoalHandler 回调：先把恐惧、饥饿、安全感、性格、势力紧张、玩家关系和近期目标历史转换成效用分数，再沿地点图移动，最后执行目标、社会交互或战斗并记录遭遇记忆。具体的 `secureResources`、`prepareAlliance` 等目标仍由内容规则注册，因此同一 AI 层可以服务青茅山 NPC、北原部族或未来其他内容包；`goals.history` 会降低短期重复目标，避免 NPC 只按数组轮询。`ambush/patrol` 目标可以调用 Combat runtime 选择同场敌对实体，NPC 不再只是“提高危险度”的文本标记。
 
 `src/goal-handler.js` 是可恢复的目标栈运行时：`pushGoal`、`pushChildGoal`、`insertGoalAsParent`、`pop`、`moveTowards` 和 `takeAction` 对齐 Qud 的 GoalHandler/MoveTo/Wait 边界。NPC 每个 AI 周期只推进当前 handler 的一个步骤；移动未完成时不会提前执行目标，抵达后才调用注册的目标处理器，子目标完成后把控制权交还父目标。栈帧包含父子关系、阶段、尝试次数、最后动作时钟和结果，能够存档、审计和继续执行。
 
@@ -149,7 +149,7 @@ NPC 目标还必须产出世界侧结果：采集会改变资源与势力影响�
 - `director_event`：导演观察世界条件后生成的局势节点，例如竹林酒香、学堂竞争、商队消息。
 - `combat`：实体间的连续冲突；攻击写入身体部位、伤口、死亡和对方记忆。
 
-规则事件会写入带持久 `sequence` 的 `events.pending` 领域事件流，例如 `world.travel`、`npc.goal_action`、`social.interaction` 和 `combat.damage`。每个事件按 `before → resolve → after → settled` 阶段运行；监听器可按阶段和优先级注册，before 可以取消，resolve 可以消费，after 负责收尾。队列只保留最近窗口，但序列号不会回绕；外部导演、调试器或未来的回放系统可以消费这些事件，不需要解析 UI 日志。注册动作还支持 `before/after` hooks，当前用于记录动作指标，未来可以接入通用消耗、权限、冷却和反应规则。
+规则事件会写入带持久 `sequence` 的 `events.pending` 领域事件流，例如 `world.travel`、`npc.goal_action`、`social.interaction`、`combat.started`、`combat.exchange` 和 `combat.damage`。每个事件按 `before → resolve → after → settled` 阶段运行；监听器可按阶段和优先级注册，before 可以取消，resolve 可以消费，after 负责收尾。队列只保留最近窗口，但序列号不会回绕；外部导演、调试器或未来的回放系统可以消费这些事件，不需要解析 UI 日志。注册动作还支持 `before/after` hooks，当前用于记录动作指标，未来可以接入通用消耗、权限、冷却和反应规则。
 
 运行时还提供事件监听器注册表。事件发出后，监听器可以为区域活动、危险度或统计账本添加派生后果；例如移动事件由区域访问监听器结算，演武和传承事件由各自的区域压力监听器结算。监听器不替代持久事件队列，而是把 Qud 式事件边界变成可组合的规则扩展点。
 

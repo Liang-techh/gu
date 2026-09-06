@@ -733,6 +733,23 @@ test('entity conflict uses body components, combat events and NPC memory', () =>
   assert.ok(state.history.events.some(event => event.type === 'ability_used'));
 });
 
+test('active NPC ambush uses the same combat runtime as player conflict', () => {
+  const state = S.newWorld({ seed: 'npc-combat' });
+  const raider = S.ENTITY.createEntity('active-raider', { name: '主动伏击者', location: 'academy', faction: 'demonic', goals: ['ambush'], schedule: { morning: 'academy', afternoon: 'academy', evening: 'academy', night: 'academy' } });
+  const defender = S.ENTITY.createEntity('active-defender', { name: '驻守弟子', location: 'academy', faction: 'guYue', goals: ['guard'], schedule: { morning: 'academy', afternoon: 'academy', evening: 'academy', night: 'academy' } });
+  state.entities[raider.id] = raider;
+  state.entities[defender.id] = defender;
+  const before = defender.body.health;
+  const exchange = S.COMBAT.npcAttack(state, raider, { engine: S.ENGINE, goal: 'ambush' });
+  assert.equal(exchange.ok, true);
+  assert.ok(defender.body.health < before);
+  assert.ok(defender.body.wounds.some(wound => wound.sourceId === raider.id));
+  assert.ok(state.combatLedger.exchanges.some(item => item.id === exchange.id));
+  assert.ok(state.events.recent.some(event => event.type === 'combat.damage' && event.payload.sourceId === raider.id));
+  assert.ok(defender.memory.episodes.some(item => item.kind === 'injury'));
+  assert.equal(S.COMBAT.npcAttack(state, raider, { engine: S.ENGINE, goal: 'ambush' }), false);
+});
+
 test('body component constraints can disable a gu ability without deleting the gu', () => {
   const state = open(S.newWorld({ seed: 'body-components' }), 'observe');
   const player = state.entities.player;
