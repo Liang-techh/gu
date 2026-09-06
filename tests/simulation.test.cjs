@@ -264,6 +264,32 @@ test('NPC goals produce world-side consequences, not only text', () => {
   assert.ok(state.log.some(entry => entry.type === 'npc_goal_action'));
 });
 
+test('NPC-to-NPC interaction shares the player social resolver and leaves memory', () => {
+  const state = S.newWorld({ seed: 'npc-social' });
+  const actor = state.entities.fangzheng;
+  const target = state.entities.mobei;
+  actor.position.location = target.position.location = 'academy';
+  const result = S.SOCIAL.act(state, actor, 'socialize', { engine: S.ENGINE, target });
+  assert.equal(result.ok, true);
+  assert.ok(state.social.recent.some(item => item.id === result.id && item.actorId === actor.id && item.targetId === target.id));
+  assert.ok(state.events.recent.some(event => event.type === 'social.interaction' && event.payload.socialId === result.id && event.payload.autonomous));
+  assert.ok(target.memory.episodes.some(item => item.kind === 'conversation' && item.subjectId === actor.id));
+  assert.ok(actor.memory.episodes.some(item => item.kind === 'conversation' && item.subjectId === target.id));
+  assert.equal(S.SOCIAL.act(state, actor, 'socialize', { engine: S.ENGINE, target }), false);
+});
+
+test('NPC AI can trigger autonomous social interaction during a scheduled turn', () => {
+  let state = open(S.newWorld({ seed: 'npc-social-ai' }), 'observe');
+  state.entities.fangzheng.goals.queue = ['socialize'];
+  state.entities.mobei.goals.queue = ['socialize'];
+  state.entities.fangzheng.personality.ambition = 0;
+  state.entities.mobei.personality.ambition = 0;
+  state.entities.fangzheng.position.location = 'academy';
+  state.entities.mobei.position.location = 'academy';
+  state = ok(state, { type: 'action', id: 'wait', hours: 4 });
+  assert.ok(state.social.recent.some(item => item.actorId === 'fangzheng' || item.actorId === 'mobei' || item.targetId === 'fangzheng' || item.targetId === 'mobei'));
+});
+
 test('faction pressure changes NPC goal selection', () => {
   const state = S.newWorld({ seed: 'faction-ai' });
   state.factions.black.tension = 82;

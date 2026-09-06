@@ -38,10 +38,10 @@
 
 `XRL.World.Faction` 不只是名称：它拥有玩家声誉、对其他势力的 feeling、rank、兴趣列表、秘密买卖偏好、圣地和可继承的父势力关系。Faction 可以决定交易、情报购买、敬拜、敌对和任务反应。
 
-当前项目已经有势力 influence/attitude/tension、关系网络、情报案件和市场；`src/content.js` 的 `FACTION_INTERESTS` 现在声明各势力的买入品、卖出品、动机、资源偏置和战争动员/后勤压力。`market.js` 只负责通用 quote/trade 结算，并把交易量、金库与持仓倾向写回 `faction.market`；Zone 离线居民也读取同一份兴趣，形成 faction → economy → region → AI 的反馈链。
+当前项目已经有势力 influence/attitude/tension、关系网络、情报案件和市场；`src/content.js` 的 `FACTION_INTERESTS` 现在声明各势力的买入品、卖出品、动机、资源偏置和战争动员/后勤压力。`market.js` 只负责通用 quote/trade 结算，并把交易量、金库与持仓倾向写回 `faction.market`；Zone 离线居民也读取同一份兴趣，形成 faction → economy → region → AI 的反馈链。`social.js` 进一步让玩家与 NPC-NPC 交互共用同一套关系、记忆和事件解析器。
 
 ## 已迁移与未迁移
 
 已迁移：组合式实体、组件生命周期注册表、可排序且按阶段取消/消费的领域事件、区域资源与活动、记忆/知识、身份面具、追捕代理人、动态委托、共享市场，以及带父子 GoalHandler 的 Brain 感知—决策—计划—执行轨迹。
 
-尚未完成：更多命名 NPC 的按需区域加载，以及更完整的效果定义内容包。事件阶段、可恢复的多层 GoalHandler、Body 的部位失能与蛊术约束、EffectRack 风格效果实例、环境实体缓存、区域挂起、离线居民经济/迁徙/巡逻/备战/冲突结算的第一版都已落地；仍需把更多蛊虫、药效和环境危害迁入效果定义，并继续扩大离线结算的策略与内容覆盖。这些是继续完全重构时的明确工程清单。
+尚未完成：更多命名 NPC 的按需区域加载，以及更完整的效果定义内容包。事件阶段、可恢复的多层 GoalHandler、Body 的部位失能与蛊术约束、EffectRack 风格效果实例、玩家/NPC-NPC 统一社会交互、环境实体缓存、区域挂起、离线居民经济/迁徙/巡逻/备战/冲突结算的第一版都已落地；仍需把更多蛊虫、药效和环境危害迁入效果定义，并继续扩大离线结算的策略与内容覆盖。这些是继续完全重构时的明确工程清单。

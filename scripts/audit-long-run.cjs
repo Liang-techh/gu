@@ -29,6 +29,8 @@ for (const zone of Object.values(state.zones)) {
 }
 assert.ok(state.events.pending.length <= 128);
 assert.ok(state.events.recent.length <= 256);
+assert.ok(state.events.history.length <= 512);
+assert.equal(new Set(state.events.history.map(event => event.id)).size, state.events.history.length);
 assert.ok(state.history.events.length <= 256);
 assert.ok(state.history.snapshots.length <= 64);
 assert.doesNotThrow(() => S.validate(JSON.stringify(state)));

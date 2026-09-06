@@ -65,7 +65,7 @@
     return [...new Set(candidates)];
   }
 
-  function tick(state, { engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence, brain }) {
+  function tick(state, { engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence, brain, social }) {
     const currentPhase = phase(state);
     for (const npc of engine.queryWith(state, 'identity', 'position', 'needs', 'goals', 'schedule')) {
       if (npc.id === 'player' || !npc.alive || npc.agent) continue;
@@ -100,6 +100,10 @@
           const action = brain.takeAction(npc, engine, { state, npc, faction: npc.faction && state.factions[npc.faction] });
           npc.goals.history[0].status = action.status;
           npc.goals.history[0].result = action.result;
+          if (social && ['ambush', 'collectRumors', 'mediate', 'protectBrother', 'protectClan', 'socialize', 'trade'].includes(goal)) {
+            const interaction = social.act(state, npc, goal, { engine });
+            if (interaction) npc.goals.history[0].interactionId = interaction.id;
+          }
         }
       } else {
         const route = engine.findPath(state.locations, npc.position.location, target);
@@ -112,6 +116,10 @@
         }
         const result = engine.runGoal(goal, { state, npc, faction: npc.faction && state.factions[npc.faction] });
         if (npc.position.location === target) npc.goals.history[0].status = result === false ? 'failed' : 'complete';
+        if (social && ['ambush', 'collectRumors', 'mediate', 'protectBrother', 'protectClan', 'socialize', 'trade'].includes(goal) && npc.position.location === target) {
+          const interaction = social.act(state, npc, goal, { engine });
+          if (interaction) npc.goals.history[0].interactionId = interaction.id;
+        }
       }
       if (npc.position.location === state.entities.player.position.location && random(state) < 0.12) {
         remember(state, npc.id, 'player', { kind: 'encounter', valence: relValence(state, npc.id), text: `在${locations[npc.position.location].name}再次遇见了你。` });
