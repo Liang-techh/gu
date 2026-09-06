@@ -366,6 +366,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(S.ENGINE.COMPONENTS.includes('memory'));
   assert.equal(typeof S.ENTITY.createEntity, 'function');
   assert.equal(typeof S.NPC_AI.selectGoal, 'function');
+  assert.equal(typeof S.DEFAULT_GOALS.register, 'function');
   assert.equal(typeof S.DIRECTOR.tick, 'function');
   assert.equal(typeof S.DIRECTOR.resolve, 'function');
   assert.ok(S.ENGINE.queryWith(state, 'identity', 'position', 'memory').length >= 10);
@@ -375,6 +376,8 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.eventStream.length > before);
   assert.ok(snap.eventStream.some(event => event.type === 'world.travel'));
   assert.ok(snap.engine.registries.goals.includes('secureResources'));
+  assert.ok(snap.engine.registries.goals.includes('study'));
+  assert.ok(snap.engine.registries.goals.includes('patrol'));
   assert.ok(snap.engine.registries.interactions.includes('help'));
   assert.ok(snap.engine.registries.events.includes('wolfTide'));
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);

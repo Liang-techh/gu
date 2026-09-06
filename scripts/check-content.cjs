@@ -4,6 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const C = require('../src/content.js');
+const S = require('../src/simulation.js');
 
 const root = path.resolve(__dirname, '..');
 const errors = [];
@@ -11,6 +12,7 @@ const fail = message => errors.push(message);
 const locationIds = new Set(Object.keys(C.LOCATIONS));
 const factionIds = new Set(Object.keys(C.FACTION_SEEDS));
 const npcIds = new Set(Object.keys(C.NPC_SEEDS));
+const goalIds = new Set(S.ENGINE.registries().goals);
 
 for (const [id, location] of Object.entries(C.LOCATIONS)) {
   if (!Array.isArray(location.neighbors) || !location.neighbors.length) fail(`location ${id} has no neighbors`);
@@ -27,6 +29,7 @@ for (const [populationId, entries] of Object.entries(C.POPULATION_TABLES)) {
   for (const entry of entries) {
     if (!entry.role || !Array.isArray(entry.goals) || !entry.goals.length) fail(`population ${populationId} has incomplete entry`);
     if (entry.faction && !factionIds.has(entry.faction)) fail(`population ${populationId} references missing faction ${entry.faction}`);
+    for (const goal of entry.goals || []) if (!goalIds.has(goal)) fail(`population ${populationId} references unhandled goal ${goal}`);
   }
 }
 
@@ -34,6 +37,7 @@ for (const [id, npc] of Object.entries(C.NPC_SEEDS)) {
   if (!npc.name || !npc.role || !locationIds.has(npc.location)) fail(`npc ${id} has incomplete identity/location`);
   if (npc.faction && !factionIds.has(npc.faction)) fail(`npc ${id} references missing faction ${npc.faction}`);
   if (!Array.isArray(npc.goals) || !npc.goals.length) fail(`npc ${id} has no goals`);
+  for (const goal of npc.goals || []) if (!goalIds.has(goal)) fail(`npc ${id} references unhandled goal ${goal}`);
   for (const [period, target] of Object.entries(npc.schedule || {})) if (!locationIds.has(target)) fail(`npc ${id} schedule ${period} points to ${target}`);
   if (npc.fromDay !== undefined && (!Number.isInteger(npc.fromDay) || npc.fromDay < 1)) fail(`npc ${id} has invalid fromDay`);
 }
