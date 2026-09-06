@@ -68,7 +68,7 @@
   }
 
   function sceneText(id) {
-    const texts = { academy: '雨水敲在学堂檐角。家老在观察谁更像一块值得下注的玉，少年们也在互相寻找破绽。', village: '吊楼的灯火沿山腰铺开。这里有家族秩序，也有交易、传闻和无法被写进族谱的秘密。', ancestralHall: '香火和权力在同一座祠堂里升起。每一句话都会被不同的人解释成不同的立场。', bambooForest: '竹叶洗过雨，气味比记忆更诚实。这里的机缘不会主动等人，但也不会因为主线没有安排就消失。', riverbank: '山溪把脚印和酒香带向更深处。水面平静，水下的因果并不平静。', cliffCave: '石缝里残留着不属于今夜的痕迹。你看到的每一件东西，都可能成为别人的记忆。', caravanCamp: '商队暂时停在寨外，货物、消息和立场一起流动。' }; return texts[id] || '世界在自行运转。';
+    const texts = { academy: '雨水敲在学堂檐角。家老在观察谁更像一块值得下注的玉，少年们也在互相寻找破绽。', village: '吊楼的灯火沿山腰铺开。这里有家族秩序，也有交易、传闻和无法被写进族谱的秘密。', ancestralHall: '香火和权力在同一座祠堂里升起。每一句话都会被不同的人解释成不同的立场。', bambooForest: '竹叶洗过雨，气味比记忆更诚实。这里的机缘不会主动等人，但也不会因为主线没有安排就消失。', riverbank: '山溪把脚印和酒香带向更深处。水面平静，水下的因果并不平静。', cliffCave: '石缝里残留着不属于今夜的痕迹。你看到的每一件东西，都可能成为别人的记忆。', caravanCamp: '商队暂时停在寨外，货物、消息和立场一起流动。', whiteBoneMountain: '白骨山道脱离了山寨的保护，赶路、补给和伏击都成为独立的生存问题。', merchantCity: '商家城把交易、演武、贵宾身份和家族派系压缩在城墙之内。每一次胜负都会改变你的价格。', threeForkMountain: '三叉山的三道传承光柱周期性开启。传承不是宝箱，而是会消耗队伍、抬高难度并制造新的敌人。', heavenClimbMountain: '天梯山的传承消息来自更高层级的门派世界。这里的竞争不只比较蛊力，也比较意志与资格。' }; return texts[id] || '世界在自行运转。';
   }
   function combatPanel(s) {
     const c = s.combat;
@@ -82,6 +82,8 @@
     if (here === 'academy') out.unshift(button('听课', { type: 'action', id: 'study' }));
     if (['bambooForest', 'riverbank', 'cliffCave'].includes(here)) out.unshift(button('探索 / 采集', { type: 'action', id: 'gather' }));
     if (here === 'academy' || here === 'village') out.push(button('炼化月光蛊', { type: 'action', id: 'refine', guId: 'moonlight' }));
+    if (here === 'merchantCity' && s.arena.active) out.push(button(`参加演武（${s.arena.wins}胜/${s.arena.matches}场）`, { type: 'action', id: 'arena_match' }, false, 'choice'));
+    if (here === 'threeForkMountain' && s.inheritance.active && !s.inheritance.completed) out.push(button(`挑战传承第${s.inheritance.round + 1}轮`, { type: 'action', id: 'inheritance_round' }, false, 'choice'));
     return out.concat(S.LOCATIONS[here].neighbors.map(id => button(`去${S.LOCATIONS[id].name}`, { type: 'action', id: 'travel', location: id }, false, 'travel')));
   }
   function wire() {

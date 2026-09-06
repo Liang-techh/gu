@@ -155,6 +155,8 @@
       flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false },
       events: { active: null, pending: [], history: [], sequence: 0 },
       combat: null,
+      arena: { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 },
+      inheritance: { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false },
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
       log: [],
       version: 1
@@ -406,7 +408,7 @@
     });
     Engine.registerEvent('merchantArena', ({ state, choice, event }) => {
       const p = state.entities.player;
-      state.flags.arenaTrial = true; state.facts.arena = { firstTrialDay: day(state) };
+      state.flags.arenaTrial = true; state.arena.active = true; state.facts.arena = { firstTrialDay: day(state) };
       if (choice === 'fight') { p.needs.energy -= 15; p.cultivation.progress += 12; state.factions.shang.influence += 3; remember(state, 'weiyang', 'player', { kind: 'arena', valence: 4, text: '你愿意用公开胜负证明自己的价值。' }); }
       if (choice === 'recruit') { p.cultivation.insight += 7; relation(state, 'player', 'weiyang').trust += 8; relation(state, 'player', 'shangxinci').trust += 5; }
       if (choice === 'trade') { p.inventory.stones = Math.max(0, p.inventory.stones - 2); p.inventory.water += 3; state.facts.threeKingsRumor = true; }
@@ -415,7 +417,7 @@
     });
     Engine.registerEvent('threeKingsInheritance', ({ state, choice, event }) => {
       const p = state.entities.player;
-      state.flags.threeKingsAwakened = true;
+      state.flags.threeKingsAwakened = true; state.inheritance.active = true;
       state.facts.threeKings = { firstEntryDay: day(state), attempts: 1 };
       state.zones.threeForkMountain.activity += 18; state.zones.threeForkMountain.danger += 14;
       if (choice === 'enter') { p.needs.energy -= 18; p.cultivation.progress += 18; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + 1; remember(state, 'player', 'world', { kind: 'inheritance', valence: 4, text: '你进入三王传承，发现传承本身也在筛选和消耗进入者。', facts: { enteredThreeKings: true } }); }
@@ -437,6 +439,10 @@
 
   function normalize(state) {
     const p = state.entities.player;
+    state.arena ||= { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 };
+    state.inheritance ||= { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false };
+    state.arena.matches = Math.max(0, Number(state.arena.matches) || 0); state.arena.wins = Math.max(0, Number(state.arena.wins) || 0); state.arena.losses = Math.max(0, Number(state.arena.losses) || 0); state.arena.streak = Math.max(0, Number(state.arena.streak) || 0); state.arena.reputation = Math.max(0, Number(state.arena.reputation) || 0);
+    state.inheritance.attempts = Math.max(0, Number(state.inheritance.attempts) || 0); state.inheritance.round = Math.max(0, Number(state.inheritance.round) || 0); state.inheritance.difficulty = Math.max(1, Number(state.inheritance.difficulty) || 1); state.inheritance.discoveries ||= [];
     p.cultivation.rank = clamp(p.cultivation.rank, 1, 9);
     p.cultivation.stage = clamp(p.cultivation.stage, 0, 3);
     p.cultivation.essenceMax = Math.max(20, Math.round(34 + p.cultivation.aptitude * 38 + p.cultivation.stage * 8 + (p.cultivation.rank - 1) * 12));
@@ -748,6 +754,47 @@
       log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);
       advance(state, 1, 'travel'); return;
     }
+    if (id === 'arena_match') {
+      if (p.position.location !== 'merchantCity' || !state.arena?.active) throw new Error('当前没有开放的商家城演武资格');
+      const opponentPower = 0.18 + Math.floor(state.arena.wins / 3) * 0.06 + random(state) * 0.16;
+      const playerPower = 0.28 + p.cultivation.rank * 0.08 + p.cultivation.insight * 0.008 + p.cultivation.aptitude * 0.08 + state.arena.streak * 0.015;
+      const win = random(state) < clamp(0.5 + playerPower - opponentPower, 0.12, 0.9);
+      state.arena.matches += 1;
+      if (win) {
+        state.arena.wins += 1; state.arena.streak += 1; state.arena.reputation += 3;
+        p.cultivation.progress += 4 + state.arena.streak * 0.4; state.factions.shang.influence += 0.4;
+        relation(state, 'player', 'weiyang').trust += 0.3;
+        remember(state, 'weiyang', 'player', { kind: 'arena', valence: 2, text: '你在演武场用连续胜利积累名声。' });
+        log(state, 'arena_match', `你在商家城演武场获胜，当前连胜 ${state.arena.streak} 场。`, { result: 'win', matches: state.arena.matches, wins: state.arena.wins });
+      } else {
+        state.arena.losses += 1; state.arena.streak = 0; state.arena.reputation = Math.max(0, state.arena.reputation - 1);
+        damageEntity(state, 'player', 3 + state.arena.losses * 0.4, 'arena', 'arena_strike'); p.needs.energy -= 8;
+        log(state, 'arena_match', '你在演武场落败，伤势和旁观者的判断一起留下。', { result: 'loss', matches: state.arena.matches, losses: state.arena.losses });
+      }
+      Engine.emit(state, 'arena.match', { result: win ? 'win' : 'loss', matches: state.arena.matches, wins: state.arena.wins, losses: state.arena.losses });
+      advance(state, 2, 'arena_match'); return;
+    }
+    if (id === 'inheritance_round') {
+      if (p.position.location !== 'threeForkMountain' || !state.inheritance?.active || state.inheritance.completed) throw new Error('当前没有可进入的三王传承');
+      const nextRound = state.inheritance.round + 1;
+      const difficulty = 1 + Math.floor((nextRound - 1) / 10) * 0.22 + state.inheritance.attempts * 0.015;
+      const power = 0.38 + p.cultivation.rank * 0.07 + p.cultivation.insight * 0.007 + p.cultivation.aptitude * 0.06;
+      const success = random(state) < clamp(0.72 + power - difficulty * 0.34, 0.08, 0.92);
+      state.inheritance.attempts += 1; state.inheritance.difficulty = difficulty;
+      if (success) {
+        state.inheritance.round = nextRound; state.inheritance.discoveries.push({ round: nextRound, clock: state.clock });
+        p.cultivation.progress += 3 + difficulty * 2; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + 1;
+        state.zones.threeForkMountain.activity += 5; state.facts.threeKingsAttempts = state.inheritance.attempts;
+        if (nextRound >= 30) state.inheritance.completed = true;
+        remember(state, 'player', 'world', { kind: 'inheritance', valence: 3, text: `你通过了三王传承第${nextRound}轮，下一轮的门槛更高。`, facts: { lastInheritanceRound: nextRound } });
+        log(state, 'inheritance_round', `你通过三王传承第 ${nextRound} 轮。`, { result: 'success', round: nextRound, difficulty });
+      } else {
+        p.needs.energy -= 10; damageEntity(state, 'player', 4 + difficulty * 2, 'inheritance', 'inheritance_trial');
+        log(state, 'inheritance_round', `你在三王传承第 ${nextRound} 轮受挫，传承拒绝了这次推进。`, { result: 'failure', round: nextRound, difficulty });
+      }
+      Engine.emit(state, 'inheritance.round', { result: success ? 'success' : 'failure', round: nextRound, difficulty, attempts: state.inheritance.attempts });
+      advance(state, 4, 'inheritance_round'); return;
+    }
     if (id === 'cultivate') {
       const cost = Math.max(6, Math.round(p.cultivation.essenceMax * 0.18));
       if (p.cultivation.essence < cost) throw new Error('真元不足');
@@ -837,6 +884,8 @@
     const place = [['academy', ['学堂']], ['village', ['山寨']], ['bambooForest', ['竹林']], ['riverbank', ['河滩', '山溪']], ['cliffCave', ['石缝', '遗藏']], ['caravanCamp', ['商队', '营地']], ['whiteBoneMountain', ['白骨山']], ['merchantCity', ['商家城']], ['threeForkMountain', ['三叉山', '传承']], ['heavenClimbMountain', ['天梯山', '狐仙福地']]];
     for (const [id, names] of place) if (names.some(name => q.includes(name)) && /去|走|前往|进入|回/.test(q)) return { ok: true, command: { type: 'action', id: 'travel', location: id }, label: `前往${LOCATIONS[id].name}` };
     if (/修炼|温养|打坐/.test(q)) return { ok: true, command: { type: 'action', id: 'cultivate' }, label: '温养空窍' };
+    if (/演武|比斗|擂台/.test(q)) return { ok: true, command: { type: 'action', id: 'arena_match' }, label: '参加演武' };
+    if (/三王传承|传承闯关|进入传承/.test(q)) return { ok: true, command: { type: 'action', id: 'inheritance_round' }, label: '挑战传承轮次' };
     if (/听课|学习/.test(q)) return { ok: true, command: { type: 'action', id: 'study' }, label: '听课' };
     if (/采集|采摘|取水|调查|探索|观察/.test(q)) return { ok: true, command: { type: 'action', id: 'gather' }, label: '探索并采集' };
     if (/休息|睡觉/.test(q)) return { ok: true, command: { type: 'action', id: 'rest' }, label: '休息' };
@@ -883,7 +932,7 @@
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
   }
 

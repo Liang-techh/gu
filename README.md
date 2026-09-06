@@ -13,6 +13,7 @@
 - 独立运行时内核：组件查询、领域事件流、GoalHandler 注册表和 Conversation/Interaction 注册表；
 - 独立内容包 [src/content.js](<D:\Caves of Qud\gu-rpg\src\content.js>)：地点、人口表、势力、人物、蛊虫和章节来源可按内容版本扩展；
 - 内容包已覆盖第一卷青茅山后段，以及第二卷白骨山—商家城—三叉山—天梯山的首批区域链；
+- 商家城演武与三王传承不是一次性剧情：可以反复行动，积累连胜、声望、轮次、难度、资源和伤势；
 - `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
 - 事件历史、导演事件和统一 `dispatch` 结算入口；
 - NPC 日程、目标选择、移动、饥饿/精力和同场遭遇记忆；

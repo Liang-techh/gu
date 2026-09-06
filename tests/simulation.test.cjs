@@ -170,8 +170,15 @@ test('volume two content pack opens merchant city, arena, inheritance and sect f
   if (state.events.active) state = ok(state, { type: 'resolve_event', choice: choices[state.events.active.id] });
   state = ok(state, { type: 'action', id: 'travel', location: 'merchantCity' });
   advance(60);
+  state = ok(state, { type: 'action', id: 'arena_match' });
+  state = ok(state, { type: 'action', id: 'arena_match' });
+  assert.equal(state.arena.matches, 2);
   state = ok(state, { type: 'action', id: 'travel', location: 'threeForkMountain' });
   advance(120);
+  state = ok(state, { type: 'action', id: 'inheritance_round' });
+  state = ok(state, { type: 'action', id: 'inheritance_round' });
+  state = ok(state, { type: 'action', id: 'inheritance_round' });
+  assert.equal(state.inheritance.round, 3);
   state = ok(state, { type: 'action', id: 'travel', location: 'heavenClimbMountain' });
   advance(120);
   assert.equal(state.flags.merchantCityOpened, true);
@@ -179,6 +186,8 @@ test('volume two content pack opens merchant city, arena, inheritance and sect f
   assert.equal(state.flags.threeKingsAwakened, true);
   assert.equal(state.flags.heavenClimbRumor, true);
   assert.equal(state.entities.shangxinci.identity.name, '商心慈');
+  assert.ok(state.history.events.some(entry => entry.type === 'arena_match'));
+  assert.ok(state.history.events.some(entry => entry.type === 'inheritance_round'));
   assert.ok(state.history.events.some(event => event.type === 'choice' && event.data?.source?.source?.endsWith('第124章.txt')));
 });
 
