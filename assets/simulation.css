@@ -24,7 +24,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .kicker, .event-tag, .scene-label { color: var(--gold); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
 .top-player { margin-top: 16px; }
 .top-player > .panel { border-color: #765e39; }
-.playfield { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, .9fr); gap: 18px; margin-top: 18px; align-items: start; }
+.playfield { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(300px, .88fr); gap: 18px; margin-top: 18px; align-items: start; }
 .road-column, .action-column { display: flex; flex-direction: column; gap: 18px; }
 .lower-field { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); gap: 18px; margin-top: 18px; }
 .scene, .panel, .director-event { background: linear-gradient(145deg, rgba(21,34,39,.96), rgba(13,22,26,.96)); border: 1px solid var(--line); border-radius: 8px; padding: 20px; box-shadow: 0 14px 40px #0004; }
@@ -97,5 +97,5 @@ footer { display: flex; justify-content: space-between; border-top: 1px solid va
 .loading { text-align: center; margin-top: 20vh; color: var(--muted); }
 .empty { color: var(--muted); padding: 14px 0; }
 .toast { position: fixed; right: 22px; bottom: 22px; background: var(--gold); color: #1b1710; padding: 9px 14px; border-radius: 4px; box-shadow: 0 8px 30px #0008; }
-@media (max-width: 860px) { .shell { padding: 18px 14px; } .playfield, .lower-field { grid-template-columns: 1fr; } .setup-grid { grid-template-columns: 1fr; } .topbar { align-items: start; } .top-actions { flex-direction: column; } .landing { padding: 22px; margin-top: 7vh; } }
+@media (max-width: 720px) { .shell { padding: 18px 14px; } .playfield, .lower-field { grid-template-columns: 1fr; } .setup-grid { grid-template-columns: 1fr; } .topbar { align-items: start; } .top-actions { flex-direction: column; } .landing { padding: 22px; margin-top: 7vh; } }
 @media (max-width: 560px) { .road-exits { grid-template-columns: repeat(2, 1fr); } .local-grid { gap: 2px; padding: 5px; } .local-tile { font-size: 14px; } .local-tile.player-here { font-size: 20px; } }
