@@ -113,7 +113,7 @@ Projection / UI / 存档 / 日志
 
 `src/body.js` 把 Body 从普通 JSON 字段提升为可组合运行时：部位完整度、失能阈值、随机命中、伤口记录和治疗都有独立 API。`src/equipment.js` 进一步提供 Qud `Equipment`/装载部件边界：蛊虫可以占用槽位，装备记录装卸历史，并在装备时验证所需身体部位。`src/ability.js` 在发动蛊术时读取 Body 约束，因此伤势会改变可用能力，而不是只改变一条生命值；伤害结算仍通过 `combat.damage` 领域事件通知记忆、状态和势力系统。`src/effect.js` 则把效果实例从 Body/Combat 中拆开，允许后续把蛊虫副作用、环境危害、药效和临时修行状态接入同一套生命周期。
 
-NPC 行为运行时位于 `src/npc-ai.js`。它只依赖组件查询、地点图、时钟、随机源和 GoalHandler 回调：先把恐惧、饥饿、安全感、性格、势力紧张、玩家关系和近期目标历史转换成效用分数，再沿地点图移动，最后执行目标并记录遭遇记忆。目标完成后的社会交互或战斗由内容系统注入 `goalAction` 回调，AI 内核不再硬编码“哪些目标必须交谈/攻击”。具体的 `secureResources`、`prepareAlliance` 等目标仍由内容规则注册，因此同一 AI 层可以服务青茅山 NPC、北原部族或未来其他内容包；`goals.history` 会降低短期重复目标，避免 NPC 只按数组轮询。`ambush/patrol` 目标可以由蛊真人内容包调用 Combat runtime 选择同场敌对实体，NPC 不再只是“提高危险度”的文本标记。
+NPC 行为运行时位于 `src/npc-ai.js`。它只依赖组件查询、地点图、时钟、随机源和 GoalHandler 回调：先把恐惧、饥饿、安全感、性格、势力紧张、玩家关系和近期目标历史转换成效用分数，再沿地点图移动，最后执行目标并记录遭遇记忆。`src/gu-goals.js` 负责把资源争夺、遗藏调查、学堂竞争、保护关系和势力结盟等小说目标注册进 Goal Registry；目标完成后的社会交互或战斗由内容系统注入 `goalAction` 回调，AI 内核不再硬编码“哪些目标必须交谈/攻击”。因此同一 AI 层可以服务青茅山 NPC、北原部族或未来其他内容包；`goals.history` 会降低短期重复目标，避免 NPC 只按数组轮询。
 
 `src/goal-handler.js` 是可恢复的目标栈运行时：`pushGoal`、`pushChildGoal`、`insertGoalAsParent`、`pop`、`moveTowards` 和 `takeAction` 对齐 Qud 的 GoalHandler/MoveTo/Wait 边界。NPC 每个 AI 周期只推进当前 handler 的一个步骤；移动未完成时不会提前执行目标，抵达后才调用注册的目标处理器，子目标完成后把控制权交还父目标。栈帧包含父子关系、阶段、尝试次数、最后动作时钟和结果，能够存档、审计和继续执行。
 

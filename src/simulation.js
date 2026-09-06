@@ -1,13 +1,14 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'), require('./gu-systems.js'), require('./gu-components.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat, root.GuSimulationGuSystems, root.GuSimulationGuComponents);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat, GuSystems, GuComponents) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'), require('./gu-systems.js'), require('./gu-components.js'), require('./gu-goals.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat, root.GuSimulationGuSystems, root.GuSimulationGuComponents, root.GuSimulationGuGoals);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat, GuSystems, GuComponents, GuGoals) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
   if (!Content) throw new Error('GuSimulationContent must load before simulation.js');
   if (!GuSystems) throw new Error('GuSimulationGuSystems must load before simulation.js');
   if (!GuComponents) throw new Error('GuSimulationGuComponents must load before simulation.js');
+  if (!GuGoals) throw new Error('GuSimulationGuGoals must load before simulation.js');
   if (!Identity) throw new Error('GuSimulationIdentity must load before simulation.js');
   if (!Pursuit) throw new Error('GuSimulationPursuit must load before simulation.js');
   if (!Agency) throw new Error('GuSimulationAgency must load before simulation.js');
@@ -349,74 +350,6 @@
       for (const key of Object.keys(zone.resources || {})) zone.resources[key] = Math.max(0, Number(zone.resources[key]) || 0);
     }
     ZoneRuntime.reconcile(state, p?.position?.location);
-  }
-
-  function registerGoalHandlers() {
-    Engine.registerGoal('secureResources', ({ state, npc, faction }) => {
-      if (!['bambooForest', 'riverbank'].includes(npc.position.location)) return false;
-      const zone = state.zones[npc.position.location];
-      if (zone?.resources.moonPetal > 0) { zone.resources.moonPetal -= 1; npc.inventory.moonPetal = (npc.inventory.moonPetal || 0) + 1; }
-      if (zone) zone.activity += 4;
-      if (faction) faction.influence += 0.4;
-      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'secureResources', location: npc.position.location, faction: npc.faction });
-      log(state, 'npc_goal_action', `${npc.identity.name}为了资源在${LOCATIONS[npc.position.location].name}搜寻。`, { npcId: npc.id, goal: 'secureResources' });
-      return true;
-    });
-    Engine.registerGoal('findRelic', ({ state, npc }) => {
-      if (!['bambooForest', 'riverbank', 'cliffCave'].includes(npc.position.location)) return false;
-      state.facts.relicInterest = (state.facts.relicInterest || 0) + 1;
-      state.director.pressure = clamp(state.director.pressure + 0.4, 0, 10);
-      remember(state, npc.id, 'world', { kind: 'secret', valence: 2, text: '竹林深处的遗藏并不只吸引一个人。', facts: { relicInterest: true } });
-      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'findRelic', location: npc.position.location, fact: 'relicInterest' });
-      log(state, 'npc_goal_action', `${npc.identity.name}在追查一条关于遗藏的线索。`, { npcId: npc.id, goal: 'findRelic' });
-      return true;
-    });
-    Engine.registerGoal('winRivalry', ({ state, npc }) => {
-      if (npc.position.location !== 'academy') return false;
-      state.factions.guYue.tension += 0.7;
-      relation(state, npc.id, 'fangzheng').affinity -= 1;
-      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'winRivalry', location: npc.position.location, faction: npc.faction });
-      log(state, 'npc_goal_action', `${npc.identity.name}在学堂争取表现，竞争压力上升。`, { npcId: npc.id, goal: 'winRivalry' });
-      return true;
-    });
-    Engine.registerGoal('trade', ({ state, npc, faction }) => {
-      if (!['caravanCamp', 'village'].includes(npc.position.location)) return false;
-      if (faction) faction.influence += 0.6;
-      state.facts.marketActivity = (state.facts.marketActivity || 0) + 1;
-      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'trade', location: npc.position.location, faction: npc.faction });
-      log(state, 'npc_goal_action', `${npc.identity.name}完成了一次交易，商路继续流动。`, { npcId: npc.id, goal: 'trade' });
-      return true;
-    });
-    Engine.registerGoal('protectBrother', ({ state }) => {
-      relation(state, 'fangzheng', 'fangyuan').trust += 0.4;
-      remember(state, 'fangzheng', 'fangyuan', { kind: 'family', valence: 1, text: '你仍然把方源视作需要证明自己的兄长。' });
-      return true;
-    });
-    Engine.registerGoal('avoidPlayer', ({ state, npc }) => {
-      npc.needs.safety = clamp(npc.needs.safety + 2, 0, 100);
-      remember(state, npc.id, 'player', { kind: 'avoidance', valence: -1, text: '你暂时不想和这个人再次碰面。' });
-      return true;
-    });
-    Engine.registerGoal('findFood', ({ state, npc }) => {
-      const zone = state.zones[npc.position.location];
-      if (!zone?.resources.food) return false;
-      zone.resources.food -= 1;
-      npc.needs.hunger = clamp(npc.needs.hunger - 18, 0, 100);
-      zone.activity += 2;
-      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'findFood', location: npc.position.location });
-      return true;
-    });
-    Engine.registerGoal('gainRecognition', ({ state, npc, faction }) => {
-      if (faction) faction.influence += 0.3;
-      state.director.pressure = clamp(state.director.pressure + 0.1, 0, 10);
-      remember(state, npc.id, 'world', { kind: 'ambition', valence: 1, text: `${npc.identity.name}在压力上升时选择争取存在感。` });
-      return true;
-    });
-    Engine.registerGoal('prepareAlliance', ({ state, npc }) => {
-      state.facts.allianceInterest = (state.facts.allianceInterest || 0) + 1;
-      if (npc.faction === 'guYue') state.factions.guYue.relations.bai += 0.2;
-      return true;
-    });
   }
 
   function registerInteractionHandlers() {
@@ -768,7 +701,7 @@
   eventRulesRuntime = EventRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES, activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening, pursuit: pursuitRuntime });
   directorRulesRuntime.registerRules();
   eventRulesRuntime.registerHandlers();
-  registerGoalHandlers();
+  GuGoals.register({ engine: Engine, locations: LOCATIONS, clamp, relation, remember, log });
   DefaultGoals.register({ engine: Engine, remember, market: marketRuntime, log });
   registerInteractionHandlers();
   registerEventListeners();
