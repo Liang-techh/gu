@@ -7,12 +7,11 @@
   // Gu-specific GoalHandlers. The Brain/GoalHandler runtime stays content
   // agnostic; this package turns the novel's people, rivalries and resources
   // into world mutations registered at boot.
-  function register({ engine, locations, clamp, relation, remember, log, factionPacts }) {
+  function register({ engine, locations, clamp, relation, remember, log, factionPacts, affordances }) {
     engine.registerGoal('secureResources', ({ state, npc, faction }) => {
       if (!['bambooForest', 'riverbank'].includes(npc.position.location)) return false;
-      const zone = state.zones[npc.position.location];
-      if (zone?.resources.moonPetal > 0) { zone.resources.moonPetal -= 1; npc.inventory.moonPetal = (npc.inventory.moonPetal || 0) + 1; }
-      if (zone) zone.activity += 4;
+      const result = affordances?.executeForActor('forage', state, npc);
+      if (!result) return false;
       if (faction) faction.influence += 0.4;
       engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'secureResources', location: npc.position.location, faction: npc.faction });
       log(state, 'npc_goal_action', `${npc.identity.name}为了资源在${locations[npc.position.location].name}搜寻。`, { npcId: npc.id, goal: 'secureResources' });
@@ -20,6 +19,8 @@
     });
     engine.registerGoal('findRelic', ({ state, npc }) => {
       if (!['bambooForest', 'riverbank', 'cliffCave'].includes(npc.position.location)) return false;
+      const result = affordances?.executeForActor('searchRelic', state, npc);
+      if (!result) return false;
       state.facts.relicInterest = (state.facts.relicInterest || 0) + 1;
       state.director.pressure = clamp(state.director.pressure + 0.4, 0, 10);
       remember(state, npc.id, 'world', { kind: 'secret', valence: 2, text: '竹林深处的遗藏并不只吸引一个人。', facts: { relicInterest: true } });

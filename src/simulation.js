@@ -279,8 +279,8 @@
   eventRulesRuntime = EventRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES, activateSeed: guWorldRuntime.activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening: guWorldRuntime.applyOpening, pursuit: pursuitRuntime, consequence: Consequence.record, factionPacts: FactionPacts });
   directorRulesRuntime.registerRules();
   eventRulesRuntime.registerHandlers();
-  GuGoals.register({ engine: Engine, locations: LOCATIONS, clamp, relation, remember, log, factionPacts: FactionPacts });
-  DefaultGoals.register({ engine: Engine, remember, market: marketRuntime, log, factionPacts: FactionPacts });
+  GuGoals.register({ engine: Engine, locations: LOCATIONS, clamp, relation, remember, log, factionPacts: FactionPacts, affordances: affordanceRuntime });
+  DefaultGoals.register({ engine: Engine, remember, market: marketRuntime, log, factionPacts: FactionPacts, affordances: affordanceRuntime });
   registerInteractionHandlers();
   GuListeners.register({ engine: Engine, rumor: Rumor, locations: LOCATIONS, remember, clamp, identity: Identity, knowledge: Knowledge, log });
   GuActions.register({

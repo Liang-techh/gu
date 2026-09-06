@@ -33,7 +33,7 @@
 - 统一 Combat runtime [src/combat.js](<D:\Caves of Qud\gu-rpg\src\combat.js>)：玩家战斗回合、环境伤害、离线冲突和活跃 NPC 伏击共用身体部位、伤势、Effect、死亡、记忆和战斗事件结算；攻击、蛊术、防守和脱身也都通过 Action Registry；
 - 统一组件包 [src/gu-components.js](<D:\Caves of Qud\gu-rpg\src\gu-components.js>)：身份、位置、势力、修为、需求、日程、目标、能力、库存、记忆、知识、状态、身体、装备、效果、Brain 和代理人均注册生命周期/序列化定义，不再只有裸 JSON 字段；
 - 独立行动目录 [src/action-catalog.js](<D:\Caves of Qud\gu-rpg\src\action-catalog.js>)：可用 command 根据当前世界状态生成，UI、自由意图解析和未来 AI 代理共享同一行动入口；
-- 区域交互 affordance 包 [src/gu-affordances.js](<D:\Caves of Qud\gu-rpg\src\gu-affordances.js>)：观察、采集、遗藏搜索和侦查通过 Interaction Registry 注册；有效性由当前区域、资源、标签和战区状态决定，执行后统一写入资源、记忆、事件、后果和时间，而不是再把环境动作硬编码在某个 UI 按钮里；
+- 区域交互 affordance 包 [src/gu-affordances.js](<D:\Caves of Qud\gu-rpg\src\gu-affordances.js>)：观察、采集、遗藏搜索和侦查通过 Interaction Registry 注册；有效性由当前区域、资源、标签和战区状态决定，玩家、NPC 和未来代理人共用同一处理器，执行后统一写入资源、记忆、事件、后果和时间，而不是再把环境动作硬编码在某个 UI 按钮里；
 - 基础行动全部进入 Action Registry：等待、旅行、修炼、学习、采集、休息、炼蛊、装备、交谈、挑战和势力影响不再由主模拟器的 ID 条件链直接分叉；
 - 内容系统包 [src/gu-systems.js](<D:\Caves of Qud\gu-rpg\src\gu-systems.js>)：小时级需求/状态/AI 与日级市场、区域、家族压力、战争和历史快照都通过可排序 System Registry 注册，世界推进不再藏在单一 daily tick 函数里；
 - NPC 内容目标包 [src/gu-goals.js](<D:\Caves of Qud\gu-rpg\src\gu-goals.js>)：资源争夺、遗藏调查、学堂竞争、保护关系、避开玩家和势力结盟等目标从模拟内核移出，通过 Goal Registry 注入世界；

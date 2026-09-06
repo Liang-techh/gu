@@ -315,6 +315,27 @@ test('NPC goals produce world-side consequences, not only text', () => {
   assert.ok(state.log.some(entry => entry.type === 'npc_goal_action'));
 });
 
+test('NPC resource and relic goals reuse the same environment interaction handlers without advancing player time', () => {
+  const state = S.newWorld({ seed: 'npc-affordances' });
+  const npc = S.ENTITY.createEntity('affordance-npc', { name: '环境行动者', location: 'bambooForest', faction: 'guYue', goals: ['secureResources'] });
+  state.entities[npc.id] = npc;
+  const beforeClock = state.clock;
+  const beforePetals = state.zones.bambooForest.resources.moonPetal;
+  assert.equal(S.ENGINE.runGoal('secureResources', { state, npc, faction: state.factions.guYue }), true);
+  assert.ok(npc.inventory.moonPetal > 0);
+  assert.ok(state.zones.bambooForest.resources.moonPetal < beforePetals);
+  assert.equal(state.clock, beforeClock);
+  assert.ok(state.events.recent.some(event => event.type === 'world.resource_gathered' && event.payload.actorId === npc.id));
+
+  npc.position.location = 'cliffCave';
+  assert.equal(S.ENGINE.runGoal('findRelic', { state, npc, faction: state.factions.guYue }), true);
+  assert.equal(state.clock, beforeClock);
+  assert.ok(state.events.recent.some(event => event.type === 'zone.relic_search' && event.payload.actorId === npc.id));
+  assert.ok(npc.memory.episodes.some(item => ['relic-clue', 'failed-search'].includes(item.kind)));
+  assert.ok(S.ENGINE.runGoal('observe', { state, npc }));
+  assert.ok(state.events.recent.some(event => event.type === 'zone.observed' && event.payload.actorId === npc.id));
+});
+
 test('NPC-to-NPC interaction shares the player social resolver and leaves memory', () => {
   const state = S.newWorld({ seed: 'npc-social' });
   const actor = state.entities.fangzheng;

@@ -7,7 +7,7 @@
   const DEFAULT_GOALS = {
     study: ({ state, npc, engine, remember }) => { npc.cultivation.insight += 0.4; npc.cultivation.progress += 0.3; const realm = state.dreamRealm; if (realm?.active && npc.position.location === 'dreamRealms' && realm.claims[npc.faction]) { realm.claims[npc.faction] = Math.min(100, realm.claims[npc.faction] + 0.8); realm.pressure = Math.min(100, realm.pressure + 0.25); remember(state, npc.id, 'world', { kind: 'dream-study', valence: 0.5, text: `${npc.identity.name}在梦境中整理认知，争夺一小块解释权。`, facts: { dreamStudy: true, faction: npc.faction } }); engine.emit(state, 'npc.dream_study', { npcId: npc.id, faction: npc.faction, claims: { ...realm.claims }, pressure: realm.pressure }); } },
     proveWorth: ({ npc, faction }) => { npc.cultivation.progress += 0.5; if (faction) faction.influence += 0.2; },
-    observe: ({ state, npc }) => { npc.cultivation.insight += 0.2; state.facts.observationCount = (state.facts.observationCount || 0) + 1; },
+    observe: ({ state, npc, affordances }) => { const shared = affordances?.executeForActor('observeZone', state, npc); if (shared) return shared; npc.cultivation.insight += 0.2; state.facts.observationCount = (state.facts.observationCount || 0) + 1; },
     hideKnowledge: ({ state, npc, remember }) => { state.facts.hiddenKnowledge = (state.facts.hiddenKnowledge || 0) + 1; remember(state, npc.id, 'world', { kind: 'secret', valence: 0, text: `${npc.identity.name}把关键知识留在心里，没有立刻公开。` }); },
     findTalents: ({ state, npc }) => { state.facts.talentSearch = (state.facts.talentSearch || 0) + 1; npc.cultivation.insight += 0.3; },
     socialize: ({ state, npc, remember }) => { state.facts.socialActivity = (state.facts.socialActivity || 0) + 1; remember(state, npc.id, 'world', { kind: 'social', valence: 0.5, text: `${npc.identity.name}在当前区域维持关系网络。` }); },
@@ -23,7 +23,7 @@
     forage: ({ state, npc }) => { const zone = state.zones[npc.position.location]; if (zone?.resources?.food > 0) { zone.resources.food -= 0.5; npc.needs.hunger = Math.max(0, npc.needs.hunger - 6); } },
     drink: ({ state, npc }) => { const zone = state.zones[npc.position.location]; if (zone?.resources?.water > 0) { zone.resources.water -= 0.5; npc.needs.hunger = Math.max(0, npc.needs.hunger - 3); } },
     guard: ({ state, npc }) => { const zone = state.zones[npc.position.location]; if (zone) { zone.danger = Math.max(0, zone.danger - 0.4); zone.activity += 0.5; } },
-    patrol: ({ state, npc, engine, log }) => { const zone = state.zones[npc.position.location]; if (zone) { zone.danger = Math.max(0, zone.danger - 0.6); zone.activity += 1; } const front = Object.values(state.worldWar?.fronts || {}).find(item => item.active && item.location === npc.position.location); if (front) { front.pressure = Math.max(0, front.pressure - 0.8); engine.emit(state, 'npc.war_patrol', { npcId: npc.id, frontId: front.id, location: front.location, pressure: front.pressure }); log(state, 'npc_war_patrol', `${npc.identity.name}沿着${state.locations[front.location]?.name || front.location}战线巡逻，暂时压低了局部压力。`, { npcId: npc.id, frontId: front.id }); } },
+    patrol: ({ state, npc, engine, log, affordances }) => { const zone = state.zones[npc.position.location]; if (zone) { zone.danger = Math.max(0, zone.danger - 0.6); zone.activity += 1; } affordances?.executeForActor('scoutZone', state, npc); const front = Object.values(state.worldWar?.fronts || {}).find(item => item.active && item.location === npc.position.location); if (front) { front.pressure = Math.max(0, front.pressure - 0.8); engine.emit(state, 'npc.war_patrol', { npcId: npc.id, frontId: front.id, location: npc.position.location, pressure: front.pressure }); log(state, 'npc_war_patrol', `${npc.identity.name}沿着${state.locations[front.location]?.name || front.location}战线巡逻，暂时压低了局部压力。`, { npcId: npc.id, frontId: front.id }); } },
     maintainOrder: ({ state, faction }) => { if (faction) faction.tension = Math.max(0, faction.tension - 0.25); state.director.pressure = Math.max(0, state.director.pressure - 0.02); },
     protectClan: ({ state, npc, faction, engine, factionPacts }) => { if (faction) { faction.influence += 0.15; faction.tension = Math.max(0, faction.tension - 0.1); } const front = Object.values(state.worldWar?.fronts || {}).find(item => item.active && item.location === npc.position.location && item.primaryFaction === npc.faction); if (front) { front.control = Math.min(100, front.control + 0.7); front.supply = Math.min(100, front.supply + 0.4); const pact = factionPacts?.upsert(state, [front.primaryFaction, front.opposingFaction], { day: Math.floor(state.clock / 24) + 1, source: 'npcProtection', legitimacy: 35, cohesion: 32, supply: 34 }); if (pact) { pact.supply = Math.min(100, pact.supply + 0.5); pact.obligations[npc.faction] = Math.max(0, (pact.obligations[npc.faction] || 0) - 0.3); } engine.emit(state, 'npc.war_protection', { npcId: npc.id, frontId: front.id, control: front.control, supply: front.supply }); } },
     protectFather: ({ npc }) => { npc.needs.safety = Math.min(100, npc.needs.safety + 0.8); },
@@ -37,8 +37,8 @@
     survive: ({ npc }) => { npc.needs.safety = Math.min(100, npc.needs.safety + 0.4); }
   };
 
-  function register({ engine, remember, market, log, factionPacts }) {
-    for (const [id, handler] of Object.entries(DEFAULT_GOALS)) engine.registerGoal(id, context => handler({ ...context, remember, market, factionPacts, engine, log }));
+  function register({ engine, remember, market, log, factionPacts, affordances }) {
+    for (const [id, handler] of Object.entries(DEFAULT_GOALS)) engine.registerGoal(id, context => handler({ ...context, remember, market, factionPacts, affordances, engine, log }));
     return Object.keys(DEFAULT_GOALS);
   }
 
