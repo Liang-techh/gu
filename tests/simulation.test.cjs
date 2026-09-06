@@ -380,6 +380,18 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.systems.day, ['worldDailyTick']);
 });
 
+test('action catalog derives available commands from world state instead of UI conditionals', () => {
+  let state = open(S.newWorld({ seed: 'action-catalog' }), 'observe');
+  let actions = S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS });
+  assert.ok(actions.some(action => action.id === 'study'));
+  assert.ok(actions.some(action => action.command.location === 'village'));
+  assert.equal(actions.some(action => action.id === 'arena_match'), false);
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  actions = S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS });
+  assert.ok(actions.some(action => action.id === 'refine'));
+  assert.ok(actions.every(action => action.command?.type === 'action'));
+});
+
 test('domain event sequence stays unique after the bounded stream rotates', () => {
   const state = S.newWorld({ seed: 'event-sequence' });
   for (let i = 0; i < 180; i++) S.ENGINE.emit(state, 'test.pulse', { i });

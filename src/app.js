@@ -78,16 +78,7 @@
   }
   function itemName(id) { return ({ water: '清水', moonPetal: '月兰花瓣', wine: '酒', stones: '元石', food: '食物', relicFragment: '遗藏碎片' }[id] || id); }
   function actionButtons(s) {
-    const here = s.entities.player.position.location; const out = [button('修炼', { type: 'action', id: 'cultivate' }), button('等待两小时', { type: 'action', id: 'wait', hours: 2 }), button('休息', { type: 'action', id: 'rest' })];
-    if (here === 'academy') out.unshift(button('听课', { type: 'action', id: 'study' }));
-    if (['bambooForest', 'riverbank', 'cliffCave'].includes(here)) out.unshift(button('探索 / 采集', { type: 'action', id: 'gather' }));
-    if (here === 'academy' || here === 'village') out.push(button('炼化月光蛊', { type: 'action', id: 'refine', guId: 'moonlight' }));
-    if (here === 'merchantCity' && s.arena.active) out.push(button(`参加演武（${s.arena.wins}胜/${s.arena.matches}场）`, { type: 'action', id: 'arena_match' }, false, 'choice'));
-    if (here === 'threeForkMountain' && s.inheritance.active && !s.inheritance.completed) out.push(button(`挑战传承第${s.inheritance.round + 1}轮`, { type: 'action', id: 'inheritance_round' }, false, 'choice'));
-    if (['northernPlains', 'blackTribeCamp'].includes(here) && s.frontier.opened) out.push(button(`北原巡逻（补给 ${Math.round(s.frontier.supply)}）`, { type: 'action', id: 'frontier_patrol' }, false, 'choice'));
-    if (here === 'trueYangTower' && s.tower.active) out.push(button(`闯真阳楼第${s.tower.floors + 1}层`, { type: 'action', id: 'tower_floor' }, false, 'choice'));
-    if (here === 'immortalAuction' && s.central.auctionActive) out.push(button(`参加仙蛊拍卖（已成交 ${s.central.lotsSold} 笔）`, { type: 'action', id: 'auction_lot', mode: 'bid' }, false, 'choice'));
-    return out.concat(S.LOCATIONS[here].neighbors.map(id => button(`去${S.LOCATIONS[id].name}`, { type: 'action', id: 'travel', location: id }, false, 'travel')));
+    return S.ACTION_CATALOG.list(s, { locations: S.LOCATIONS }).map(item => button(item.command.label || item.label, item.command, false, item.kind));
   }
   function wire() {
     document.querySelectorAll('[data-command]').forEach(el => el.addEventListener('click', () => run(JSON.parse(el.dataset.command))));
