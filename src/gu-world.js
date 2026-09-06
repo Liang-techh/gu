@@ -134,6 +134,7 @@
         frontier: { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 },
         tower: { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false },
         central: { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, auctionHeat: 0, sectPressure: 0, marketSupply: 72, marketScarcity: 28, rumorCredibility: 58, marketDebt: 0, marketReputation: 0, tracePressure: 0 },
+        blessedLand: { location: 'foxFairyLand', active: false, hidden: false, resources: 72, defense: 48, soulReserve: 34, residents: 4, reputation: 0, maintenance: 0, sectPressure: 0, upgrades: { housing: 0, defense: 0, production: 0 }, commissions: {}, lastTickDay: 0 },
         worldWar: { shadowRebuilt: false, fiveRegions: false, southern: false, western: false, heavenly: false, heat: 0 },
         eternalWar: { divineEmperor: false, twoHeavens: false, madDemonCave: false, dream: false, starHost: false, dreamPressure: 0, cosmicHeat: 0, dives: 0, successes: 0, failures: 0 },
         intel: { leads: [], cases: {} },

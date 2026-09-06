@@ -200,9 +200,10 @@
       engine.registerEvent('foxFairyLandReturn', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.foxFairyLandOpened = true; state.central.foxOpened = true;
+        state.blessedLand.active = true; state.blessedLand.lastTickDay = day(state); state.blessedLand.residents = Math.max(state.blessedLand.residents, 4); state.blessedLand.resources = Math.max(state.blessedLand.resources, 72); state.blessedLand.defense = Math.max(state.blessedLand.defense, 48); state.blessedLand.soulReserve = Math.max(state.blessedLand.soulReserve, 34); state.blessedLand.sectPressure = Math.max(state.blessedLand.sectPressure, state.central.sectPressure);
         if (choice === 'recover') { p.needs.energy = Math.min(100, p.needs.energy + 24); p.cultivation.insight += 5; state.frontier.campaignPressure = Math.max(0, state.frontier.campaignPressure - 5); }
-        if (choice === 'prepare') { state.central.sectPressure += 3; state.zones.foxFairyLand.activity += 8; p.inventory.stones = Math.max(0, p.inventory.stones - 2); }
-        if (choice === 'hide') { state.director.pressure = Math.max(0, state.director.pressure - 1); state.facts.hiddenReturn = true; }
+        if (choice === 'prepare') { state.central.sectPressure += 3; state.blessedLand.defense += 10; state.blessedLand.upgrades.defense += 1; state.zones.foxFairyLand.activity += 8; p.inventory.stones = Math.max(0, p.inventory.stones - 2); }
+        if (choice === 'hide') { state.director.pressure = Math.max(0, state.director.pressure - 1); state.blessedLand.hidden = true; state.blessedLand.sectPressure = Math.max(0, state.blessedLand.sectPressure - 6); state.facts.hiddenReturn = true; }
         log(state, 'choice', `你处理了回归狐仙福地：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.foxReturn });
         return true;
       });
@@ -236,10 +237,10 @@
       });
       engine.registerEvent('sectPressure', ({ state, choice, event }) => {
         const p = state.entities.player;
-        state.flags.sectPressureActive = true; state.central.sectPressure += 5;
-        if (choice === 'defend') { p.inventory.stones = Math.max(0, p.inventory.stones - 4); state.central.sectPressure = Math.max(0, state.central.sectPressure - 3); state.zones.foxFairyLand.danger += 4; }
+        state.flags.sectPressureActive = true; state.central.sectPressure += 5; state.blessedLand.active = true; state.blessedLand.sectPressure += 5;
+        if (choice === 'defend') { p.inventory.stones = Math.max(0, p.inventory.stones - 4); state.central.sectPressure = Math.max(0, state.central.sectPressure - 3); state.blessedLand.defense += 8; state.blessedLand.resources = Math.max(0, state.blessedLand.resources - 6); state.zones.foxFairyLand.danger += 4; }
         if (choice === 'negotiate') { activateSeed(state, 'tianhe'); relation(state, 'player', 'tianhe').trust += 8; state.factions.immortalCrane.attitude += 5; }
-        if (choice === 'ambush') { state.central.sectPressure += 4; state.factions.centralSects.tension += 6; p.cultivation.progress += 12; }
+        if (choice === 'ambush') { state.central.sectPressure += 4; state.blessedLand.defense = Math.max(0, state.blessedLand.defense - 8); state.blessedLand.reputation -= 3; state.factions.centralSects.tension += 6; p.cultivation.progress += 12; }
         log(state, 'choice', `你处理了宗门对狐仙福地的压力：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.sectPressure });
         return true;
       });

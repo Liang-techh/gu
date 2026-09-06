@@ -418,6 +418,27 @@ test('market disaster rewrites supply and exposes relief, arbitrage and verifica
   assert.ok(state.events.recent.some(event => event.type === 'market.disaster_action'));
 });
 
+test('blessed land persists as a managed base with offline production and resident pressure', () => {
+  let state = open(S.newWorld({ seed: 'blessed-land-base' }), 'observe');
+  state.entities.player.position.location = 'foxFairyLand';
+  state.flags.foxFairyLandOpened = true;
+  state.blessedLand.active = true;
+  state.blessedLand.residents = 2;
+  const before = { resources: state.blessedLand.resources, defense: state.blessedLand.defense };
+  let actions = S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS });
+  assert.ok(actions.some(action => action.id === 'blessed_land_action:fortify'));
+  state = ok(state, { type: 'action', id: 'blessed_land_action', mode: 'fortify' });
+  state = ok(state, { type: 'action', id: 'blessed_land_action', mode: 'cultivate' });
+  state = ok(state, { type: 'action', id: 'blessed_land_action', mode: 'recruit' });
+  assert.ok(state.blessedLand.defense > before.defense);
+  assert.ok(state.blessedLand.upgrades.production > 0);
+  assert.equal(state.blessedLand.residents, 3);
+  state = ok(state, { type: 'action', id: 'wait', hours: 24 });
+  assert.ok(state.blessedLand.lastTickDay >= 2);
+  assert.ok(state.events.recent.some(event => event.type === 'blessed-land.tick'));
+  assert.ok(state.events.recent.some(event => event.type === 'blessed-land.action' || event.type === 'blessed-land.tick'));
+});
+
 test('NPC knowledge keeps conflicting rumor alternatives until a stronger observation arrives', () => {
   const npc = S.ENTITY.createEntity('knowledge-audit', { name: '知识审计者', location: 'village' });
   S.KNOWLEDGE.record(npc, 'target', { location: 'village' }, { kind: 'rumor', confidence: 0.3, source: 'rumor:test' });
@@ -1012,7 +1033,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
   assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'effectTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
-  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'marketShockTick', 'wolfCrisisTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
+  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'marketShockTick', 'blessedLandTick', 'wolfCrisisTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
 });
 
 test('action catalog derives available commands from world state instead of UI conditionals', () => {

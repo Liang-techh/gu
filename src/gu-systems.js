@@ -112,6 +112,37 @@
       engine.emit(state, 'market.disaster_tick', { day: day(state), phase: shock.phase, severity: shock.severity, priceShock: shock.priceShock, supplyLoss: shock.supplyLoss, displaced: shock.displaced });
     }, 78);
 
+    engine.registerSystem('day', 'blessedLandTick', ({ state }) => {
+      const base = state.blessedLand;
+      if (!base?.active) return;
+      const residents = Math.max(0, base.residents || 0);
+      const production = base.upgrades.production * 1.4 + Math.min(6, residents * 0.12);
+      const maintenance = 1.2 + residents * 0.18 + (base.sectPressure > 70 ? 1.5 : 0);
+      base.lastTickDay = day(state);
+      base.maintenance += maintenance;
+      base.resources = clamp(base.resources + production - maintenance, 0, 200);
+      base.soulReserve = clamp(base.soulReserve + base.upgrades.production * 0.7 - (base.sectPressure > 60 ? 1 : 0), 0, 100);
+      base.sectPressure = clamp(base.sectPressure + state.central.sectPressure * 0.06 - base.defense * 0.018 - (base.hidden ? 0.35 : 0), 0, 100);
+      base.defense = clamp(base.defense + base.upgrades.defense * 0.18 - base.sectPressure * 0.025, 0, 100);
+      if (base.resources < 18 || base.defense < 18) {
+        base.sectPressure = clamp(base.sectPressure + 2, 0, 100);
+        state.central.sectPressure = clamp(state.central.sectPressure + 0.8, 0, 100);
+        state.factions.centralSects.tension += 0.5;
+        const displaced = engine.query(state, entity => entity.id.startsWith('ambient-') && entity.alive && entity.position?.location === 'foxFairyLand')[0];
+        if (displaced && base.residents > 0) {
+          displaced.position.location = base.hidden ? 'shadowSectRuins' : 'centralContinent';
+          base.residents -= 1; base.reputation -= 2;
+          remember(state, displaced.id, 'world', { kind: 'blessed-land-migration', valence: -2, text: `${displaced.identity.name}因狐仙福地的资源或守备恶化而离开。`, facts: { from: 'foxFairyLand', to: displaced.position.location, displacedByBlessedLand: true } });
+          consequence(state, { kind: 'blessed_land_migration', actorId: 'world', factionId: 'centralSects', source: 'blessedLandTick', location: 'foxFairyLand', reason: '福地经营失败迫使驻民离开，宗门压力因此更容易渗入。', data: { resources: base.resources, defense: base.defense, residents: base.residents }, tension: 1, pressure: 0.18 });
+        }
+      } else if (base.defense > 65 && base.resources > 55) {
+        base.reputation = clamp(base.reputation + 0.5, -100, 100);
+        state.central.sectPressure = Math.max(0, state.central.sectPressure - 0.25);
+      }
+      if (base.sectPressure > 82) state.director.pressure = clamp(state.director.pressure + 0.4, 0, 10);
+      engine.emit(state, 'blessed-land.tick', { day: day(state), resources: base.resources, defense: base.defense, soulReserve: base.soulReserve, residents: base.residents, sectPressure: base.sectPressure, maintenance });
+    }, 76);
+
     engine.registerSystem('day', 'wolfCrisisTick', ({ state }) => {
       const crisis = state.wolfCrisis;
       if (!crisis?.active || crisis.phase === 'aftermath' || crisis.phase === 'resolved') return;

@@ -99,6 +99,37 @@
       advance(state, mode === 'verify' ? 2 : 3, `market_shock_${mode}`);
     }
 
+    function blessedLandAction(state, command, p) {
+      const base = state.blessedLand;
+      if (!base?.active || p.position.location !== 'foxFairyLand') throw new Error('只有回到狐仙福地时才能经营基地');
+      const mode = command.mode || 'fortify';
+      if (mode === 'fortify') {
+        if ((p.inventory.stones || 0) < 2) throw new Error('加固福地至少需要两枚元石');
+        p.inventory.stones -= 2; base.defense += 14; base.resources = Math.max(0, base.resources - 4); base.upgrades.defense = Math.min(10, base.upgrades.defense + 1); base.sectPressure = Math.max(0, base.sectPressure - 3);
+        remember(state, 'player', 'world', { kind: 'blessed-land-fortify', valence: 3, text: '你把元石投入福地禁制，守备从一次性选择变成了长期资产。', facts: { blessedLandAction: mode } });
+        log(state, 'blessed_land_fortify', '你加固了狐仙福地的防线，宗门的下一次试探会更昂贵。', { defense: base.defense });
+      } else if (mode === 'cultivate') {
+        if ((p.inventory.stones || 0) < 1) throw new Error('培育福地资源至少需要一枚元石');
+        p.inventory.stones -= 1; base.resources += 16; base.soulReserve += 8; base.upgrades.production = Math.min(10, base.upgrades.production + 1); base.maintenance += 2;
+        log(state, 'blessed_land_cultivate', '你培育福地资源，把魂魄与产出变成可以持续滚动的底盘。', { resources: base.resources, soulReserve: base.soulReserve });
+      } else if (mode === 'recruit') {
+        const capacity = 4 + base.upgrades.housing * 3;
+        if (base.residents >= capacity) throw new Error('福地当前居所已经没有空位');
+        if ((p.inventory.stones || 0) < 1) throw new Error('招募驻民至少需要一枚元石');
+        p.inventory.stones -= 1;
+        const recruit = Object.values(state.entities).find(entity => entity.id.startsWith('ambient-') && entity.alive && ['centralContinent', 'shadowSectRuins', 'caravanCamp'].includes(entity.position?.location));
+        if (recruit) { recruit.position.location = 'foxFairyLand'; base.residents += 1; remember(state, recruit.id, 'world', { kind: 'blessed-land-recruit', valence: 2, text: `${recruit.identity.name}接受你的招募，迁入狐仙福地谋生。`, facts: { recruitedTo: 'foxFairyLand' } }); }
+        else base.residents += 1;
+        base.reputation += 2; log(state, 'blessed_land_recruit', '你为狐仙福地补充了一名驻民，基地开始拥有脱离玩家也能运转的人手。', { residents: base.residents });
+      } else if (mode === 'hide') {
+        base.hidden = true; base.sectPressure = Math.max(0, base.sectPressure - 8); base.resources = Math.max(0, base.resources - 3); state.facts.hiddenReturn = true;
+        log(state, 'blessed_land_hide', '你收缩福地的外显痕迹，换取短期安全，却让资源流动变慢。', { sectPressure: base.sectPressure });
+      } else throw new Error('未知的狐仙福地经营方式');
+      base.resources = Math.min(200, Math.max(0, base.resources)); base.defense = Math.min(100, Math.max(0, base.defense)); base.soulReserve = Math.min(100, Math.max(0, base.soulReserve)); base.sectPressure = Math.min(100, Math.max(0, base.sectPressure));
+      engine.emit(state, 'blessed-land.action', { actorId: p.id, mode, resources: base.resources, defense: base.defense, residents: base.residents, sectPressure: base.sectPressure });
+      advance(state, mode === 'hide' ? 2 : 4, `blessed_land_${mode}`);
+    }
+
     engine.registerAction('wait', ({ state, command }) => {
       advance(state, Number(command.hours) || 2, 'wait');
       log(state, 'action', '你等待了一段时间，观察世界如何自行变化。');
@@ -106,6 +137,7 @@
     engine.registerAction('spring_autumn_reset', ({ state, p }) => rebirth(state, p));
     engine.registerAction('wolf_action', ({ state, command, p }) => wolfAction(state, command, p));
     engine.registerAction('market_shock_action', ({ state, command, p }) => marketShockAction(state, command, p));
+    engine.registerAction('blessed_land_action', ({ state, command, p }) => blessedLandAction(state, command, p));
     engine.registerAction('travel', ({ state, command, p }) => {
       const target = command.location;
       if (!locations[target] || !locations[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
