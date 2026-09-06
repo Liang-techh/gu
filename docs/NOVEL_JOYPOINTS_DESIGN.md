@@ -179,7 +179,7 @@ NPC记忆、势力反应、区域变化 ← 反转/追捕/新的机会窗口
 | 资源经营 | `inventory`、`zones.resources/activity/danger/visits`、`cultivation.essence`、`needs` | 采集、炼蛊、拍卖、抵押、经营、公共危机 | 缺元石/材料；饥饿、伤势、炼蛊失败；区域资源枯竭或价格上涨 | 采集 + 市场囤货；炼蛊 + 传承资格；区域枯竭 + NPC 迁移 + 势力紧张 |
 | 演武与挑战 | `arena.matches/wins/losses/streak/reputation`、身体伤势、关系记忆 | `arena.active` 且玩家在商家城；可扩展下注、观察、情报 | 连胜中断、伤势、名声下降；对手获得玩家能力资料 | 连胜 + 商家影响；失败 + 借贷/治疗；情报出售 + 对手难度变化 |
 | 传承探索 | `inheritance.round/attempts/difficulty/discoveries/completed`、`facts`、`director.pressure` | 传承窗口开启、位置正确、资格/线索满足 | 受伤、精力下降、错过奖励、改变传承路线；其他队伍先推进 | 侦查 + 降低首次风险；贿赂/交易 + 改变竞争者；贪取超额奖励 + 后续隐藏奖励消失 |
-| 拍卖与信息市场 | `central.auctionHeat/lotsSold/sectPressure`、`facts.auctionIntel`、元石 | 拍卖开放；玩家可竞拍、观察、抬价或卖情报 | 资源耗尽、意图暴露、热度引来追踪；卖假情报会损失可信度 | 拍卖 + 身份伪装；卖情报 + 势力关系；抬价 + 对手破产/敌意 |
+| 拍卖与信息市场 | `central.auctionHeat/lotsSold/sectPressure/marketSupply/marketScarcity/marketDebt/rumorCredibility/tracePressure`、`facts.auctionIntel`、知识组件、元石 | 拍卖开放；玩家可竞拍、观察、抬价、卖情报、抵押借贷或核验情报 | 资源耗尽、债务、意图暴露、热度引来追踪；低可信情报需要额外洞察核验 | 拍卖 + 身份伪装；卖情报 + 势力关系；抬价 + 对手资本；债务 + 未来价格与制裁 |
 | 北原战争 | `frontier.supply/campaignPressure/battles/casualties`、黑家/部族势力状态 | 前线开放；军需足够；玩家选择巡逻、侦察、调停或动员 | 补给消耗、伏击、人员伤亡、部族紧张；战线可能后退 | 巡逻 + 名声；调停 + 黑家影响下降；出售情报 + 东方盟军敌意上升 |
 | 真阳楼/高危塔楼 | `tower.formed/floors/attempts/discoveries`，`frontier.campaignPressure` | 塔楼显化、来客资格、战争/天气窗口 | 受伤、闯层失败、楼层状态变化；外部战局会改变难度 | 后勤援助 + 延迟探索；外援 + 奖励分配冲突；身份暴露 + 资格被取消 |
 | 梦境与认知 | `eternalWar.dreamPressure/dives/successes/failures`、`facts.dreamDepth` | 梦境潮汐开启；玩家有进入方式或盟友 | 精神/身体损伤、压力累积、现实关系改变；高压时成功率下降 | 梦境探索 + 身份真相；梦境资源 + 区域危险；梦境失败 + NPC 误解/势力介入 |
@@ -270,4 +270,3 @@ P3 不应成为一条固定终局线。应允许玩家留在早期区域经营�
 - 第4卷：第1、98、119、262、321章。
 - 第5卷：第2、55、152、280、417、539、671、725、945章。
 - 第6卷：第1、39、66、109、229、241、307、335、367章。
-

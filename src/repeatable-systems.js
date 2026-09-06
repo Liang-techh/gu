@@ -90,20 +90,56 @@
     function auctionLot(state, p, command) {
       if (p.position.location !== 'immortalAuction' || !state.central?.auctionActive) throw new Error('当前没有开放的中洲拍卖会');
       const mode = command.mode || 'observe';
-      const price = 2 + Math.floor(state.central.auctionHeat / 12) + Math.floor(random(state) * 3);
-      if (!['bid', 'observe', 'rumor'].includes(mode)) throw new Error('未知的拍卖行动');
+      const scarcity = Number(state.central.marketScarcity || 0);
+      const price = Math.max(1, 2 + Math.floor(state.central.auctionHeat / 12) + Math.floor(scarcity / 25) + Math.floor(random(state) * 3));
+      if (!['bid', 'observe', 'rumor', 'raise', 'mortgage', 'verify'].includes(mode)) throw new Error('未知的拍卖行动');
       if (mode === 'bid') {
         if ((p.inventory.stones || 0) < price) throw new Error(`竞拍至少需要 ${price} 枚元石`);
         p.inventory.stones -= price; state.central.lotsSold += 1; state.central.auctionHeat += 4;
-        p.cultivation.insight += 3 + Math.min(5, Math.floor(price / 2)); state.factions.auctionImmortals.influence += 0.8;
+        state.central.marketSupply -= 5; state.central.marketScarcity += 5; state.central.marketReputation += 2;
+        state.central.marketDebt = Math.max(0, state.central.marketDebt - 1);
+        p.cultivation.insight += 3 + Math.min(5, Math.floor(price / 2));
+        if (state.factions.auctionImmortals) state.factions.auctionImmortals.influence += 0.8;
+        remember(state, 'player', 'auctionMarket', { kind: 'observation', source: 'auction:purchase', text: `你以${price}枚元石拿下一笔拍卖品。`, facts: { lastAuctionPrice: price, lastAuctionMode: mode, marketScarcity: state.central.marketScarcity } });
       } else if (mode === 'observe') {
         state.central.auctionHeat += 1; p.cultivation.insight += 2; state.facts.auctionIntel = true;
+        remember(state, 'player', 'auctionMarket', { kind: 'observation', source: 'auction:order-book', confidence: 0.72, text: '你观察了几轮出价，摸到了拍卖会的价格和供给规律。', facts: { auctionIntel: true, lastAuctionPrice: price, marketScarcity: state.central.marketScarcity, auctionHeat: state.central.auctionHeat } });
+      } else if (mode === 'rumor') {
+        const payout = Math.max(1, Math.floor(price * (0.35 + state.central.rumorCredibility / 100)));
+        p.inventory.stones += payout; state.central.auctionHeat += 5; state.central.sectPressure += 1;
+        state.central.rumorCredibility -= 4; state.central.tracePressure += 6; state.central.marketReputation -= 1; state.facts.auctionIntel = true;
+        state.director.pressure = clamp(state.director.pressure + 0.4, 0, 10);
+        remember(state, 'player', 'auctionMarket', { kind: 'rumor-market', source: 'auction:rumor-sale', confidence: 0.45, text: `你把一条情报卖给了拍卖会，换回${payout}枚元石，但留下了可追踪的交易痕迹。`, facts: { auctionIntel: true, lastRumorPayout: payout, rumorCredibility: state.central.rumorCredibility } });
+        remember(state, 'qinbaisheng', 'player', { kind: 'rumor', source: 'auction:rumor-sale', text: '拍卖会有人在出售经过包装的情报。', facts: { marketTrace: true } });
+      } else if (mode === 'raise') {
+        const cost = Math.max(1, Math.ceil(price / 2));
+        if ((p.inventory.stones || 0) < cost) throw new Error(`抬价至少需要 ${cost} 枚元石`);
+        p.inventory.stones -= cost; state.central.auctionHeat += 8; state.central.marketScarcity += 3; state.central.tracePressure += 2;
+        state.central.marketReputation += 1; state.central.sectPressure += 1;
+        if (state.factions.auctionImmortals) state.factions.auctionImmortals.tension += 3;
+        remember(state, 'qinbaisheng', 'player', { kind: 'suspicion', source: 'auction:price-war', text: '这个竞价者正在用异常出价测试市场底线。', facts: { priceWar: true } });
+      } else if (mode === 'mortgage') {
+        const amount = Math.max(3, Math.min(10, 4 + Math.floor(state.central.auctionHeat / 20)));
+        p.inventory.stones += amount; state.central.marketDebt += amount; state.central.marketReputation -= 2; state.central.tracePressure += 1;
+        state.central.sectPressure += state.central.marketDebt >= 12 ? 2 : 0;
+        remember(state, 'player', 'auctionMarket', { kind: 'secret', source: 'auction:credit', text: `你以未兑现的市场信用借到${amount}枚元石。`, facts: { marketDebt: state.central.marketDebt, creditLine: true } });
+        remember(state, 'qinbaisheng', 'player', { kind: 'suspicion', source: 'auction:credit', text: '这个竞价者开始透支市场信用。', facts: { marketDebt: state.central.marketDebt } });
       } else {
-        p.inventory.stones += Math.max(1, Math.floor(price / 2)); state.central.auctionHeat += 5; state.central.sectPressure += 1; state.facts.auctionIntel = true;
+        if (p.cultivation.insight < 3) throw new Error('核验情报至少需要 3 点洞察');
+        p.cultivation.insight -= 3; state.central.rumorCredibility += 8; state.central.tracePressure = Math.max(0, state.central.tracePressure - 3);
+        state.central.marketReputation += 1; state.facts.auctionIntelVerified = (state.facts.auctionIntelVerified || 0) + 1;
+        remember(state, 'player', 'auctionMarket', { kind: 'observation', source: 'auction:verification', confidence: 0.95, text: '你用洞察核验了市场情报，真假边界变得清晰。', facts: { auctionIntelVerified: state.facts.auctionIntelVerified, verifiedAuctionPrice: price, rumorCredibility: state.central.rumorCredibility } });
       }
       state.central.auctionHeat = clamp(state.central.auctionHeat, 0, 100);
-      engine.emit(state, 'auction.lot', { actorId: 'player', location: p.position.location, result: mode, price, lotsSold: state.central.lotsSold, heat: state.central.auctionHeat });
-      log(state, 'auction_lot', `你在中洲拍卖会选择${mode === 'bid' ? '竞拍' : mode === 'observe' ? '观察' : '出售情报'}，当前成交 ${state.central.lotsSold} 笔。`, { result: mode, price, lotsSold: state.central.lotsSold, heat: state.central.auctionHeat });
+      state.central.marketSupply = clamp(state.central.marketSupply, 0, 100);
+      state.central.marketScarcity = clamp(state.central.marketScarcity, 0, 100);
+      state.central.rumorCredibility = clamp(state.central.rumorCredibility, 0, 100);
+      state.central.marketDebt = clamp(state.central.marketDebt, 0, 100);
+      state.central.marketReputation = clamp(state.central.marketReputation, -100, 100);
+      state.central.tracePressure = clamp(state.central.tracePressure, 0, 100);
+      engine.emit(state, 'auction.lot', { actorId: 'player', location: p.position.location, result: mode, price, lotsSold: state.central.lotsSold, heat: state.central.auctionHeat, debt: state.central.marketDebt, trace: state.central.tracePressure, credibility: state.central.rumorCredibility, supply: state.central.marketSupply, scarcity: state.central.marketScarcity });
+      const labels = { bid: '竞拍', observe: '观察', rumor: '出售情报', raise: '抬价', mortgage: '抵押借元石', verify: '核验情报' };
+      log(state, 'auction_lot', `你在中洲拍卖会选择${labels[mode]}，当前成交 ${state.central.lotsSold} 笔。`, { result: mode, price, lotsSold: state.central.lotsSold, heat: state.central.auctionHeat, debt: state.central.marketDebt, trace: state.central.tracePressure, credibility: state.central.rumorCredibility });
       advance(state, 2, 'auction_lot');
     }
 

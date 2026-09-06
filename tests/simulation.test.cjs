@@ -367,6 +367,40 @@ test('volume three content pack turns northern war and true yang tower into stat
   assert.ok(state.worldWar.heat > 0);
 });
 
+test('auction market supports information asymmetry, credit and trace pressure', () => {
+  let state = open(S.newWorld({ seed: 'auction-market' }), 'observe');
+  state.entities.player.position.location = 'immortalAuction';
+  state.central.auctionActive = true;
+  const catalog = S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS });
+  assert.ok(catalog.some(action => action.command.mode === 'bid'));
+  assert.ok(catalog.some(action => action.command.mode === 'mortgage'));
+  assert.ok(catalog.some(action => action.command.mode === 'verify'));
+
+  const startingStones = state.entities.player.inventory.stones;
+  state = ok(state, { type: 'action', id: 'auction_lot', mode: 'observe' });
+  assert.equal(state.facts.auctionIntel, true);
+  assert.ok(state.entities.player.knowledge.facts.auctionMarket.lastAuctionPrice.confidence > 0.7);
+  state = ok(state, { type: 'action', id: 'auction_lot', mode: 'mortgage' });
+  assert.ok(state.central.marketDebt > 0);
+  assert.ok(state.entities.player.inventory.stones > startingStones);
+  state = ok(state, { type: 'action', id: 'auction_lot', mode: 'raise' });
+  assert.ok(state.central.tracePressure > 0);
+  state = ok(state, { type: 'action', id: 'auction_lot', mode: 'rumor' });
+  assert.ok(state.central.rumorCredibility < 58);
+  assert.ok(state.entities.player.knowledge.facts.auctionMarket.lastRumorPayout);
+  state = ok(state, { type: 'action', id: 'auction_lot', mode: 'verify' });
+  assert.equal(state.facts.auctionIntelVerified, 1);
+  assert.equal(state.entities.player.knowledge.facts.auctionMarket.auctionIntelVerified.confidence, 0.95);
+  assert.ok(state.history.events.some(event => event.data?.result === 'verify'));
+});
+
+test('auction intent exposes market actions as explicit commands', () => {
+  const state = S.newWorld({ seed: 'auction-intent' });
+  assert.equal(S.interpret('抬价试探', state).command.mode, 'raise');
+  assert.equal(S.interpret('抵押借元石', state).command.mode, 'mortgage');
+  assert.equal(S.interpret('核验情报', state).command.mode, 'verify');
+});
+
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
   let state = open(S.newWorld({ seed: 'intent' }), 'observe');
   const parsed = S.interpret('去竹林', state);
