@@ -70,7 +70,7 @@
     { id: 'coalition_action:defect', label: '公开退出盟约', kind: 'choice', when: ({ here, state }) => ['village', 'centralContinent', 'southernBorder', 'westernDesert', 'heavenlyCourt', 'longLifeHeaven', 'dreamRealms'].includes(here) && Object.keys(state.coalitions?.pacts || {}).some(id => id.split('::').includes(state.entities?.player?.faction)), command: () => ({ type: 'action', id: 'coalition_action', mode: 'defect' }) }
   ]);
 
-  function list(state, { locations } = {}) {
+  function list(state, { locations, localObjects } = {}) {
     const here = state.entities?.player?.position?.location;
     const context = { state, here };
     const actions = DEFINITIONS.filter(definition => definition.when(context)).map(definition => ({
@@ -92,6 +92,15 @@
       kind: 'travel',
       command: { type: 'action', id: 'travel', location }
     });
+    if (localObjects) {
+      const actor = state.entities?.player;
+      for (const object of localObjects.visible(state, actor)) {
+        actions.push({ id: `local:inspect:${object.id}`, label: `调查${object.label}`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'inspect' } });
+        if (object.kind === 'resource' && object.remaining > 0) actions.push({ id: `local:gather:${object.id}`, label: `采集${object.label}`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'gather' } });
+        if (object.kind === 'practice' && object.discovered) actions.push({ id: `local:practice:${object.id}`, label: `在${object.label}练习`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'practice' } });
+        if (['trace', 'relic'].includes(object.kind) && object.discovered && !object.resolved) actions.push({ id: `local:follow:${object.id}`, label: `追查${object.label}`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'follow' } });
+      }
+    }
     const nearbyAgents = Object.values(state.entities || {}).filter(entity => entity.id !== 'player' && entity.alive && !entity.agent && entity.position?.location === here && Object.values(state.agency?.commissions || {}).filter(item => item.status === 'active' && item.agentId === entity.id).length < 2).slice(0, 4);
     for (const npc of nearbyAgents) actions.push({ id: `commission_agent:${npc.id}`, label: `委托${npc.identity.name}打探`, kind: 'choice', command: { type: 'action', id: 'commission_agent', mode: 'recruit', target: npc.id, kind: 'rumor' } });
     return actions;

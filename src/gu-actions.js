@@ -12,7 +12,7 @@
     requireSameLocation, requireNearby, beginConflict, ability, body, equipment,
     conversation, conversationDefs, day, affectFaction, identity, knowledge,
     contractRuntime, repeatableRuntime, pursuitRuntime, agencyRuntime, combatRuntime,
-    marketRuntime, rebirth, factionPacts, affordances, localMap
+    marketRuntime, rebirth, factionPacts, affordances, localMap, localObjects
   }) {
     function performConversation(state, command, p) {
       const npc = requireNearby(state, command.target);
@@ -41,6 +41,50 @@
         engine.emit(state, 'identity.revealed', { actorId: 'player', targetId: target.id, maskId: p.knowledge.activeMask, location: p.position.location });
       } else throw new Error('未知的身份行动');
       advance(state, 1, 'identity_mask');
+    }
+
+    function localObjectAction(state, command, p) {
+      if (!localObjects) throw new Error('局部发现系统尚未加载');
+      const mode = command.mode || 'inspect';
+      const result = localObjects.interact(state, p, command.objectId, mode);
+      const object = result.object;
+      const location = p.position.location;
+      const zone = state.zones[location];
+      if (mode === 'inspect' || mode === 'follow' || mode === 'practice') {
+        zone.discoveries ||= [];
+        if (!zone.discoveries.some(item => item.objectId === object.id)) zone.discoveries.unshift({ objectId: object.id, kind: object.kind, label: object.label, clock: state.clock });
+      }
+      if (mode === 'gather') {
+        const resourceId = object.resourceId || 'food';
+        const resourceLabel = ({ moonPetal: '月兰花瓣', water: '清水', food: '食物', relicFragment: '遗藏碎片' })[resourceId] || resourceId;
+        p.inventory[resourceId] = (p.inventory[resourceId] || 0) + result.amount;
+        if (zone.resources && resourceId in zone.resources) zone.resources[resourceId] = Math.max(0, zone.resources[resourceId] - result.amount);
+        engine.emit(state, 'local.resource_gathered', { actorId: p.id, location, objectId: object.id, resourceId, amount: result.amount });
+        log(state, 'local_object', `你从${object.label}采集了${result.amount}份${resourceLabel}。`, { objectId: object.id, mode, resourceId, amount: result.amount });
+        remember(state, 'player', 'world', { kind: 'gather', text: `你在${object.label}处取走了一份${resourceLabel}。`, facts: { [`localObject:${object.id}`]: true, lastGathered: resourceId } });
+        advance(state, 2, 'local_gather');
+        return;
+      }
+      const clue = object.clue;
+      if (clue?.fact) {
+        state.facts[clue.fact] = true;
+        state.intel ||= { leads: [], cases: {} };
+        if (mode === 'follow' || clue.kind?.includes('trail') || clue.kind?.includes('trace')) {
+          const leadId = `local:${location}:${object.id}`;
+          if (!state.intel.leads.some(lead => lead.id === leadId)) state.intel.leads.unshift({ id: leadId, type: clue.kind || object.kind, location, objectId: object.id, confidence: Number(clue.confidence || 0.5), clock: state.clock, status: 'open' });
+          state.director.pressure = Math.min(10, state.director.pressure + 0.15);
+        }
+        remember(state, 'player', 'world', { kind: mode === 'follow' ? 'trace-followed' : 'local-clue', valence: 2, confidence: clue.confidence, text: mode === 'follow' ? `你顺着${object.label}留下的方向追了一段。` : `你调查了${object.label}，记住了一条线索。`, facts: { [clue.fact]: true, [`localObject:${object.id}`]: true } });
+      } else if (mode === 'practice') {
+        p.cultivation.insight += Number(object.insight || result.amount || 1);
+        p.cultivation.progress += Number(object.progress || 0);
+        remember(state, 'player', 'world', { kind: 'practice', text: `你在${object.label}留下的痕迹旁反复练习。`, facts: { [`localObject:${object.id}`]: true } });
+      } else {
+        remember(state, 'player', 'world', { kind: 'local-discovery', text: `你看清了${object.label}：${object.text}`, facts: { [`localObject:${object.id}`]: true } });
+      }
+      engine.emit(state, `local.object_${mode}`, { actorId: p.id, location, objectId: object.id, kind: object.kind, discovered: object.discovered, resolved: object.resolved });
+      log(state, 'local_object', mode === 'follow' ? `你沿着${object.label}追查下去。` : mode === 'practice' ? `你在${object.label}处练习了一阵。` : `你调查了${object.label}。`, { objectId: object.id, mode, text: object.text });
+      advance(state, mode === 'practice' ? 2 : 1, `local_${mode}`);
     }
 
     function wolfAction(state, command, p) {
@@ -281,6 +325,7 @@
     engine.registerAction('front_action', ({ state, command, p }) => frontAction(state, command, p));
     engine.registerAction('shadow_network_action', ({ state, command, p }) => shadowNetworkAction(state, command, p));
     engine.registerAction('interact', ({ state, command, p }) => runAffordance(state, command, p));
+    engine.registerAction('local_interact', ({ state, command, p }) => localObjectAction(state, command, p));
     function travelTo(state, p, target, direction = null, cause = 'travel') {
       if (!locations[target] || !locations[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
       const from = p.position.location;

@@ -10,7 +10,7 @@
     schema, contentIndex, contentVersion, aptitude, locations, populationTables,
     factionSeeds, factionInterests, npcSeeds, sourceNotes, history, entity,
     identity, knowledge, zoneBuilder, zoneRuntime, copy, hash, random, day,
-    relation, affectFaction, remember, log, advance, localMap
+    relation, affectFaction, remember, log, advance, localMap, localObjects
   }) {
     function activateSeed(state, id) {
       if (state.entities[id]) return state.entities[id];
@@ -117,6 +117,7 @@
         consequences: { sequence: 0, records: [], counts: {} },
         locations: copy(locations),
         zones: {},
+        localObjects: {},
         factions: {},
         relationships: {},
         social: { sequence: 0, recent: [], lastActorClock: {} },
@@ -172,6 +173,7 @@
       zoneRuntime.ensureState(state, state.entities.player.position.location);
       zoneBuilder.seedPopulation(state, { locations, populationTables, random, createEntity: entity.createEntity });
       if (localMap) localMap.layoutEntities(state.entities, locations);
+      if (localObjects) localObjects.ensure(state);
       for (const id of Object.keys(state.entities)) remember(state, id, 'world', { kind: 'origin', text: '青茅山的雨季刚刚开始。', facts: { region: '青茅山' } });
       zoneRuntime.reconcile(state, state.entities.player.position.location);
       relation(state, 'player', 'fangyuan').fear = 4;

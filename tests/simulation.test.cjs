@@ -90,6 +90,34 @@ test('local visibility respects distance and hard cover', () => {
   assert.equal(S.LOCAL_MAP.lineOfSight({ width: 3, height: 1, blocked: [] }, { x: 0, y: 0 }, { x: 2, y: 0 }, 1), false);
 });
 
+test('local objects only become actions after entering their sight, then persist discoveries and clues', () => {
+  let state = open(S.newWorld({ seed: 'local-objects' }), 'observe');
+  assert.ok(state.localObjects.bambooForest.objects.some(object => object.id === 'moon-orchid-patch'));
+  assert.equal(S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS, localObjects: S.LOCAL_OBJECTS }).some(item => item.id.includes('moon-orchid')), false);
+
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'bambooForest' });
+  const patch = state.localObjects.bambooForest.objects.find(object => object.id === 'moon-orchid-patch');
+  state.entities.player.position.cell = { ...patch.cell };
+  assert.ok(S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS, localObjects: S.LOCAL_OBJECTS }).some(item => item.id === 'local:inspect:moon-orchid-patch'));
+  state = ok(state, { type: 'action', id: 'local_interact', objectId: 'moon-orchid-patch', mode: 'inspect' });
+  assert.equal(state.localObjects.bambooForest.objects.find(object => object.id === 'moon-orchid-patch').discovered, true);
+  assert.ok(state.zones.bambooForest.discoveries.some(item => item.objectId === 'moon-orchid-patch'));
+  const before = state.entities.player.inventory.moonPetal;
+  state = ok(state, { type: 'action', id: 'local_interact', objectId: 'moon-orchid-patch', mode: 'gather' });
+  assert.equal(state.entities.player.inventory.moonPetal, before + 1);
+  assert.equal(state.localObjects.bambooForest.objects.find(object => object.id === 'moon-orchid-patch').remaining, 2);
+  assert.ok(state.events.recent.some(event => event.type === 'local.resource_gathered'));
+
+  const trace = state.localObjects.bambooForest.objects.find(object => object.id === 'hunter-footprints');
+  state.entities.player.position.cell = { ...trace.cell };
+  state = ok(state, { type: 'action', id: 'local_interact', objectId: 'hunter-footprints', mode: 'inspect' });
+  state = ok(state, { type: 'action', id: 'local_interact', objectId: 'hunter-footprints', mode: 'follow' });
+  assert.equal(state.facts.hunterTurnedAway, true);
+  assert.ok(state.intel.leads.some(lead => lead.objectId === 'hunter-footprints'));
+  assert.ok(state.events.recent.some(event => event.type === 'local.object_follow'));
+});
+
 test('active NPCs move inside the player area and emit local contact events', () => {
   let state = open(S.newWorld({ seed: 'local-npc' }), 'observe');
   const npc = state.entities.fangzheng;

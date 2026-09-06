@@ -52,11 +52,14 @@
     const playerCell = local.normalizeCell(here, s.entities.player.position.cell, location, 'player');
     const people = Object.values(s.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === here && e.position.cell && local.visible(here, location, playerCell, e.position.cell, 4));
     const occupant = new Map(people.map(e => [`${e.position.cell.x},${e.position.cell.y}`, e]));
+    const objects = S.LOCAL_OBJECTS.visible(s, s.entities.player);
+    const objectAt = new Map(objects.map(object => [`${object.cell.x},${object.cell.y}`, object]));
     const tiles = [];
     for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
-      const cell = { x, y }; const cellKey = `${x},${y}`; const npc = occupant.get(cellKey);
+      const cell = { x, y }; const cellKey = `${x},${y}`; const npc = occupant.get(cellKey); const object = objectAt.get(cellKey);
       if (playerCell.x === x && playerCell.y === y) tiles.push('<div class="local-tile player-here" title="你"><span>🧍</span></div>');
       else if (npc) tiles.push(`<div class="local-tile npc-here" title="${esc(npc.identity.name)}"><span>●</span></div>`);
+      else if (object) tiles.push(`<div class="local-tile object-here" title="${esc(object.label)}"><span>${esc(object.glyph || '◇')}</span></div>`);
       else if (!local.isWalkable(cell, map)) tiles.push('<div class="local-tile blocked" aria-label="障碍">▪</div>');
       else tiles.push(`<div class="local-tile terrain-${esc(map.terrain)}">${esc(local.terrainSymbol(map.terrain))}</div>`);
     }
@@ -141,7 +144,7 @@
 
   function itemName(id) { return ({ water: '清水', moonPetal: '月兰花瓣', wine: '酒', stones: '元石', food: '食物', relicFragment: '遗藏碎片' }[id] || id); }
   function actionButtons(s) {
-    return S.ACTION_CATALOG.list(s, { locations: S.LOCATIONS })
+    return S.ACTION_CATALOG.list(s, { locations: S.LOCATIONS, localObjects: S.LOCAL_OBJECTS })
       .filter(item => item.kind !== 'travel' && !item.id.startsWith('commission_agent:'))
       .map(item => button(item.command.label || item.label, item.command, false, item.kind)).join('');
   }

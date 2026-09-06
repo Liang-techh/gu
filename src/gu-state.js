@@ -6,7 +6,7 @@
 
   // Content-side save/state normalizer. The kernel calls one provider hook;
   // this package owns the Gu-specific state schema and numeric invariants.
-  function createRuntime({ engine, social, combat, condition, consequence, knowledge, identity, equipment, brain, zoneRuntime, market, factionInterests, locations, localMap, copy, clamp }) {
+  function createRuntime({ engine, social, combat, condition, consequence, knowledge, identity, equipment, brain, zoneRuntime, market, factionInterests, locations, localMap, localObjects, copy, clamp }) {
     function normalize(state) {
       const player = state.entities.player;
       social.ensure(state);
@@ -28,6 +28,7 @@
       }
       engine.initializeComponents(state);
       zoneRuntime.ensureState(state, player?.position?.location);
+      if (localObjects) localObjects.ensure(state);
       state.rebirth ||= { charges: 1, count: 0, scars: [], echoes: [] };
       state.rebirth.charges = clamp(Number(state.rebirth.charges) || 0, 0, 9);
       state.rebirth.count = Math.max(0, Number(state.rebirth.count) || 0);

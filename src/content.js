@@ -138,6 +138,30 @@
     springAutumn: { id: 'springAutumn', label: '春秋蝉', slot: 'core', guId: 'springAutumn', requiredLimbs: [], modifiers: { destiny: 1 } }
   };
 
+  // Content-owned local objects. The simulation decides whether they can be
+  // seen or used; this table only describes what a location may contain.
+  const LOCAL_OBJECT_SEEDS = {
+    academy: [
+      { id: 'academy-notice', kind: 'clue', label: '学堂告示板', glyph: '▤', text: '告示板上贴着关于开窍大典和族中竞争的零碎记录。', clue: { kind: 'academy-rumor', fact: 'academyNotice', confidence: 0.7 } },
+      { id: 'academy-training-ground', kind: 'practice', label: '草人练习场', glyph: '⚑', text: '草人上残留着同辈们反复试招的痕迹。', insight: 1 }
+    ],
+    village: [
+      { id: 'village-notice', kind: 'clue', label: '山寨公告墙', glyph: '▤', text: '公告墙上的字迹被雨水冲淡，仍能看出商队和狼潮的时间安排。', clue: { kind: 'village-rumor', fact: 'wolfAndCaravanNotice', confidence: 0.66 } }
+    ],
+    bambooForest: [
+      { id: 'moon-orchid-patch', kind: 'resource', label: '月兰花丛', glyph: '✿', resourceId: 'moonPetal', amount: 3, text: '雨后的月兰花瓣还没有被采尽。' },
+      { id: 'hunter-footprints', kind: 'trace', label: '猎户脚印', glyph: '⌁', text: '脚印在湿泥里突然转向，像是有人发现了不该看见的东西。', clue: { kind: 'hunter-trail', fact: 'hunterTurnedAway', confidence: 0.62 } }
+    ],
+    riverbank: [
+      { id: 'river-spring', kind: 'resource', label: '山溪取水处', glyph: '≈', resourceId: 'water', amount: 3, text: '这里的水流清澈，但岸边有新鲜的踩踏痕迹。' },
+      { id: 'white-frost-mark', kind: 'trace', label: '寒气残痕', glyph: '※', text: '石面残留着一线不属于雨季的寒气。', clue: { kind: 'frost-trace', fact: 'whiteFrostTrace', confidence: 0.58 } }
+    ],
+    cliffCave: [
+      { id: 'cliff-relic-seam', kind: 'relic', label: '石缝遗痕', glyph: '◇', text: '石缝深处有被阵纹保护过的旧痕迹。', clue: { kind: 'relic-seam', fact: 'relicSeam', confidence: 0.55 } },
+      { id: 'cliff-blood-trace', kind: 'trace', label: '旧血迹', glyph: '✦', text: '干涸血迹指向更深处，却没有留下完整的来路。', clue: { kind: 'blood-trail', fact: 'bloodTrail', confidence: 0.5 } }
+    ]
+  };
+
   const NPC_SEEDS = {
     fangyuan: {
       name: '古月方源', role: '重生者', faction: 'guYue', location: 'bambooForest',
@@ -441,5 +465,5 @@
     ] }
   ];
 
-  return { CONTENT_VERSION: 6, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, EQUIPMENT_DEFS, NPC_SEEDS, SOURCE_NOTES };
+  return { CONTENT_VERSION: 6, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, EQUIPMENT_DEFS, LOCAL_OBJECT_SEEDS, NPC_SEEDS, SOURCE_NOTES };
 });

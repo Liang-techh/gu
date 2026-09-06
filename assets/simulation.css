@@ -66,6 +66,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .local-tile.blocked { background: #263338; color: #6f756d; }
 .local-tile.player-here { background: #544325; color: #fff; font-size: 25px; box-shadow: 0 0 0 2px var(--gold) inset; }
 .local-tile.npc-here { background: #3b3030; color: #e3a66c; font-size: 22px; }
+.local-tile.object-here { background: #293b35; color: #b7d28a; font-size: 21px; box-shadow: 0 0 0 1px rgba(183,210,138,.28) inset; }
 .terrain-grass { background: #132820; }
 .terrain-stone { background: #252729; }
 .terrain-road, .terrain-courtyard { background: #1d2b2c; }
