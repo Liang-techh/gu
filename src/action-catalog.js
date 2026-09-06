@@ -4,12 +4,19 @@
 })(globalThis, function () {
   'use strict';
 
+  function pursuitContactAvailable(state, here) {
+    return Object.values(state.pursuit?.teams || {}).some(team => team.status === 'active' && team.members?.some(agentId => state.entities?.[agentId]?.position?.location === here));
+  }
+
   const DEFINITIONS = Object.freeze([
     { id: 'cultivate', label: '修炼', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'cultivate' }) },
     { id: 'wait', label: '等待两小时', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'wait', hours: 2 }) },
     { id: 'rest', label: '休息', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'rest' }) },
     { id: 'identity_mask:wear', label: '戴上无名散修面具', kind: 'choice', when: ({ state }) => state.entities?.player?.knowledge?.activeMask === 'trueName', command: () => ({ type: 'action', id: 'identity_mask', mode: 'wear', maskId: 'anonymous' }) },
     { id: 'identity_mask:drop', label: '恢复真实身份', kind: 'choice', when: ({ state }) => state.entities?.player?.knowledge?.activeMask && state.entities.player.knowledge.activeMask !== 'trueName', command: () => ({ type: 'action', id: 'identity_mask', mode: 'drop' }) },
+    { id: 'pursuit_agent:bribe', label: '收买追捕队', kind: 'choice', when: ({ state, here }) => pursuitContactAvailable(state, here), command: () => ({ type: 'action', id: 'pursuit_agent', mode: 'bribe' }) },
+    { id: 'pursuit_agent:mislead', label: '误导追捕队', kind: 'choice', when: ({ state, here }) => pursuitContactAvailable(state, here), command: () => ({ type: 'action', id: 'pursuit_agent', mode: 'mislead' }) },
+    { id: 'pursuit_agent:confront', label: '警告追捕队', kind: 'choice', when: ({ state, here }) => pursuitContactAvailable(state, here), command: () => ({ type: 'action', id: 'pursuit_agent', mode: 'confront' }) },
     { id: 'study', label: '听课', kind: 'action', when: ({ here }) => here === 'academy', command: () => ({ type: 'action', id: 'study' }) },
     { id: 'gather', label: '探索 / 采集', kind: 'action', when: ({ here }) => ['bambooForest', 'riverbank', 'cliffCave'].includes(here), command: () => ({ type: 'action', id: 'gather' }) },
     { id: 'refine', label: '炼化月光蛊', kind: 'action', when: ({ here }) => ['academy', 'village'].includes(here), command: () => ({ type: 'action', id: 'refine', guId: 'moonlight' }) },

@@ -447,6 +447,31 @@ test('director turns masked market traces into a recoverable pursuit event', () 
   assert.ok(state.history.events.some(event => event.data?.source?.source?.endsWith('第119章.txt')));
 });
 
+test('pursuit teams are world agents that can be bribed at contact', () => {
+  let state = open(S.newWorld({ seed: 'pursuit-agents' }), 'observe');
+  state = ok(state, { type: 'action', id: 'identity_mask', mode: 'wear', maskId: 'anonymous' });
+  state.central.tracePressure = 30;
+  state.events.active = null;
+  state.director.lastTick = 0;
+  state = ok(state, { type: 'action', id: 'wait', hours: 2 });
+  state = ok(state, { type: 'resolve_event', choice: 'confront' });
+  const team = Object.values(state.pursuit.teams).find(item => item.status === 'active');
+  assert.ok(team);
+  const agents = team.members.map(id => state.entities[id]);
+  assert.ok(agents.every(agent => agent?.agent?.teamId === team.id));
+  assert.ok(S.ENGINE.queryWith(state, 'agent').length >= agents.length);
+  const agent = agents[0];
+  agent.position.location = state.entities.player.position.location;
+  const beforeStones = state.entities.player.inventory.stones;
+  const beforeConfidence = team.clueConfidence;
+  assert.ok(S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS }).some(action => action.command.mode === 'bribe'));
+  state = ok(state, { type: 'action', id: 'pursuit_agent', mode: 'bribe' });
+  const updatedTeam = state.pursuit.teams[team.id];
+  assert.equal(state.entities.player.inventory.stones, beforeStones - 3);
+  assert.ok(updatedTeam.clueConfidence < beforeConfidence);
+  assert.ok(state.events.recent.some(event => event.type === 'pursuit.action'));
+});
+
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
   let state = open(S.newWorld({ seed: 'intent' }), 'observe');
   const parsed = S.interpret('去竹林', state);
@@ -587,7 +612,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
-  assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'playerNeeds', 'npcSimulation']);
+  assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation']);
   assert.deepEqual(snap.engine.registries.systems.day, ['worldDailyTick']);
 });
 

@@ -57,6 +57,7 @@
         </div>
         <aside class="side-column">
           <article class="panel compact"><div class="panel-title"><h2>世界状态</h2><span>导演压力 ${state.director.pressure}/10</span></div>${snap.factions.map(f => `<div class="faction-row"><div><strong>${esc(f.name)}</strong><small>影响力 ${Math.round(f.influence)} · 态度 ${Math.round(f.attitude)}</small></div><i><em style="width:${f.tension}%"></em></i><small>紧张 ${Math.round(f.tension)}</small></div>`).join('')}</article>
+          ${pursuitPanel(state)}
           <article class="panel compact"><div class="panel-title"><h2>历史账本</h2><span>观测 ${snap.history.facts.daysObserved || 1} 日</span></div><div class="log history-log">${snap.history.recent.slice(0, 6).map(e => `<p><time>日${e.day}</time>${esc(e.text)}</p>`).join('')}</div></article>
           <article class="panel compact"><div class="panel-title"><h2>行囊与组件</h2><span>数据不是 UI 状态</span></div><div class="inventory">${Object.entries(p.inventory).filter(([k]) => k !== 'gu').map(([k,v]) => `<span>${esc(itemName(k))}<b>${esc(v)}</b></span>`).join('')}${Object.entries(gu).map(([k,v]) => `<span>${esc(S.GU_SEEDS[k]?.name || k)}<b>${v.refined ? '已炼化' : Math.round(v.progress) + '%'}</b></span>`).join('')}</div></article>
           <article class="panel compact log-panel"><div class="panel-title"><h2>事件流</h2><span>最近 ${snap.log.length} 条</span></div><div class="log">${snap.log.map(e => `<p><time>日${e.day} ${String(e.clock % 24).padStart(2, '0')}:00</time>${esc(e.text)}</p>`).join('')}</div></article>
@@ -75,6 +76,11 @@
     if (!c) return '';
     const target = s.entities[c.defender];
     return `<section class="director-event combat-event"><div class="event-tag">冲突 · 第 ${c.round} 回合</div><h2>你与${esc(target?.identity.name || '未知目标')}正在交锋</h2><p>伤势会写入双方身体组件和记忆。其他行动暂时不可用。</p><div class="choice-grid">${button('攻击', { type: 'combat', id: 'attack' }, false, 'choice')}${button('催动月光蛊', { type: 'combat', id: 'gu' }, false, 'choice')}${button('防守', { type: 'combat', id: 'guard' }, false, 'choice')}${button('脱身', { type: 'combat', id: 'flee' }, false, 'choice')}</div><small>你的身体：${Math.round(s.entities.player.body.health)} / ${Math.round(s.entities.player.body.maxHealth)} · 对方：${Math.round(target?.body.health || 0)} / ${Math.round(target?.body.maxHealth || 0)}</small></section>`;
+  }
+  function pursuitPanel(s) {
+    const teams = Object.values(s.pursuit?.teams || {}).filter(team => team.status === 'active');
+    if (!teams.length) return '';
+    return `<article class="panel compact"><div class="panel-title"><h2>追捕网络</h2><span>警戒 ${Math.round(s.pursuit.alert || 0)}</span></div>${teams.map(team => { const faction = s.factions[team.factionId]; return `<div class="faction-row"><div><strong>${esc(faction?.name || team.factionId)}追捕队</strong><small>成员 ${team.members.length} · 线索 ${Math.round(team.clueConfidence * 100)}%</small></div><i><em style="width:${team.progress}%"></em></i><small>推进 ${Math.round(team.progress)}%</small></div>`; }).join('')}</article>`;
   }
   function itemName(id) { return ({ water: '清水', moonPetal: '月兰花瓣', wine: '酒', stones: '元石', food: '食物', relicFragment: '遗藏碎片' }[id] || id); }
   function actionButtons(s) {

@@ -4,7 +4,7 @@
 })(globalThis, function () {
   'use strict';
 
-  function createRuntime({ engine, day, sourceNotes, activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening }) {
+  function createRuntime({ engine, day, sourceNotes, activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening, pursuit }) {
     function registerHandlers() {
       engine.registerEvent('openingRite', ({ state, choice }) => applyOpening(state, choice));
       engine.registerEvent('moonlightRumor', ({ state, choice, event }) => {
@@ -197,6 +197,7 @@
       engine.registerEvent('identityPursuit', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.facts.identityPursuitLastClock = state.clock;
+        if (pursuit) pursuit.createTeam(state, { factionId: 'auctionImmortals', targetId: 'player', location: state.locations[p.position.location]?.neighbors?.[0] || p.position.location, reason: `identityPursuit:${choice}`, strength: choice === 'confront' ? 2 : 1 });
         if (choice === 'erase') { p.inventory.stones = Math.max(0, p.inventory.stones - 5); state.central.tracePressure = Math.max(0, state.central.tracePressure - 22); state.central.marketReputation -= 3; }
         if (choice === 'misdirect') { state.central.tracePressure = Math.max(0, state.central.tracePressure - 10); state.central.rumorCredibility = Math.max(0, state.central.rumorCredibility - 8); state.central.sectPressure += 2; }
         if (choice === 'confront') { state.central.tracePressure = Math.min(100, state.central.tracePressure + 8); state.director.pressure = clamp(state.director.pressure + 3, 0, 10); state.factions.centralSects.tension += 5; state.factions.auctionImmortals.tension += 4; }

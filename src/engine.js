@@ -6,7 +6,7 @@
 
   const COMPONENTS = Object.freeze([
     'identity', 'position', 'faction', 'personality', 'cultivation', 'schedule',
-    'goals', 'needs', 'body', 'abilities', 'inventory', 'memory', 'knowledge', 'conditions', 'alive'
+    'goals', 'needs', 'body', 'abilities', 'inventory', 'memory', 'knowledge', 'conditions', 'agent', 'alive'
   ]);
   const goalHandlers = new Map();
   const interactionHandlers = new Map();

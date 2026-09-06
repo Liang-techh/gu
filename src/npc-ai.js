@@ -54,7 +54,7 @@
   function tick(state, { engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence }) {
     const currentPhase = phase(state);
     for (const npc of engine.queryWith(state, 'identity', 'position', 'needs', 'goals', 'schedule')) {
-      if (npc.id === 'player' || !npc.alive) continue;
+      if (npc.id === 'player' || !npc.alive || npc.agent) continue;
       npc.needs.energy = clamp(npc.needs.energy - 0.8, 0, 100);
       npc.needs.hunger = clamp(npc.needs.hunger + 0.6, 0, 100);
       if (hour(state) % 4 !== 0) continue;

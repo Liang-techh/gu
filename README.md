@@ -26,6 +26,7 @@
 - 可复用重复系统运行时 [src/repeatable-systems.js](<D:\Caves of Qud\gu-rpg\src\repeatable-systems.js>)：演武、传承、巡逻、闯楼、拍卖和梦境探索作为注入式世界行动运行，不依赖主模拟器内的重复分支；
 - 领域事件账本与传闻传播 [src/rumor.js](<D:\Caves of Qud\gu-rpg\src\rumor.js>)：事件不再只存在于待处理队列，同地点 NPC 和同势力关系网会根据交互、冲突、资源和战线事件形成带来源的二手记忆；
 - 情报网络与案件压力：传闻保留事件来源、传播路径和置信度，并在 `intel.cases` 中按目标与势力累计调查压力，NPC 的调查目标会真实消耗和更新这些压力；
+- 势力追捕队与代理人 [src/pursuit.js](<D:\Caves of Qud\gu-rpg\src\pursuit.js>)：追捕使作为真实 `agent` 实体在地图中寻路、接触和记忆目标，玩家可收买、误导或警告追兵，进度和警戒会显示在 UI；
 - 独立行动目录 [src/action-catalog.js](<D:\Caves of Qud\gu-rpg\src\action-catalog.js>)：可用 command 根据当前世界状态生成，UI、自由意图解析和未来 AI 代理共享同一行动入口；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：30 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；
