@@ -1,12 +1,13 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory);
-})(globalThis, function (Engine, Content, History) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder);
+})(globalThis, function (Engine, Content, History, ZoneBuilder) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
   if (!Content) throw new Error('GuSimulationContent must load before simulation.js');
   if (!History) throw new Error('GuSimulationHistory must load before simulation.js');
+  if (!ZoneBuilder) throw new Error('GuSimulationZoneBuilder must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
   const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS } = Content;
@@ -149,45 +150,6 @@
     advance(state, 1, 'contract');
   }
 
-  function createZone(locationId, location) {
-    const resources = { water: 0, moonPetal: 0, food: 0, relicFragment: 0 };
-    if (location.tags.includes('water')) resources.water = 8;
-    if (location.tags.includes('resource')) { resources.moonPetal = 10; resources.food = 4; }
-    if (location.tags.includes('relic')) resources.relicFragment = 3;
-    if (location.tags.includes('market')) { resources.water = 5; resources.food = 5; }
-    if (location.tags.includes('route')) { resources.water = 4; resources.food = 3; }
-    if (location.tags.includes('inheritance')) resources.relicFragment = 6;
-    return { id: locationId, danger: location.tags.includes('wild') ? 22 : 4, resources, population: 0, activity: 0, discoveries: [], visits: 0, weather: '雨' };
-  }
-
-  function weightedPopulation(state, table) {
-    const total = table.reduce((sum, row) => sum + row.weight, 0);
-    let needle = random(state) * total;
-    for (const row of table) { needle -= row.weight; if (needle <= 0) return row; }
-    return table[table.length - 1];
-  }
-
-  function seedPopulation(state) {
-    for (const [locationId, location] of Object.entries(LOCATIONS)) {
-      const zone = state.zones[locationId];
-      const table = POPULATION_TABLES[location.population] || [];
-      const count = location.type === 'wilderness' || location.type === 'ruin' ? 1 : 2;
-      for (let i = 0; i < count && table.length; i++) {
-        const row = weightedPopulation(state, table);
-        const id = `ambient-${locationId}-${i + 1}`;
-        const name = `${row.role}·${String.fromCharCode('甲'.charCodeAt(0) + i)}`;
-        state.entities[id] = createEntity(id, {
-          name, role: row.role, faction: row.faction, location: locationId,
-          personality: { ambition: 20 + Math.floor(random(state) * 60), caution: 20 + Math.floor(random(state) * 70), loyalty: 20 + Math.floor(random(state) * 70), greed: 10 + Math.floor(random(state) * 70), curiosity: 10 + Math.floor(random(state) * 70) },
-          cultivation: { rank: 1, stage: 0, aptitude: 0.35 + random(state) * 0.35 },
-          goals: row.goals,
-          schedule: { morning: locationId, afternoon: locationId, evening: locationId, night: locationId }
-        });
-        zone.population += 1;
-      }
-    }
-  }
-
   function newWorld(options = {}) {
     const seed = String(options.seed ?? '青茅山');
     const aptitudeName = APTITUDE[options.aptitude] ? options.aptitude : '丙等';
@@ -228,8 +190,8 @@
       if (seedData.fromDay && seedData.fromDay > day(state)) { state.facts.latentNpcs ||= {}; state.facts.latentNpcs[id] = seedData.fromDay; }
       else state.entities[id] = createEntity(id, seedData);
     }
-    for (const [id, location] of Object.entries(LOCATIONS)) state.zones[id] = createZone(id, location);
-    seedPopulation(state);
+    state.zones = ZoneBuilder.buildZones(LOCATIONS);
+    ZoneBuilder.seedPopulation(state, { locations: LOCATIONS, populationTables: POPULATION_TABLES, random, createEntity });
     for (const id of Object.keys(state.entities)) remember(state, id, 'world', { kind: 'origin', text: '青茅山的雨季刚刚开始。', facts: { region: '青茅山' } });
     relation(state, 'player', 'fangyuan').fear = 4;
     relation(state, 'player', 'fangzheng').trust = 6;
@@ -1007,5 +969,5 @@
   registerGoalHandlers();
   registerInteractionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ZONE_BUILDER: ZoneBuilder, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

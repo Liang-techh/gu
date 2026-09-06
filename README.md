@@ -12,6 +12,7 @@
 - 玩家/NPC 共用的组件式实体模型；
 - 独立运行时内核：组件查询、领域事件流、GoalHandler/Conversation/Interaction 注册表，以及按小时/按日排序执行的系统管线；
 - 独立内容包 [src/content.js](<D:\Caves of Qud\gu-rpg\src\content.js>)：地点、人口表、势力、人物、蛊虫和章节来源可按内容版本扩展；
+- 独立区域构建器 [src/zone-builder.js](<D:\Caves of Qud\gu-rpg\src\zone-builder.js>)：按地点标签生成资源状态，并按人口表重建环境居民；
 - 内容包已覆盖第一卷青茅山后段，以及第二卷白骨山—商家城—三叉山—天梯山的首批区域链；
 - 商家城演武与三王传承不是一次性剧情：可以反复行动，积累连胜、声望、轮次、难度、资源和伤势；
 - `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
@@ -55,7 +56,7 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       20/20 passing
+npm test       21/21 passing
 npm run check:canon  33/33 term/source checks
 ```
 

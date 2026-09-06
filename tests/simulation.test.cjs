@@ -39,6 +39,14 @@ test('zones have population tables, resources and regeneration independent of st
   assert.ok(next.zones.bambooForest.resources.moonPetal > 0);
 });
 
+test('zone builder reconstructs content-driven zones without depending on the UI', () => {
+  const zones = S.ZONE_BUILDER.buildZones(S.LOCATIONS);
+  assert.equal(Object.keys(zones).length, Object.keys(S.LOCATIONS).length);
+  assert.equal(zones.merchantCity.resources.food, 5);
+  assert.equal(zones.threeForkMountain.resources.relicFragment, 6);
+  assert.equal(typeof S.ZONE_BUILDER.seedPopulation, 'function');
+});
+
 test('same seed and same commands produce the same world state', () => {
   let a = S.newWorld({ seed: 'fixed' });
   let b = S.newWorld({ seed: 'fixed' });

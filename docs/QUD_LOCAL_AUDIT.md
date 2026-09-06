@@ -33,7 +33,7 @@
 | Factions.xml | `factions` + `relationships` | 势力拥有影响力、紧张度、态度，玩家行为会改变关系图 |
 | Conversations + Parts | `talk` 的 `listen/help/trade/threaten` 模式 + NPC memory | 对话是交互结果，不是唯一的剧情分支入口 |
 | HistoryKit / HistorySpice | `SOURCE_NOTES` + 后续历史系统接口 | 小说因果作为可追溯素材，不能直接变成固定结局 |
-| Zone / Population / RPM | `locations` + 后续区域/人口数据层 | 地点提供标签和邻接关系，区域内容可由状态生成 |
+| Zone / Population / RPM | `locations` + `src/zone-builder.js` + 人口表 | 地点提供标签和邻接关系，区域资源与环境居民可由内容状态重建 |
 
 ## 不会直接照搬的部分
 
