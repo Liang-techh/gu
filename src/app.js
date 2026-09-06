@@ -102,21 +102,20 @@
     const zone = snap.zone;
     app.innerHTML = `<div class="shell">
       <header class="topbar"><div><div class="kicker">青茅山 · 野外视角</div><h1>${esc(p.name)}</h1><p>${esc(timeText(state))} · ${esc(locName(here))}</p></div><div class="top-actions"><button id="save-game">保存</button><button id="new-world">离开世界</button></div></header>
+      <section class="top-player">${localStatePanel(state, snap)}</section>
       ${eventPanel(state)}
       ${combatPanel(state)}
       <section class="playfield">
-        <div class="main-column">
+        <div class="road-column">
           ${mapPanel(state)}
           <article class="scene"><div class="scene-label">场景</div><h2>${esc(locName(here))}</h2><p>${esc(sceneText(here))}</p><div class="zone-meta"><span>${esc(zone.weather)}</span><span>${zone.danger >= 60 ? '危险迹象明显' : zone.danger >= 30 ? '四周不太安稳' : '暂时平静'}</span><span>${(zone.hazards || []).filter(hazard => zone.danger >= Number(hazard.threshold || 0)).map(hazard => esc(hazard.label)).join(' · ') || '没有辨认出特殊危险'}</span></div></article>
+        </div>
+        <div class="action-column">
           <article class="panel"><div class="panel-title"><h2>手边行动</h2><span>行动会推进时间，世界不会暂停</span></div><div class="action-grid">${actionButtons(state)}</div><div class="command-row"><input id="free-command" placeholder="描述你要做什么：观察、去竹林、和方正说话……"><button id="run-command">行动</button></div></article>
           <article class="panel"><div class="panel-title"><h2>眼前的人</h2><span>只有同一地点的人会出现在这里</span></div><div class="people-grid">${nearbyPanel(state)}</div></article>
         </div>
-        <aside class="side-column">
-          ${localStatePanel(state, snap)}
-          ${localNotesPanel(state)}
-          <article class="panel compact local-rule"><div class="panel-title"><h2>你知道的范围</h2><span>信息边界</span></div><p>远方的势力、市场和战争不会凭空出现在你的视野里。先走过去，遇到人，听到传闻，或者亲自观察。</p></article>
-        </aside>
       </section>
+      <section class="lower-field">${localNotesPanel(state)}<article class="panel compact local-rule"><div class="panel-title"><h2>你知道的范围</h2><span>信息边界</span></div><p>远方的势力、市场和战争不会凭空出现在你的视野里。先走过去，遇到人，听到传闻，或者亲自观察。</p></article></section>
       <footer><span>世界种子：${esc(state.seed)} · schema ${state.schema}</span><span>小人正在世界中移动；世界不会因为你离开页面而停止</span></footer>
     </div>`;
     wire();
