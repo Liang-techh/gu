@@ -157,7 +157,7 @@
       factions: {},
       relationships: {},
       facts: {},
-      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false, northernFrontierOpened: false, blackCampaign: false, imperialCourtOpened: false, trueYangTowerFormed: false, foxFairyLandOpened: false, centralContinentOpened: false, immortalAuctionOpened: false, sectPressureActive: false },
+      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false, northernFrontierOpened: false, blackCampaign: false, imperialCourtOpened: false, trueYangTowerFormed: false, foxFairyLandOpened: false, centralContinentOpened: false, immortalAuctionOpened: false, sectPressureActive: false, shadowSectRebuilt: false, fiveRegionsWarOpened: false, southernFrontOpened: false, westernFrontOpened: false, heavenlyCourtOpened: false },
       events: { active: null, pending: [], recent: [], history: [], sequence: 0 },
       combat: null,
       arena: { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 },
@@ -165,6 +165,7 @@
       frontier: { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 },
       tower: { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false },
       central: { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, auctionHeat: 0, sectPressure: 0 },
+      worldWar: { shadowRebuilt: false, fiveRegions: false, southern: false, western: false, heavenly: false, heat: 0 },
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
       log: [],
       version: 1
@@ -312,6 +313,31 @@
       { id: 'defend', label: '启动福地防御', hint: '消耗资源，降低入侵风险。' },
       { id: 'negotiate', label: '与仙鹤门谈判', hint: '把方正和宗门关系转化为缓冲。' },
       { id: 'ambush', label: '诱敌深入再反击', hint: '提高收益和风险，留下长期敌意。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'shadowSectRebuild', priority: 200, when: state => state.flags.sectPressureActive && !state.flags.shadowSectRebuilt && day(state) >= 125 && ['foxFairyLand', 'centralContinent', 'shadowSectRuins'].includes(state.entities.player.position.location), build: () => ({ id: 'shadowSectRebuild', type: 'shadow', title: '影宗残脉重新结网', text: '宗门压力让中洲的暗线浮出水面。影宗余脉没有真正消失，影无邪正在废墟、福地与各方情报之间重建一张不愿被任何势力看见的网络。', source: SOURCE_NOTES.shadowRebuild, choices: [
+      { id: 'rebuild', label: '利用影宗暗线', hint: '获得秘密与情报，但会把你卷入更深的因果。' },
+      { id: 'ally', label: '尝试与影宗合作', hint: '提高影宗影响，牺牲部分中洲正道信任。' },
+      { id: 'hide', label: '隐藏自己并观察', hint: '保留行动自由，延后公开站队。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'fiveRegionsWar', priority: 210, when: state => state.flags.shadowSectRebuilt && !state.flags.fiveRegionsWarOpened && day(state) >= 140 && state.entities.player.position.location === 'centralContinent', build: () => ({ id: 'fiveRegionsWar', type: 'war', title: '五域格局开始转动', text: '中洲炼蛊大会的表面秩序遮不住五域之间的重新布局。北原旧盟、南疆家族、西漠商路、东海散仙和天庭的情报同时进入同一张战争地图。', source: SOURCE_NOTES.fiveRegionsWar, choices: [
+      { id: 'central', label: '站在中洲观察全局', hint: '获得跨区域情报，提升天庭与中洲的关注。' },
+      { id: 'regions', label: '把消息送往各域', hint: '扩大行动空间，但让战争热度更快上升。' },
+      { id: 'observe', label: '隐藏身份继续观察', hint: '保持中立，等待各方先暴露底牌。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'southernFront', priority: 220, when: state => state.flags.fiveRegionsWarOpened && !state.flags.southernFrontOpened && day(state) >= 150 && state.entities.player.position.location === 'southernBorder', build: () => ({ id: 'southernFront', type: 'war', title: '南疆超级家族的边线', text: '南疆的山路把家族利益、边境安全和个人名声绑在一起。武家正在重新估价盟友，也在判断哪些敌意必须立刻变成兵力。', source: SOURCE_NOTES.southernFront, choices: [
+      { id: 'negotiate', label: '参与家族谈判', hint: '降低南疆紧张，换取超级家族的信任。' },
+      { id: 'mobilize', label: '推动边境动员', hint: '提高战争准备和南疆影响。' },
+      { id: 'observe', label: '只记录各家底牌', hint: '获得情报，避免过早暴露立场。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'westernFront', priority: 230, when: state => state.flags.fiveRegionsWarOpened && !state.flags.westernFrontOpened && day(state) >= 160 && state.entities.player.position.location === 'westernDesert', build: () => ({ id: 'westernFront', type: 'war', title: '西漠房家的蛊屋线', text: '西漠的风沙里，房家的蛊屋、智道传承和豆神宫传闻把贸易与战争变成同一个问题：谁掌握移动的堡垒，谁就能定义边线。', source: SOURCE_NOTES.westernDesert, choices: [
+      { id: 'trade', label: '以商路交换情报', hint: '获得元石与洞察，保持房家对你的谨慎信任。' },
+      { id: 'defend', label: '帮助房家守住蛊屋', hint: '提高西漠势力影响，但增加战争暴露。' },
+      { id: 'raid', label: '夺取蛊屋线索', hint: '获得短期收益，显著推高房家敌意。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'heavenlyCourtCampaign', priority: 240, when: state => state.flags.fiveRegionsWarOpened && !state.flags.heavenlyCourtOpened && day(state) >= 180 && state.entities.player.position.location === 'heavenlyCourt', build: () => ({ id: 'heavenlyCourtCampaign', type: 'sect', title: '天庭的五域战争决策', text: '天庭不再只是中洲的高墙。龙公、紫薇仙子与元莲真传的线索让五域战争进入更高层级：你必须决定是窥探、抵抗，还是让自己的名字暂时消失。', source: SOURCE_NOTES.heavenlyCourt, choices: [
+      { id: 'infiltrate', label: '窥探天庭决策', hint: '获得高层情报，但会显著提高天庭敌意。' },
+      { id: 'defend', label: '承认并利用天庭秩序', hint: '降低局部压力，换取天庭的暂时容纳。' },
+      { id: 'observe', label: '保持距离观察', hint: '获得洞察，不立刻改变阵营关系。' }
     ] }) });
   }
 
@@ -541,6 +567,55 @@
       log(state, 'choice', `你处理了宗门对狐仙福地的压力：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.sectPressure });
       return true;
     });
+    Engine.registerEvent('shadowSectRebuild', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.shadowSectRebuilt = true; state.worldWar.shadowRebuilt = true;
+      activateSeed(state, 'yingwuxie');
+      state.factions.shadowSect.influence += choice === 'ally' ? 8 : 3;
+      state.factions.centralSects.tension += choice === 'rebuild' ? 4 : 1;
+      if (choice === 'rebuild') { p.cultivation.insight += 10; state.facts.shadowIntel = true; }
+      if (choice === 'ally') { relation(state, 'player', 'yingwuxie').trust += 5; state.director.pressure += 3; }
+      if (choice === 'hide') { p.cultivation.insight += 5; state.director.pressure = Math.max(0, state.director.pressure - 1); }
+      log(state, 'choice', `你处理了影宗残脉重新结网：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.shadowRebuild });
+      return true;
+    });
+    Engine.registerEvent('fiveRegionsWar', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.fiveRegionsWarOpened = true; state.worldWar.fiveRegions = true; state.worldWar.heat += choice === 'regions' ? 12 : 6;
+      state.factions.longLifeHeaven.tension += 4; state.factions.heavenlyCourt.tension += 4; state.factions.centralSects.tension += 3;
+      if (choice === 'central') { p.cultivation.insight += 12; state.facts.fiveRegionsIntel = true; }
+      if (choice === 'regions') { p.inventory.stones += 4; state.director.pressure += 3; }
+      if (choice === 'observe') { p.cultivation.insight += 8; state.director.pressure += 1; }
+      log(state, 'choice', `你处理了五域格局开始转动：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.fiveRegionsWar });
+      return true;
+    });
+    Engine.registerEvent('southernFront', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.southernFrontOpened = true; state.worldWar.southern = true; activateSeed(state, 'wuyong');
+      if (choice === 'negotiate') { state.factions.southernSuperClans.tension = Math.max(0, state.factions.southernSuperClans.tension - 8); state.factions.southernSuperClans.attitude += 6; p.cultivation.insight += 7; }
+      if (choice === 'mobilize') { state.factions.southernSuperClans.influence += 8; state.worldWar.heat += 7; state.director.pressure += 2; }
+      if (choice === 'observe') { p.cultivation.insight += 9; state.facts.southernIntel = true; }
+      log(state, 'choice', `你处理了南疆超级家族的边线：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.southernFront });
+      return true;
+    });
+    Engine.registerEvent('westernFront', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.westernFrontOpened = true; state.worldWar.western = true; activateSeed(state, 'fangdichang');
+      if (choice === 'trade') { p.inventory.stones += 5; p.cultivation.insight += 8; state.factions.westernDesertFang.attitude += 4; }
+      if (choice === 'defend') { state.factions.westernDesertFang.influence += 8; state.worldWar.heat += 6; }
+      if (choice === 'raid') { state.factions.westernDesertFang.tension += 12; state.factions.westernDesertFang.attitude -= 8; p.inventory.stones += 8; state.director.pressure += 3; }
+      log(state, 'choice', `你处理了西漠房家的蛊屋线：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.westernDesert });
+      return true;
+    });
+    Engine.registerEvent('heavenlyCourtCampaign', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.heavenlyCourtOpened = true; state.worldWar.heavenly = true; activateSeed(state, 'longgong'); activateSeed(state, 'ziweixianzi');
+      if (choice === 'infiltrate') { state.factions.heavenlyCourt.tension += 12; state.factions.heavenlyCourt.attitude -= 10; p.cultivation.insight += 14; state.worldWar.heat += 8; }
+      if (choice === 'defend') { state.factions.heavenlyCourt.attitude += 6; state.factions.heavenlyCourt.tension = Math.max(0, state.factions.heavenlyCourt.tension - 5); state.director.pressure -= 1; }
+      if (choice === 'observe') { p.cultivation.insight += 12; state.facts.heavenlyIntel = true; }
+      log(state, 'choice', `你处理了天庭的五域战争决策：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.heavenlyCourt });
+      return true;
+    });
   }
 
   function normalize(state) {
@@ -552,11 +627,13 @@
     state.frontier ||= { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 };
     state.tower ||= { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false };
     state.central ||= { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, auctionHeat: 0, sectPressure: 0 };
+    state.worldWar ||= { shadowRebuilt: false, fiveRegions: false, southern: false, western: false, heavenly: false, heat: 0 };
     state.arena.matches = Math.max(0, Number(state.arena.matches) || 0); state.arena.wins = Math.max(0, Number(state.arena.wins) || 0); state.arena.losses = Math.max(0, Number(state.arena.losses) || 0); state.arena.streak = Math.max(0, Number(state.arena.streak) || 0); state.arena.reputation = Math.max(0, Number(state.arena.reputation) || 0);
     state.inheritance.attempts = Math.max(0, Number(state.inheritance.attempts) || 0); state.inheritance.round = Math.max(0, Number(state.inheritance.round) || 0); state.inheritance.difficulty = Math.max(1, Number(state.inheritance.difficulty) || 1); state.inheritance.discoveries ||= [];
     state.frontier.supply = clamp(Number(state.frontier.supply) || 0, 0, 100); state.frontier.campaignPressure = clamp(Number(state.frontier.campaignPressure) || 0, 0, 100); state.frontier.battles = Math.max(0, Number(state.frontier.battles) || 0); state.frontier.casualties = Math.max(0, Number(state.frontier.casualties) || 0);
     state.tower.floors = Math.max(0, Number(state.tower.floors) || 0); state.tower.attempts = Math.max(0, Number(state.tower.attempts) || 0); state.tower.discoveries ||= [];
     state.central.lotsSold = Math.max(0, Number(state.central.lotsSold) || 0); state.central.auctionHeat = clamp(Number(state.central.auctionHeat) || 0, 0, 100); state.central.sectPressure = clamp(Number(state.central.sectPressure) || 0, 0, 100);
+    state.worldWar.heat = clamp(Number(state.worldWar.heat) || 0, 0, 100);
     for (const entity of Engine.queryWith(state, 'cultivation')) {
       const c = entity.cultivation;
       c.rank = clamp(Number(c.rank) || 1, 1, 9);
@@ -898,6 +975,13 @@
       if (state.factions.black && state.frontier.supply < 25) state.factions.black.tension += 1;
       if (state.factions.northernTribes && state.frontier.campaignPressure > 40) state.factions.northernTribes.tension += 1;
     }
+    if (state.worldWar?.fiveRegions) {
+      state.worldWar.heat = clamp(state.worldWar.heat + 0.35, 0, 100);
+      if (state.factions.heavenlyCourt) state.factions.heavenlyCourt.tension += 0.25;
+      if (state.factions.longLifeHeaven) state.factions.longLifeHeaven.tension += 0.2;
+      if (state.factions.southernSuperClans && state.worldWar.southern) state.factions.southernSuperClans.tension += 0.15;
+      if (state.factions.westernDesertFang && state.worldWar.western) state.factions.westernDesertFang.tension += 0.15;
+    }
     Engine.emit(state, 'world.day_tick', { day: day(state), pressure: state.director.pressure });
     log(state, 'day_tick', `第${day(state)}日结束，山寨、势力与人物各自推进了一步。`, { pressure: state.director.pressure });
     History.snapshot(state);
@@ -1143,7 +1227,7 @@
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), domainEvents: copy(state.events.recent || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), worldWar: copy(state.worldWar), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), domainEvents: copy(state.events.recent || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
   }
 

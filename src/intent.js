@@ -10,7 +10,8 @@
     whiteBoneMountain: ['白骨山'], merchantCity: ['商家城'], threeForkMountain: ['三叉山', '三王传承'],
     heavenClimbMountain: ['天梯山'], northernPlains: ['北原', '草原'], blackTribeCamp: ['黑家军营', '黑家大军营地'],
     imperialCourt: ['王庭福地'], trueYangTower: ['真阳楼', '八十八角真阳楼'], foxFairyLand: ['狐仙福地'],
-    centralContinent: ['中洲'], immortalAuction: ['中洲拍卖会', '仙蛊拍卖', '拍卖大会'], immortalCraneSect: ['仙鹤门']
+    centralContinent: ['中洲'], immortalAuction: ['中洲拍卖会', '仙蛊拍卖', '拍卖大会'], immortalCraneSect: ['仙鹤门'],
+    southernBorder: ['南疆'], westernDesert: ['西漠'], easternSea: ['东海'], heavenlyCourt: ['天庭'], longLifeHeaven: ['长生天'], shadowSectRuins: ['影宗遗址', '影宗']
   };
 
   function normalized(text) { return String(text || '').replace(/[，。！？、,.!?\s]/g, '').toLowerCase(); }

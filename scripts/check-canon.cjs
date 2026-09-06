@@ -23,7 +23,12 @@ const checks = [
   ['towerFormation', ['八十八角真阳楼', '王庭福地', '真阳楼']],
   ['foxReturn', ['狐仙福地', '北原', '方源']],
   ['sectPressure', ['仙鹤门', '方正', '福地']],
-  ['immortalAuction', ['拍卖大会', '秦百胜', '仙蛊']]
+  ['immortalAuction', ['拍卖大会', '秦百胜', '仙蛊']],
+  ['shadowRebuild', ['影无邪', '方源', '仙僵', '自爆']],
+  ['southernFront', ['南疆', '武遗海', '武家', '乔丝柳']],
+  ['westernDesert', ['房家', '西漠', '蛊屋', '豆神宫']],
+  ['heavenlyCourt', ['天庭', '龙公', '元莲真传', '紫薇仙子']],
+  ['fiveRegionsWar', ['中洲炼蛊大会', '五域', '方源']]
 ];
 const failures = [];
 let total = 0;

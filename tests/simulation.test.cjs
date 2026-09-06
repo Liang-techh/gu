@@ -14,10 +14,11 @@ function open(state, choice = 'observe') {
 
 test('world starts from novel-derived opening but resolves through an event contract', () => {
   const state = S.newWorld({ name: '测试者', aptitude: '乙等', seed: 'rain' });
-  assert.equal(state.content.id, 'gu-multi-region-v4');
+  assert.equal(state.content.id, 'gu-five-regions-v5');
   assert.equal(S.CONTENT_INDEX.volumes[0].id, 'volume-1');
   assert.equal(S.CONTENT_INDEX.volumes[2].id, 'volume-3');
   assert.equal(S.CONTENT_INDEX.volumes[3].id, 'volume-4');
+  assert.equal(S.CONTENT_INDEX.volumes[4].id, 'volume-5');
   assert.equal(state.history.origin.contentId, state.content.id);
   assert.equal(state.events.active.id, 'openingRite');
   assert.equal(state.entities.fangyuan.identity.name, '古月方源');
@@ -251,7 +252,8 @@ test('volume three content pack turns northern war and true yang tower into stat
     threeClanTournament: 'observe', ironInvestigation: 'cooperate', merchantCityArrival: 'enter',
     merchantArena: 'recruit', threeKingsInheritance: 'scout', heavenClimbTransmission: 'follow',
     northernWarArrival: 'enter', blackCampaign: 'mediate', imperialCourtOpening: 'relief', trueYangTowerFormation: 'enter',
-    foxFairyLandReturn: 'recover', centralContinentArrival: 'trade', immortalAuction: 'observe', sectPressure: 'negotiate'
+    foxFairyLandReturn: 'recover', centralContinentArrival: 'trade', immortalAuction: 'observe', sectPressure: 'negotiate',
+    shadowSectRebuild: 'rebuild', fiveRegionsWar: 'central', southernFront: 'negotiate', westernFront: 'trade', heavenlyCourtCampaign: 'defend'
   };
   const advance = hours => {
     for (let i = 0; i < hours / 12; i++) {
@@ -312,6 +314,28 @@ test('volume three content pack turns northern war and true yang tower into stat
   assert.equal(state.entities.qinbaisheng.identity.name, '秦百胜');
   assert.ok(state.central.sectPressure > 0);
   assert.ok(state.history.events.some(event => event.data?.source?.source?.endsWith('第100章.txt')));
+  advance(168);
+  assert.equal(state.flags.shadowSectRebuilt, true);
+  assert.equal(state.entities.yingwuxie.identity.name, '影无邪');
+  state = ok(state, { type: 'action', id: 'travel', location: 'centralContinent' });
+  advance(360);
+  assert.equal(state.flags.fiveRegionsWarOpened, true);
+  assert.equal(state.worldWar.fiveRegions, true);
+  state = ok(state, { type: 'action', id: 'travel', location: 'southernBorder' });
+  advance(240);
+  assert.equal(state.flags.southernFrontOpened, true);
+  assert.equal(state.entities.wuyong.identity.name, '武庸');
+  state = ok(state, { type: 'action', id: 'travel', location: 'westernDesert' });
+  advance(240);
+  assert.equal(state.flags.westernFrontOpened, true);
+  assert.equal(state.entities.fangdichang.identity.name, '房睇长');
+  state = ok(state, { type: 'action', id: 'travel', location: 'centralContinent' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'heavenlyCourt' });
+  advance(480);
+  assert.equal(state.flags.heavenlyCourtOpened, true);
+  assert.equal(state.entities.longgong.identity.name, '龙公');
+  assert.equal(state.entities.ziweixianzi.identity.name, '紫薇仙子');
+  assert.ok(state.worldWar.heat > 0);
 });
 
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
@@ -327,6 +351,9 @@ test('free intent parser only returns commands; state changes remain rule-owned'
   assert.equal(S.interpret('去中洲', state).command.location, 'centralContinent');
   assert.equal(S.interpret('去狐仙福地', state).command.location, 'foxFairyLand');
   assert.equal(S.interpret('去仙鹤门', state).command.location, 'immortalCraneSect');
+  assert.equal(S.interpret('去南疆', state).command.location, 'southernBorder');
+  assert.equal(S.interpret('去西漠', state).command.location, 'westernDesert');
+  assert.equal(S.interpret('去天庭', state).command.location, 'heavenlyCourt');
 });
 
 test('save validation preserves components, memories, relationships and deterministic RNG', () => {

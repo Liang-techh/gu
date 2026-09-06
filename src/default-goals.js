@@ -28,6 +28,7 @@
     protectFather: ({ npc }) => { npc.needs.safety = Math.min(100, npc.needs.safety + 0.8); },
     protectDaughter: ({ npc }) => { npc.needs.safety = Math.min(100, npc.needs.safety + 0.8); },
     prepareWar: ({ state, faction }) => { state.facts.warPreparation = (state.facts.warPreparation || 0) + 1; if (faction) { faction.influence += 0.2; faction.tension += 0.1; } },
+    rebuildShadow: ({ state, npc, faction, remember }) => { state.facts.shadowReconstruction = (state.facts.shadowReconstruction || 0) + 1; if (faction) { faction.influence += 0.3; faction.tension += 0.2; } npc.cultivation.insight += 0.25; remember(state, npc.id, 'world', { kind: 'secret', valence: -0.5, text: `${npc.identity.name}在废墟中重新编织影宗的秘密网络。`, facts: { shadowReconstruction: true } }); },
     healWounded: ({ state, npc }) => { npc.needs.energy = Math.min(100, npc.needs.energy + 1); state.facts.healingActivity = (state.facts.healingActivity || 0) + 1; },
     mediate: ({ state, faction }) => { state.facts.mediationActivity = (state.facts.mediationActivity || 0) + 1; if (faction) faction.tension = Math.max(0, faction.tension - 0.3); },
     train: ({ npc }) => { npc.cultivation.progress += 0.6; npc.needs.energy = Math.max(0, npc.needs.energy - 1); },

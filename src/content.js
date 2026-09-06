@@ -18,14 +18,20 @@
     merchantCity: { name: '商家城', type: 'metropolis', neighbors: ['whiteBoneMountain', 'threeForkMountain'], tags: ['safe', 'market', 'politics'], population: 'city' },
     threeForkMountain: { name: '三叉山', type: 'wilderness', neighbors: ['merchantCity', 'heavenClimbMountain'], tags: ['wild', 'inheritance', 'danger'], population: 'inheritance' },
     heavenClimbMountain: { name: '天梯山', type: 'sacred', neighbors: ['threeForkMountain', 'northernPlains'], tags: ['sacred', 'inheritance', 'danger'], population: 'heavenClimb' },
-    northernPlains: { name: '北原草原', type: 'wilderness', neighbors: ['heavenClimbMountain', 'blackTribeCamp'], tags: ['wild', 'route', 'war'], population: 'northernRoad' },
+    northernPlains: { name: '北原草原', type: 'wilderness', neighbors: ['heavenClimbMountain', 'blackTribeCamp', 'longLifeHeaven'], tags: ['wild', 'route', 'war'], population: 'northernRoad' },
     blackTribeCamp: { name: '黑家大军营地', type: 'military', neighbors: ['northernPlains', 'imperialCourt'], tags: ['war', 'market', 'politics'], population: 'blackCamp' },
     imperialCourt: { name: '王庭福地', type: 'sacred', neighbors: ['blackTribeCamp', 'trueYangTower'], tags: ['sacred', 'safe', 'politics'], population: 'imperialCourt' },
     trueYangTower: { name: '八十八角真阳楼', type: 'ruin', neighbors: ['imperialCourt', 'foxFairyLand'], tags: ['inheritance', 'danger', 'tower'], population: 'trueYangTower' },
-    foxFairyLand: { name: '狐仙福地', type: 'blessedLand', neighbors: ['trueYangTower', 'centralContinent'], tags: ['blessed', 'resource', 'portal'], population: 'foxFairyLand' },
-    centralContinent: { name: '中洲', type: 'continent', neighbors: ['foxFairyLand', 'immortalAuction', 'immortalCraneSect'], tags: ['politics', 'sect', 'route'], population: 'centralContinent' },
+    foxFairyLand: { name: '狐仙福地', type: 'blessedLand', neighbors: ['trueYangTower', 'centralContinent', 'shadowSectRuins'], tags: ['blessed', 'resource', 'portal'], population: 'foxFairyLand' },
+    centralContinent: { name: '中洲', type: 'continent', neighbors: ['foxFairyLand', 'immortalAuction', 'immortalCraneSect', 'southernBorder', 'westernDesert', 'easternSea', 'heavenlyCourt', 'longLifeHeaven', 'shadowSectRuins'], tags: ['politics', 'sect', 'route'], population: 'centralContinent' },
     immortalAuction: { name: '中洲拍卖会', type: 'market', neighbors: ['centralContinent'], tags: ['market', 'politics', 'immortal'], population: 'immortalAuction' },
-    immortalCraneSect: { name: '仙鹤门', type: 'sect', neighbors: ['centralContinent'], tags: ['sect', 'politics', 'safe'], population: 'immortalCraneSect' }
+    immortalCraneSect: { name: '仙鹤门', type: 'sect', neighbors: ['centralContinent'], tags: ['sect', 'politics', 'safe'], population: 'immortalCraneSect' },
+    southernBorder: { name: '南疆', type: 'continent', neighbors: ['centralContinent', 'westernDesert'], tags: ['politics', 'war', 'route'], population: 'southernBorder' },
+    westernDesert: { name: '西漠', type: 'continent', neighbors: ['centralContinent', 'southernBorder', 'easternSea'], tags: ['desert', 'trade', 'war'], population: 'westernDesert' },
+    easternSea: { name: '东海', type: 'continent', neighbors: ['centralContinent', 'westernDesert', 'heavenlyCourt'], tags: ['sea', 'trade', 'immortal'], population: 'easternSea' },
+    heavenlyCourt: { name: '天庭', type: 'institution', neighbors: ['centralContinent', 'easternSea'], tags: ['sect', 'politics', 'war'], population: 'heavenlyCourt' },
+    longLifeHeaven: { name: '长生天', type: 'institution', neighbors: ['centralContinent', 'northernPlains'], tags: ['northern', 'politics', 'war'], population: 'longLifeHeaven' },
+    shadowSectRuins: { name: '影宗遗址', type: 'ruin', neighbors: ['foxFairyLand', 'centralContinent'], tags: ['shadow', 'ruin', 'secret'], population: 'shadowSectRuins' }
   };
 
   const POPULATION_TABLES = {
@@ -47,7 +53,13 @@
     foxFairyLand: [{ role: '福地凡人', faction: 'centralSects', goals: ['maintainOrder', 'secureResources'], weight: 4 }, { role: '荒兽', faction: null, goals: ['forage', 'avoidPlayer'], weight: 4 }],
     centralContinent: [{ role: '中洲蛊师', faction: 'centralSects', goals: ['collectRumors', 'proveWorth'], weight: 5 }, { role: '宗门使者', faction: 'spiritAffinity', goals: ['prepareAlliance', 'trade'], weight: 3 }],
     immortalAuction: [{ role: '拍卖会来客', faction: 'auctionImmortals', goals: ['trade', 'collectRumors'], weight: 6 }, { role: '拍卖会护卫', faction: 'centralSects', goals: ['maintainOrder', 'patrol'], weight: 3 }],
-    immortalCraneSect: [{ role: '仙鹤门弟子', faction: 'immortalCrane', goals: ['study', 'proveWorth'], weight: 6 }, { role: '飞鹤驭兽师', faction: 'immortalCrane', goals: ['patrol', 'protectClan'], weight: 3 }]
+    immortalCraneSect: [{ role: '仙鹤门弟子', faction: 'immortalCrane', goals: ['study', 'proveWorth'], weight: 6 }, { role: '飞鹤驭兽师', faction: 'immortalCrane', goals: ['patrol', 'protectClan'], weight: 3 }],
+    southernBorder: [{ role: '南疆家族蛊师', faction: 'southernSuperClans', goals: ['prepareWar', 'maintainOrder'], weight: 5 }, { role: '武家使者', faction: 'southernSuperClans', goals: ['mediate', 'protectClan'], weight: 3 }],
+    westernDesert: [{ role: '西漠商旅', faction: 'westernDesertFang', goals: ['trade', 'collectRumors'], weight: 5 }, { role: '房家蛊师', faction: 'westernDesertFang', goals: ['protectClan', 'prepareWar'], weight: 3 }],
+    easternSea: [{ role: '东海散修', faction: 'easternSeaImmortals', goals: ['trade', 'collectRumors'], weight: 5 }, { role: '海上巡游蛊师', faction: 'easternSeaImmortals', goals: ['patrol', 'travel'], weight: 3 }],
+    heavenlyCourt: [{ role: '天庭蛊仙', faction: 'heavenlyCourt', goals: ['maintainOrder', 'prepareWar'], weight: 5 }, { role: '天庭使者', faction: 'heavenlyCourt', goals: ['proveWorth', 'collectRumors'], weight: 2 }],
+    longLifeHeaven: [{ role: '长生天使者', faction: 'longLifeHeaven', goals: ['prepareWar', 'collectRumors'], weight: 4 }, { role: '北原部族使者', faction: 'northernTribes', goals: ['protectClan', 'mediate'], weight: 3 }],
+    shadowSectRuins: [{ role: '影宗余党', faction: 'shadowSect', goals: ['rebuildShadow', 'collectRumors'], weight: 4 }, { role: '遗址窥探者', faction: 'demonic', goals: ['findRelic', 'avoidPlayer'], weight: 2 }]
   };
 
   const FACTION_SEEDS = {
@@ -65,7 +77,13 @@
     centralSects: { name: '中洲十大古派', color: '#718bb4', influence: 82, tension: 34, attitude: -2 },
     immortalCrane: { name: '仙鹤门', color: '#e8e2d2', influence: 62, tension: 26, attitude: 2 },
     spiritAffinity: { name: '灵缘斋', color: '#c989ad', influence: 66, tension: 28, attitude: 4 },
-    auctionImmortals: { name: '中洲散修与拍卖会来客', color: '#9c8a6d', influence: 54, tension: 38, attitude: 0 }
+    auctionImmortals: { name: '中洲散修与拍卖会来客', color: '#9c8a6d', influence: 54, tension: 38, attitude: 0 },
+    shadowSect: { name: '影宗余脉', color: '#534b70', influence: 18, tension: 68, attitude: -12 },
+    southernSuperClans: { name: '南疆超级家族', color: '#9f614e', influence: 64, tension: 46, attitude: -2 },
+    westernDesertFang: { name: '西漠房家', color: '#c18d4e', influence: 61, tension: 42, attitude: 1 },
+    easternSeaImmortals: { name: '东海诸仙与超级势力', color: '#5e9fa4', influence: 59, tension: 39, attitude: 3 },
+    heavenlyCourt: { name: '天庭', color: '#d7c88e', influence: 92, tension: 44, attitude: -4 },
+    longLifeHeaven: { name: '长生天', color: '#b77b58', influence: 86, tension: 58, attitude: -6 }
   };
 
   const GU_SEEDS = {
@@ -221,6 +239,41 @@
       cultivation: { rank: 6, stage: 1, aptitude: 0.8 },
       schedule: { morning: 'immortalAuction', afternoon: 'immortalAuction', evening: 'centralContinent', night: 'immortalAuction' },
       goals: ['trade', 'collectRumors', 'maintainOrder']
+    },
+    yingwuxie: {
+      name: '影无邪', role: '影宗余党', faction: 'shadowSect', location: 'shadowSectRuins', fromDay: 125,
+      personality: { ambition: 86, caution: 92, loyalty: 82, greed: 44, curiosity: 88 },
+      cultivation: { rank: 6, stage: 1, aptitude: 0.86 },
+      schedule: { morning: 'shadowSectRuins', afternoon: 'shadowSectRuins', evening: 'centralContinent', night: 'shadowSectRuins' },
+      goals: ['rebuildShadow', 'collectRumors', 'avoidPlayer']
+    },
+    wuyong: {
+      name: '武庸', role: '武家家主', faction: 'southernSuperClans', location: 'southernBorder', fromDay: 150,
+      personality: { ambition: 92, caution: 86, loyalty: 88, greed: 36, curiosity: 64 },
+      cultivation: { rank: 7, stage: 1, aptitude: 0.9 },
+      schedule: { morning: 'southernBorder', afternoon: 'southernBorder', evening: 'centralContinent', night: 'southernBorder' },
+      goals: ['prepareWar', 'maintainOrder', 'mediate']
+    },
+    fangdichang: {
+      name: '房睇长', role: '房家智道蛊师', faction: 'westernDesertFang', location: 'westernDesert', fromDay: 160,
+      personality: { ambition: 84, caution: 91, loyalty: 86, greed: 38, curiosity: 95 },
+      cultivation: { rank: 7, stage: 1, aptitude: 0.88 },
+      schedule: { morning: 'westernDesert', afternoon: 'westernDesert', evening: 'centralContinent', night: 'westernDesert' },
+      goals: ['protectClan', 'trade', 'prepareWar']
+    },
+    longgong: {
+      name: '龙公', role: '天庭宿老', faction: 'heavenlyCourt', location: 'heavenlyCourt', fromDay: 180,
+      personality: { ambition: 88, caution: 94, loyalty: 96, greed: 12, curiosity: 78 },
+      cultivation: { rank: 8, stage: 2, aptitude: 0.98 },
+      schedule: { morning: 'heavenlyCourt', afternoon: 'heavenlyCourt', evening: 'centralContinent', night: 'heavenlyCourt' },
+      goals: ['prepareWar', 'maintainOrder', 'proveWorth']
+    },
+    ziweixianzi: {
+      name: '紫薇仙子', role: '天庭智道蛊仙', faction: 'heavenlyCourt', location: 'heavenlyCourt', fromDay: 175,
+      personality: { ambition: 86, caution: 96, loyalty: 92, greed: 16, curiosity: 98 },
+      cultivation: { rank: 7, stage: 2, aptitude: 0.94 },
+      schedule: { morning: 'heavenlyCourt', afternoon: 'centralContinent', evening: 'heavenlyCourt', night: 'heavenlyCourt' },
+      goals: ['collectRumors', 'prepareWar', 'maintainOrder']
     }
   };
 
@@ -244,11 +297,16 @@
     foxReturn: { source: 'reference/novel/第4卷：魔君纵横/第1章.txt', note: '北原旅途结束后回归狐仙福地，福地成为经营、休整和继续谋划的持久基地。' },
     sectPressure: { source: 'reference/novel/第4卷：魔君纵横/第50章.txt', note: '仙鹤门与方正的师徒关系把宗门任务、个人情感和福地攻防连接起来。' },
     immortalAuction: { source: 'reference/novel/第4卷：魔君纵横/第100章.txt', note: '中洲拍卖大会汇聚散修、超级势力和仙蛊资源，适合构造成价格、关系和情报共同变化的市场系统。' }
+    ,shadowRebuild: { source: 'reference/novel/第5卷：魔王雄霸/第1章.txt', note: '影无邪、影宗余脉、长生天与中洲局势，为重建势力和秘密网络提供原文锚点。' },
+    southernFront: { source: 'reference/novel/第5卷：魔王雄霸/第300章.txt', note: '南疆、武家、武遗海与乔家关系把超级家族、外交和边境战争连接起来。' },
+    westernDesert: { source: 'reference/novel/第5卷：魔王雄霸/第500章.txt', note: '西漠房家以蛊屋闻名，智道传承和豆神宫构成沙漠势力的结构性玩法。' },
+    heavenlyCourt: { source: 'reference/novel/第5卷：魔王雄霸/第700章.txt', note: '天庭、龙公与元莲真传展示了中洲最高层级势力如何把传承与战争合并。' },
+    fiveRegionsWar: { source: 'reference/novel/第5卷：魔王雄霸/第900章.txt', note: '中洲炼蛊大会、五域和方源的撤退，把区域事件升级为跨地图战争与情报博弈。' }
   };
 
   const CONTENT_INDEX = {
-    id: 'gu-multi-region-v4',
-    title: '蛊真人 · 南疆—北原—中洲 simulation-first 内容包',
+    id: 'gu-five-regions-v5',
+    title: '蛊真人 · 五域战争 simulation-first 内容包',
     volumes: [{ id: 'volume-1', title: '第1卷：魔性不改', arcs: [
       { id: 'opening', chapters: ['第6章.txt', '第7章.txt', '第14章.txt'], sourceKeys: ['opening', 'academy', 'relic'] },
       { id: 'market-and-wolf', chapters: ['第109章.txt', '第110章.txt', '第112章.txt', '第123章.txt'], sourceKeys: ['market', 'auction', 'wolf'] },
@@ -265,6 +323,13 @@
     { id: 'volume-4', title: '第4卷：魔君纵横', arcs: [
       { id: 'return-to-blessed-land', chapters: ['第1章.txt', '第10章.txt'], sourceKeys: ['foxReturn', 'sectPressure'] },
       { id: 'immortal-auction', chapters: ['第100章.txt', '第200章.txt'], sourceKeys: ['immortalAuction'] }
+    ] },
+    { id: 'volume-5', title: '第5卷：魔王雄霸', arcs: [
+      { id: 'shadow-rebuild', chapters: ['第1章.txt', '第50章.txt'], sourceKeys: ['shadowRebuild'] },
+      { id: 'southern-front', chapters: ['第200章.txt', '第300章.txt'], sourceKeys: ['southernFront'] },
+      { id: 'western-desert', chapters: ['第500章.txt'], sourceKeys: ['westernDesert'] },
+      { id: 'heavenly-court', chapters: ['第700章.txt'], sourceKeys: ['heavenlyCourt'] },
+      { id: 'five-regions-war', chapters: ['第900章.txt'], sourceKeys: ['fiveRegionsWar'] }
     ] }
   ]
   };
@@ -295,5 +360,5 @@
     ] }
   ];
 
-  return { CONTENT_VERSION: 4, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
+  return { CONTENT_VERSION: 5, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
 });
