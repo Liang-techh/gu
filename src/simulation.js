@@ -84,6 +84,18 @@
     };
   }
 
+  function activateSeed(state, id) {
+    if (state.entities[id]) return state.entities[id];
+    const seed = NPC_SEEDS[id];
+    if (!seed) throw new Error(`内容包中不存在 NPC：${id}`);
+    const entity = createEntity(id, seed);
+    state.entities[id] = entity;
+    if (state.facts.latentNpcs) delete state.facts.latentNpcs[id];
+    remember(state, id, 'world', { kind: 'arrival', text: `${seed.name}进入了青茅山的公共视野。`, facts: { arrivedDay: day(state) } });
+    log(state, 'world_arrival', `${seed.name}进入了青茅山。`, { npcId: id });
+    return entity;
+  }
+
   function createZone(locationId, location) {
     const resources = { water: 0, moonPetal: 0, food: 0, relicFragment: 0 };
     if (location.tags.includes('water')) resources.water = 8;
@@ -138,7 +150,7 @@
       factions: {},
       relationships: {},
       facts: {},
-      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false },
+      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false },
       events: { active: null, pending: [], history: [], sequence: 0 },
       combat: null,
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
@@ -154,7 +166,10 @@
     state.entities.player.inventory = { water: 5, moonPetal: 6, wine: 1, stones: 8 };
     state.entities.player.body.health = state.entities.player.body.maxHealth;
     state.entities.player.needs = { energy: 92, hunger: 8, safety: 70 };
-    for (const [id, seedData] of Object.entries(NPC_SEEDS)) state.entities[id] = createEntity(id, seedData);
+    for (const [id, seedData] of Object.entries(NPC_SEEDS)) {
+      if (seedData.fromDay && seedData.fromDay > day(state)) { state.facts.latentNpcs ||= {}; state.facts.latentNpcs[id] = seedData.fromDay; }
+      else state.entities[id] = createEntity(id, seedData);
+    }
     for (const [id, location] of Object.entries(LOCATIONS)) state.zones[id] = createZone(id, location);
     seedPopulation(state);
     for (const id of Object.keys(state.entities)) remember(state, id, 'world', { kind: 'origin', text: '青茅山的雨季刚刚开始。', facts: { region: '青茅山' } });
@@ -225,6 +240,16 @@
       { id: 'mobilize', label: '加入巡逻与布防', hint: '降低当前区域危险，提升古月影响。' },
       { id: 'hunt', label: '趁混乱深入山林', hint: '获得资源和线索，但承担更高伤害风险。' },
       { id: 'secure', label: '囤积资源等待变化', hint: '提高个人储备，让野外区域更危险。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'threeClanTournament', priority: 60, when: state => state.flags.wolfTide && !state.flags.tournamentAnnounced && day(state) >= 18 && ['village', 'academy'].includes(state.entities.player.position.location), build: () => ({ id: 'threeClanTournament', type: 'competition', title: '三族大比武的筹备', text: '狼潮后的赔偿和资源分配无法靠口舌解决。古月、白家与熊家决定以三族大比武定下新的秩序，年轻蛊师被推到所有人的目光下。', source: SOURCE_NOTES.tournament, choices: [
+      { id: 'enter', label: '报名参加比武', hint: '获得个人名望，但会把身体和关系都推入公开竞争。' },
+      { id: 'sponsor', label: '支持本族参赛者', hint: '提升古月影响，减少直接受伤风险。' },
+      { id: 'observe', label: '观察各族底牌', hint: '获得情报，记住谁在狼潮后真正保存了实力。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'ironInvestigation', priority: 70, when: state => state.flags.tournamentAnnounced && !state.flags.investigationArrived && day(state) >= 22 && ['village', 'ancestralHall'].includes(state.entities.player.position.location), build: () => ({ id: 'ironInvestigation', type: 'investigation', title: '铁家父女进入青茅山', text: '铁血冷与铁若男带着一桩未完的案件进入山寨。正道的秩序、家族的猜疑和个人记忆开始争夺同一个真相。', source: SOURCE_NOTES.investigation, choices: [
+      { id: 'cooperate', label: '主动提供线索', hint: '换取调查者信任，但你的行动会被纳入他们的案卷。' },
+      { id: 'evade', label: '隐藏自己的痕迹', hint: '保留行动自由，却让正道巡查提高警惕。' },
+      { id: 'bargain', label: '用情报交换条件', hint: '把真相变成一笔政治交易。' }
     ] }) });
   }
 
@@ -320,6 +345,28 @@
       if (choice === 'hunt') { p.inventory.food = (p.inventory.food || 0) + 2; p.needs.safety -= 12; p.cultivation.insight += 3; remember(state, 'bainingbing', 'player', { kind: 'crisis', valence: 2, text: '你在狼潮逼近时选择深入山林。' }); }
       if (choice === 'secure') { p.inventory.water += 3; p.inventory.food = (p.inventory.food || 0) + 3; state.zones.bambooForest.danger += 8; state.director.pressure += 1; }
       log(state, 'choice', `你面对狼潮逼近作出决定：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.wolf });
+      return true;
+    });
+    Engine.registerEvent('threeClanTournament', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.tournamentAnnounced = true;
+      state.facts.tournament = { announcedDay: day(state), format: 'three-clan' };
+      state.factions.guYue.tension += 3; state.factions.bai.tension += 2; state.factions.xiong.tension += 2;
+      if (choice === 'enter') { p.needs.energy -= 12; p.cultivation.progress += 10; relation(state, 'player', 'xiong').fear += 4; remember(state, 'player', 'world', { kind: 'competition', valence: 3, text: '你把三族赔偿问题变成了自己的公开竞争。', facts: { enteredTournament: true } }); }
+      if (choice === 'sponsor') { state.factions.guYue.influence += 6; relation(state, 'player', 'guYue').trust += 6; remember(state, 'guyuebo', 'player', { kind: 'politics', valence: 5, text: '你在三族大比武前支持本族参赛者。' }); }
+      if (choice === 'observe') { p.cultivation.insight += 9; remember(state, 'player', 'world', { kind: 'secret', valence: 3, text: '狼潮后的真正秩序取决于谁能把实力转成赔偿方案。', facts: { tournamentIntel: true } }); }
+      log(state, 'choice', `你处理了三族大比武筹备：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.tournament });
+      return true;
+    });
+    Engine.registerEvent('ironInvestigation', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      activateSeed(state, 'tieruonan'); activateSeed(state, 'tiexueleng');
+      state.flags.investigationArrived = true;
+      state.facts.investigation = { arrivedDay: day(state), caseStatus: 'open' };
+      if (choice === 'cooperate') { relation(state, 'player', 'tieruonan').trust += 8; relation(state, 'player', 'tiexueleng').trust += 4; state.factions.iron.attitude += 6; remember(state, 'tiexueleng', 'player', { kind: 'case', valence: 5, text: '你愿意主动提供线索，暂时不把自己藏在家族背后。' }); }
+      if (choice === 'evade') { relation(state, 'player', 'tiexueleng').fear += 5; state.factions.iron.tension += 4; state.director.pressure += 2; remember(state, 'tieruonan', 'player', { kind: 'suspicion', valence: -4, text: '这个人避开了关键问题，行动轨迹值得重新调查。' }); }
+      if (choice === 'bargain') { p.cultivation.insight += 6; relation(state, 'player', 'tiexueleng').debt += 1; state.factions.iron.attitude += 2; p.memory.facts.world.investigationLeverage = true; }
+      log(state, 'choice', `你处理了铁家父女的调查：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.investigation });
       return true;
     });
   }

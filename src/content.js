@@ -31,7 +31,8 @@
     bai: { name: '白家寨', color: '#9bb7d3', influence: 42, tension: 24, attitude: -8 },
     xiong: { name: '熊家寨', color: '#b98668', influence: 38, tension: 22, attitude: -6 },
     caravans: { name: '商队与散修', color: '#a6b77c', influence: 32, tension: 12, attitude: 4 },
-    demonic: { name: '魔道游修', color: '#8d6b9f', influence: 20, tension: 35, attitude: -16 }
+    demonic: { name: '魔道游修', color: '#8d6b9f', influence: 20, tension: 35, attitude: -16 },
+    iron: { name: '铁家与正道巡查', color: '#8f9aa6', influence: 24, tension: 8, attitude: 2 }
   };
 
   const GU_SEEDS = {
@@ -110,6 +111,20 @@
       cultivation: { rank: 3, stage: 2, aptitude: 0.97 },
       schedule: { morning: 'riverbank', afternoon: 'bambooForest', evening: 'riverbank', night: 'riverbank' },
       goals: ['proveWorth', 'winRivalry', 'prepareAlliance']
+    },
+    tieruonan: {
+      name: '铁若男', role: '正道调查者', faction: 'iron', location: 'village', fromDay: 22,
+      personality: { ambition: 76, caution: 78, loyalty: 86, greed: 12, curiosity: 92 },
+      cultivation: { rank: 2, stage: 2, aptitude: 0.72 },
+      schedule: { morning: 'village', afternoon: 'ancestralHall', evening: 'village', night: 'village' },
+      goals: ['investigate', 'proveWorth', 'protectFather']
+    },
+    tiexueleng: {
+      name: '铁血冷', role: '神捕', faction: 'iron', location: 'village', fromDay: 22,
+      personality: { ambition: 64, caution: 94, loyalty: 78, greed: 8, curiosity: 98 },
+      cultivation: { rank: 5, stage: 1, aptitude: 0.84 },
+      schedule: { morning: 'village', afternoon: 'ancestralHall', evening: 'village', night: 'village' },
+      goals: ['investigate', 'maintainOrder', 'protectDaughter']
     }
   };
 
@@ -119,7 +134,9 @@
     relic: { source: 'reference/novel/第1卷：魔性不改/第14章.txt', note: '酒虫、竹林、河滩和石缝构成可被行动触发的遗藏线索。' },
     market: { source: 'reference/novel/第1卷：魔性不改/第109章.txt', note: '商队提前进入青茅山，市场活动成为会改变资源和势力关系的区域事件。' },
     auction: { source: 'reference/novel/第1卷：魔性不改/第110章.txt', note: '贾富与拍卖会提供商队掌柜、外来资本和价格博弈的原文依据。' },
-    wolf: { source: 'reference/novel/第1卷：魔性不改/第123章.txt', note: '狼潮下的三寨联盟与利益分配，把族群关系升级为区域生存危机。' }
+    wolf: { source: 'reference/novel/第1卷：魔性不改/第123章.txt', note: '狼潮下的三寨联盟与利益分配，把族群关系升级为区域生存危机。' },
+    tournament: { source: 'reference/novel/第1卷：魔性不改/第180章.txt', note: '狼潮后各族通过三族大比武处理赔偿和资源分配。' },
+    investigation: { source: 'reference/novel/第1卷：魔性不改/第182章.txt', note: '铁血冷与铁若男进入青茅山，将案件调查、正道秩序和家族猜疑带入同一场景。' }
   };
 
   const CONTENT_INDEX = {
@@ -127,7 +144,8 @@
     title: '蛊真人 · 青茅山模拟内容包',
     volumes: [{ id: 'volume-1', title: '第1卷：魔性不改', arcs: [
       { id: 'opening', chapters: ['第6章.txt', '第7章.txt', '第14章.txt'], sourceKeys: ['opening', 'academy', 'relic'] },
-      { id: 'market-and-wolf', chapters: ['第109章.txt', '第110章.txt', '第112章.txt', '第123章.txt'], sourceKeys: ['market', 'auction', 'wolf'] }
+      { id: 'market-and-wolf', chapters: ['第109章.txt', '第110章.txt', '第112章.txt', '第123章.txt'], sourceKeys: ['market', 'auction', 'wolf'] },
+      { id: 'after-wolf', chapters: ['第178章.txt', '第180章.txt', '第182章.txt'], sourceKeys: ['tournament', 'investigation'] }
     ] }]
   };
 

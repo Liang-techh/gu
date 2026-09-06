@@ -131,6 +131,28 @@ test('market, alliance and wolf crisis are persistent world events', () => {
   assert.ok(state.director.thread.includes('wolfTide'));
 });
 
+test('late first-volume content uses delayed NPC spawning and director conditions', () => {
+  let state = open(S.newWorld({ seed: 'late-volume-one' }), 'observe');
+  assert.equal(state.entities.tieruonan, undefined);
+  assert.equal(state.facts.latentNpcs.tieruonan, 22);
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  const choices = { marketArrival: 'listen', auction: 'observe', allianceCouncil: 'aid', wolfTide: 'mobilize', threeClanTournament: 'observe', ironInvestigation: 'cooperate' };
+  const seen = new Set();
+  for (let i = 0; i < 100; i++) {
+    if (state.events.active) {
+      const eventId = state.events.active.id;
+      if (choices[eventId]) { seen.add(eventId); state = ok(state, { type: 'resolve_event', choice: choices[eventId] }); }
+      else state = ok(state, { type: 'resolve_event', choice: state.events.active.choices[0].id });
+    } else state = ok(state, { type: 'action', id: 'wait', hours: 12 });
+  }
+  assert.ok(seen.has('threeClanTournament'));
+  assert.ok(seen.has('ironInvestigation'));
+  assert.equal(state.flags.tournamentAnnounced, true);
+  assert.equal(state.flags.investigationArrived, true);
+  assert.equal(state.entities.tieruonan.identity.name, '铁若男');
+  assert.equal(state.entities.tiexueleng.identity.name, '铁血冷');
+});
+
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
   let state = open(S.newWorld({ seed: 'intent' }), 'observe');
   const parsed = S.interpret('去竹林', state);
