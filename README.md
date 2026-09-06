@@ -46,6 +46,7 @@
 - 灾害型动态市场：商路灾害会重写供给、价格、人口迁徙和势力张力；玩家可救济、套利或核验，NPC 知识会保留互相冲突的传闻版本；
 - 持续狐仙福地：`blessedLand` 保存资源、魂魄储备、守备、驻民、声望、宗门压力和升级；`blessedLandTick` 在玩家离开后继续生产、消耗、承压，并把经营失败转成驻民迁徙；玩家可加固、培育、招募或隐藏福地；
 - 持续五域战区：`worldWar.fronts` 保存各战区的补给、压力、控制权、战斗、伤亡和指挥者；`worldWarTick` 会在玩家离开时自动结算战线，玩家可支援、侦查、破坏补给或调停，战斗会写入 NPC 记忆、势力张力和持久后果；
+- NPC 战争目标接入战区：`prepareWar`、`protectClan`、`patrol` 和 `mediate` 在战区内会真实改变补给、控制权和压力，并留下目标事件，不再只是增加一个全局计数器；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：30 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；
 - 小说事件结算包 [src/gu-event-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-event-rules.js>)：导演选择后的旗标、资源、关系、记忆、势力和战争后果通过统一事件注册表结算，模拟内核不再承载卷章事件处理器；
