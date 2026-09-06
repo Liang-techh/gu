@@ -165,6 +165,7 @@
     ZoneRuntime.ensureState(state, state.entities.player.position.location);
     ZoneBuilder.seedPopulation(state, { locations: LOCATIONS, populationTables: POPULATION_TABLES, random, createEntity: Entity.createEntity });
     for (const id of Object.keys(state.entities)) remember(state, id, 'world', { kind: 'origin', text: '青茅山的雨季刚刚开始。', facts: { region: '青茅山' } });
+    ZoneRuntime.reconcile(state, state.entities.player.position.location);
     relation(state, 'player', 'fangyuan').fear = 4;
     relation(state, 'player', 'fangzheng').trust = 6;
     relation(state, 'player', 'guYue').trust = 8;
@@ -294,6 +295,7 @@
       zone.visits = Math.max(0, Number(zone.visits) || 0);
       for (const key of Object.keys(zone.resources || {})) zone.resources[key] = Math.max(0, Number(zone.resources[key]) || 0);
     }
+    ZoneRuntime.reconcile(state, p?.position?.location);
   }
 
   function registerGoalHandlers() {

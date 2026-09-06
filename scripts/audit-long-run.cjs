@@ -18,7 +18,7 @@ while (S.day(state) < 365 && steps < 1500) {
   steps += 1;
 }
 assert.equal(S.day(state), 365, `world stopped at day ${S.day(state)}`);
-for (const entity of Object.values(state.entities)) {
+for (const entity of Object.values({ ...state.entities, ...state.entityCache })) {
   assert.ok(S.LOCATIONS[entity.position.location], `${entity.id} has an invalid location`);
   for (const value of [entity.needs.energy, entity.needs.hunger, entity.body.health]) assert.ok(Number.isFinite(value), `${entity.id} has non-finite state`);
   assert.ok(entity.memory.episodes.length <= 24, `${entity.id} memory exceeded bound`);
@@ -32,4 +32,4 @@ assert.ok(state.events.recent.length <= 256);
 assert.ok(state.history.events.length <= 256);
 assert.ok(state.history.snapshots.length <= 64);
 assert.doesNotThrow(() => S.validate(JSON.stringify(state)));
-console.log(`PASS: 365-day world audit (${Object.keys(state.entities).length} entities, ${state.events.recent.length} recent events, ${state.history.snapshots.length} snapshots).`);
+console.log(`PASS: 365-day world audit (${Object.keys(state.entities).length} loaded + ${Object.keys(state.entityCache || {}).length} cached entities, ${state.events.recent.length} recent events, ${state.history.snapshots.length} snapshots).`);

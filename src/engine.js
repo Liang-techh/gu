@@ -109,11 +109,13 @@
   function serializeState(state) {
     const output = JSON.parse(JSON.stringify(state));
     for (const [id, entity] of Object.entries(state.entities || {})) output.entities[id] = serializeEntity(entity);
+    output.entityCache ||= {};
+    for (const [id, entity] of Object.entries(state.entityCache || {})) output.entityCache[id] = serializeEntity(entity);
     return output;
   }
 
   function deserializeState(state) {
-    for (const entity of Object.values(state.entities || {})) {
+    for (const entity of [...Object.values(state.entities || {}), ...Object.values(state.entityCache || {})]) {
       for (const definition of componentDefinitions.values()) {
         if (entity[definition.id] === undefined || typeof definition.deserialize !== 'function') continue;
         const value = definition.deserialize({ state, entity, component: definition.id, value: entity[definition.id] });

@@ -68,6 +68,34 @@ test('zone runtime suspends, settles offline time and reactivates the player are
   assert.ok(state.zones.academy.runtime.lastSettlementClock <= state.clock);
 });
 
+test('zone residency unloads ambient entities into cache and hydrates them on entry', () => {
+  let state = open(S.newWorld({ seed: 'zone-residency' }), 'observe');
+  const academyAmbient = Object.keys(state.entities).find(id => id.startsWith('ambient-academy-'));
+  const forestAmbient = Object.keys(state.entityCache).find(id => id.startsWith('ambient-bambooForest-'));
+  assert.ok(academyAmbient);
+  assert.ok(forestAmbient);
+  assert.equal(state.zones.bambooForest.runtime.residency.cachedIds.includes(forestAmbient), true);
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'bambooForest' });
+  assert.equal(state.entities[forestAmbient].position.location, 'bambooForest');
+  assert.equal(state.entityCache[academyAmbient].position.location, 'academy');
+  assert.ok(S.snapshot(state).zones.bambooForest.residency.loaded >= 1);
+  assert.ok(S.snapshot(state).zones.academy.residency.cached >= 1);
+});
+
+test('suspended zones advance cached residents through deterministic migration summaries', () => {
+  const state = S.newWorld({ seed: 'offline-residents' });
+  const id = Object.keys(state.entityCache).find(item => item.startsWith('ambient-bambooForest-'));
+  assert.ok(id);
+  state.zones.bambooForest.danger = 100;
+  state.entityCache[id].goals.queue = ['travel'];
+  const summary = S.ZONE_RUNTIME.settle(state, 'bambooForest', 1000, { clock: state.clock + 1000 });
+  assert.ok(summary.residentMoves >= 1);
+  assert.notEqual(state.entityCache[id].position.location, 'bambooForest');
+  assert.ok(Number.isFinite(summary.residentConflicts));
+  assert.ok(state.zones.bambooForest.runtime.offline.lastSummary.residentMoves >= 1);
+});
+
 test('same seed and same commands produce the same world state', () => {
   let a = S.newWorld({ seed: 'fixed' });
   let b = S.newWorld({ seed: 'fixed' });
