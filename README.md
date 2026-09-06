@@ -66,7 +66,7 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       25/25 passing
+npm test       26/26 passing
 npm run check:canon  55/55 term/source checks
 npm run check:content  content schema valid
 ```
