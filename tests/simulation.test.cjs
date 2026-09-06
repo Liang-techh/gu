@@ -439,6 +439,26 @@ test('blessed land persists as a managed base with offline production and reside
   assert.ok(state.events.recent.some(event => event.type === 'blessed-land.action' || event.type === 'blessed-land.tick'));
 });
 
+test('five regions use persistent war fronts with autonomous logistics and player interventions', () => {
+  let state = open(S.newWorld({ seed: 'war-front-ledger' }), 'observe');
+  state.entities.player.position.location = 'centralContinent';
+  state.worldWar.fiveRegions = true;
+  state.worldWar.fronts.central.active = true;
+  state.worldWar.fronts.central.supply = 34;
+  state.worldWar.fronts.central.pressure = 61;
+  state.worldWar.fronts.central.lastActionDay = 0;
+  let actions = S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS });
+  assert.ok(actions.some(action => action.id === 'front_action:intelligence'));
+  state = ok(state, { type: 'action', id: 'front_action', mode: 'intelligence' });
+  assert.equal(state.facts.centralFrontIntel, 1);
+  state = ok(state, { type: 'action', id: 'wait', hours: 48 });
+  assert.ok(state.worldWar.fronts.central.supply < 34);
+  assert.ok(state.worldWar.fronts.central.battles >= 1);
+  assert.ok(state.worldWar.operations.some(operation => operation.frontId === 'central'));
+  assert.ok(state.events.recent.some(event => event.type === 'world-war.front_tick'));
+  assert.ok(state.consequences.records.some(record => record.kind === 'war_front_battle'));
+});
+
 test('NPC knowledge keeps conflicting rumor alternatives until a stronger observation arrives', () => {
   const npc = S.ENTITY.createEntity('knowledge-audit', { name: '知识审计者', location: 'village' });
   S.KNOWLEDGE.record(npc, 'target', { location: 'village' }, { kind: 'rumor', confidence: 0.3, source: 'rumor:test' });
@@ -1028,7 +1048,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
-  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
+  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));

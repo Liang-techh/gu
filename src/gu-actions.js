@@ -130,6 +130,35 @@
       advance(state, mode === 'hide' ? 2 : 4, `blessed_land_${mode}`);
     }
 
+    function frontAction(state, command, p) {
+      const front = Object.values(state.worldWar?.fronts || {}).find(item => item.active && item.location === p.position.location);
+      if (!front) throw new Error('当前位置没有开放的战争战区');
+      const mode = command.mode || 'intelligence';
+      const primary = state.factions[front.primaryFaction];
+      const opposing = state.factions[front.opposingFaction];
+      if (mode === 'reinforce') {
+        if ((p.inventory.stones || 0) < 2) throw new Error('支援战区至少需要两枚元石');
+        p.inventory.stones -= 2; front.supply += 14; front.pressure = Math.max(0, front.pressure - 5); front.control += 3; if (primary) primary.influence += 1;
+        remember(state, 'player', 'world', { kind: 'war-reinforce', valence: 3, text: `你把资源投入${locations[front.location].name}战线，补给暂时没有断裂。`, facts: { frontId: front.id, mode } });
+        log(state, 'war_front_reinforce', `你向${locations[front.location].name}投入补给，战区压力暂时下降。`, { frontId: front.id, supply: front.supply });
+      } else if (mode === 'intelligence') {
+        p.needs.energy -= 8; p.needs.safety -= 4; p.cultivation.insight += 4; front.pressure = Math.max(0, front.pressure - 3); state.facts[`${front.id}FrontIntel`] = (state.facts[`${front.id}FrontIntel`] || 0) + 1;
+        if (front.commanderId && state.entities[front.commanderId]) remember(state, front.commanderId, 'player', { kind: 'war-intel', valence: 2, text: '你提供的战区情报足以改变下一次布防。', facts: { frontId: front.id, verified: false } });
+        log(state, 'war_front_intelligence', `你侦查了${locations[front.location].name}战线，确认了下一处补给缺口。`, { frontId: front.id, pressure: front.pressure });
+      } else if (mode === 'sabotage') {
+        front.supply = Math.max(0, front.supply - 10); front.pressure = Math.min(100, front.pressure + 8); front.control = Math.max(0, front.control - 4); if (opposing) opposing.tension += 3; if (primary) primary.tension += 2; p.inventory.stones += 3;
+        consequence(state, { kind: 'war_front_sabotage', actorId: p.id, factionId: front.opposingFaction, source: 'frontAction', location: front.location, reason: '你破坏了战区补给，把局部情报优势兑换成更大的战争压力。', data: { frontId: front.id, supply: front.supply, pressure: front.pressure }, tension: 2, pressure: 0.25 });
+        log(state, 'war_front_sabotage', `你破坏了${locations[front.location].name}的补给线，短期获利但让战区更接近失控。`, { frontId: front.id, supply: front.supply, pressure: front.pressure });
+      } else if (mode === 'mediate') {
+        if ((p.inventory.stones || 0) < 1) throw new Error('调停战区至少需要一枚元石作为代价');
+        p.inventory.stones -= 1; front.pressure = Math.max(0, front.pressure - 8); front.control = Math.min(100, front.control + 5); if (primary) primary.tension = Math.max(0, primary.tension - 3); if (opposing) opposing.tension = Math.max(0, opposing.tension - 2);
+        log(state, 'war_front_mediate', `你在${locations[front.location].name}促成了一次短暂停火，双方都记住了这笔人情。`, { frontId: front.id, pressure: front.pressure });
+      } else throw new Error('未知的战区行动');
+      front.supply = Math.max(0, Math.min(100, front.supply)); front.pressure = Math.max(0, Math.min(100, front.pressure)); front.control = Math.max(0, Math.min(100, front.control)); front.lastActionDay = day(state);
+      engine.emit(state, 'world-war.front_action', { actorId: p.id, frontId: front.id, mode, location: front.location, supply: front.supply, pressure: front.pressure, control: front.control });
+      advance(state, mode === 'intelligence' ? 3 : 4, `front_${mode}`);
+    }
+
     engine.registerAction('wait', ({ state, command }) => {
       advance(state, Number(command.hours) || 2, 'wait');
       log(state, 'action', '你等待了一段时间，观察世界如何自行变化。');
@@ -138,6 +167,7 @@
     engine.registerAction('wolf_action', ({ state, command, p }) => wolfAction(state, command, p));
     engine.registerAction('market_shock_action', ({ state, command, p }) => marketShockAction(state, command, p));
     engine.registerAction('blessed_land_action', ({ state, command, p }) => blessedLandAction(state, command, p));
+    engine.registerAction('front_action', ({ state, command, p }) => frontAction(state, command, p));
     engine.registerAction('travel', ({ state, command, p }) => {
       const target = command.location;
       if (!locations[target] || !locations[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');

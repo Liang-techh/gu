@@ -259,6 +259,7 @@
       engine.registerEvent('fiveRegionsWar', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.fiveRegionsWarOpened = true; state.worldWar.fiveRegions = true; state.worldWar.heat += choice === 'regions' ? 12 : 6;
+        state.worldWar.fronts.central.active = true; state.worldWar.fronts.central.lastActionDay = day(state); state.worldWar.fronts.central.pressure += 8;
         state.factions.longLifeHeaven.tension += 4; state.factions.heavenlyCourt.tension += 4; state.factions.centralSects.tension += 3;
         if (choice === 'central') { p.cultivation.insight += 12; state.facts.fiveRegionsIntel = true; }
         if (choice === 'regions') { p.inventory.stones += 4; state.director.pressure += 3; }
@@ -269,6 +270,7 @@
       engine.registerEvent('southernFront', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.southernFrontOpened = true; state.worldWar.southern = true; activateSeed(state, 'wuyong');
+        state.worldWar.fronts.southern.active = true; state.worldWar.fronts.southern.commanderId = 'wuyong'; state.worldWar.fronts.southern.lastActionDay = day(state); state.worldWar.fronts.southern.pressure += 10;
         if (choice === 'negotiate') { state.factions.southernSuperClans.tension = Math.max(0, state.factions.southernSuperClans.tension - 8); state.factions.southernSuperClans.attitude += 6; p.cultivation.insight += 7; }
         if (choice === 'mobilize') { state.factions.southernSuperClans.influence += 8; state.worldWar.heat += 7; state.director.pressure += 2; }
         if (choice === 'observe') { p.cultivation.insight += 9; state.facts.southernIntel = true; }
@@ -278,6 +280,7 @@
       engine.registerEvent('westernFront', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.westernFrontOpened = true; state.worldWar.western = true; activateSeed(state, 'fangdichang');
+        state.worldWar.fronts.western.active = true; state.worldWar.fronts.western.commanderId = 'fangdichang'; state.worldWar.fronts.western.lastActionDay = day(state); state.worldWar.fronts.western.pressure += 10;
         if (choice === 'trade') { p.inventory.stones += 5; p.cultivation.insight += 8; state.factions.westernDesertFang.attitude += 4; }
         if (choice === 'defend') { state.factions.westernDesertFang.influence += 8; state.worldWar.heat += 6; }
         if (choice === 'raid') { state.factions.westernDesertFang.tension += 12; state.factions.westernDesertFang.attitude -= 8; p.inventory.stones += 8; state.director.pressure += 3; }
@@ -287,6 +290,7 @@
       engine.registerEvent('heavenlyCourtCampaign', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.heavenlyCourtOpened = true; state.worldWar.heavenly = true; activateSeed(state, 'longgong'); activateSeed(state, 'ziweixianzi');
+        state.worldWar.fronts.heavenly.active = true; state.worldWar.fronts.heavenly.commanderId = 'longgong'; state.worldWar.fronts.heavenly.lastActionDay = day(state); state.worldWar.fronts.heavenly.pressure += 12;
         if (choice === 'infiltrate') { state.factions.heavenlyCourt.tension += 12; state.factions.heavenlyCourt.attitude -= 10; p.cultivation.insight += 14; state.worldWar.heat += 8; }
         if (choice === 'defend') { state.factions.heavenlyCourt.attitude += 6; state.factions.heavenlyCourt.tension = Math.max(0, state.factions.heavenlyCourt.tension - 5); state.director.pressure -= 1; }
         if (choice === 'observe') { p.cultivation.insight += 12; state.facts.heavenlyIntel = true; }

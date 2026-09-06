@@ -196,11 +196,32 @@
 
     engine.registerSystem('day', 'worldWarTick', ({ state }) => {
       if (!state.worldWar?.fiveRegions) return;
-      state.worldWar.heat = clamp(state.worldWar.heat + 0.35, 0, 100);
+      const war = state.worldWar;
+      war.lastTickDay = day(state);
+      war.heat = clamp(war.heat + 0.35, 0, 100);
       if (state.factions.heavenlyCourt) state.factions.heavenlyCourt.tension += 0.25;
       if (state.factions.longLifeHeaven) state.factions.longLifeHeaven.tension += 0.2;
-      if (state.factions.southernSuperClans && state.worldWar.southern) state.factions.southernSuperClans.tension += 0.15;
-      if (state.factions.westernDesertFang && state.worldWar.western) state.factions.westernDesertFang.tension += 0.15;
+      for (const front of Object.values(war.fronts || {})) {
+        if (!front.active) continue;
+        const primary = state.factions[front.primaryFaction];
+        const opposing = state.factions[front.opposingFaction];
+        const logistics = state.facts.marketActivity ? 0.35 : 0;
+        front.supply = clamp(front.supply - 1.2 - war.heat * 0.012 + logistics + (front.control > 70 ? -0.2 : 0), 0, 100);
+        front.pressure = clamp(front.pressure + (front.supply < 25 ? 1.7 : 0.35) + (war.heat > 70 ? 0.25 : 0) - (front.control > 70 ? 0.25 : 0), 0, 100);
+        front.control = clamp(front.control + ((primary?.influence || 50) - (opposing?.influence || 50)) * 0.002, 0, 100);
+        if (primary) primary.tension += 0.15;
+        if (opposing) opposing.tension += 0.15;
+        if (front.pressure > 55 && day(state) - front.lastActionDay >= 2) {
+          front.battles += 1; front.casualties += front.supply < 20 ? 2 : 1; front.lastActionDay = day(state); war.heat = clamp(war.heat + 0.8, 0, 100);
+          if (primary) { primary.tension += 1; primary.influence = clamp(primary.influence + (front.control > 50 ? 0.4 : -0.5), 0, 100); }
+          if (opposing) opposing.tension += 1;
+          const operation = { id: `war-${front.id}-${day(state)}-${front.battles}`, frontId: front.id, kind: 'battle', day: day(state), location: front.location, commanderId: front.commanderId, supply: front.supply, pressure: front.pressure, control: front.control, casualties: front.casualties };
+          war.operations.push(operation); war.operations = war.operations.slice(-128);
+          if (front.commanderId && state.entities[front.commanderId]) remember(state, front.commanderId, 'world', { kind: 'war-operation', valence: -1, text: `${locations[front.location]?.name || front.location}的战线发生了一次补给与控制权争夺。`, facts: { frontId: front.id, battle: front.battles, supply: front.supply, pressure: front.pressure } });
+          consequence(state, { kind: 'war_front_battle', actorId: front.commanderId || 'world', factionId: front.primaryFaction, source: 'worldWarTick', location: front.location, reason: '跨区域战线在补给和压力积累后自动爆发战斗。', data: { frontId: front.id, supply: front.supply, pressure: front.pressure, control: front.control, casualties: front.casualties }, tension: 1, pressure: 0.2 });
+        }
+        engine.emit(state, 'world-war.front_tick', { frontId: front.id, day: day(state), supply: front.supply, pressure: front.pressure, control: front.control, battles: front.battles, casualties: front.casualties });
+      }
     }, 50);
 
     engine.registerSystem('day', 'eternalWarTick', ({ state }) => {
