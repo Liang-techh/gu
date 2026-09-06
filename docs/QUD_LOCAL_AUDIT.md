@@ -32,6 +32,7 @@
 | GoalHandlers | `src/npc-ai.js` + NPC `goals.active/queue/history` + `schedule` | 日程只是默认偏好，效用评分会读取记忆、恐惧、需求、性格和世界压力；目标执行仍由运行时注册 |
 | Factions.xml | `factions` + `relationships` | 势力拥有影响力、紧张度、态度，玩家行为会改变关系图 |
 | Conversations + Parts | `src/conversation.js` + `CONVERSATION_DEFS` + `src/contracts.js` + NPC memory | 对话/委托条件、选项和后果可组合，交互结果不是唯一的剧情分支入口 |
+| Repeatable world actions | `src/repeatable-systems.js` + Action Registry | 演武、传承、巡逻、闯楼、拍卖和梦境探索通过注入式运行时复用同一资源、事件、伤势和时间推进规则 |
 | HistoryKit / HistorySpice | `SOURCE_NOTES` + `history` 账本 + 导演历史 | 小说因果作为可追溯素材，不能直接变成固定结局；导演和世界事件保留有限可回放依据 |
 | Zone / Population / RPM | `locations` + `src/zone-builder.js` + 人口表 | 地点提供标签和邻接关系，区域资源与环境居民可由内容状态重建 |
 

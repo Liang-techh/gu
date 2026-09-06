@@ -479,6 +479,8 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.ABILITY.activate, 'function');
   assert.equal(typeof S.CONDITION.apply, 'function');
   assert.equal(typeof S.CONTRACTS.accept, 'function');
+  assert.equal(typeof S.REPEATABLE_SYSTEMS.arenaMatch, 'function');
+  assert.equal(typeof S.REPEATABLE_SYSTEMS.dreamDive, 'function');
   assert.equal(typeof S.DIRECTOR.tick, 'function');
   assert.equal(typeof S.DIRECTOR.resolve, 'function');
   assert.ok(S.ENGINE.queryWith(state, 'identity', 'position', 'memory').length >= 10);
