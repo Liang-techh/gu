@@ -659,6 +659,7 @@ test('entity conflict uses body components, combat events and NPC memory', () =>
   assert.ok(state.entities.fangzheng.body.health < before);
   assert.ok(state.entities.fangzheng.body.wounds.length > 0);
   assert.ok(S.CONDITION.has(state.entities.fangzheng, 'wounded'));
+  assert.ok(S.EFFECTS.has(state.entities.fangzheng, 'wound'));
   assert.ok(state.entities.fangzheng.memory.episodes.some(item => item.kind === 'injury'));
   state.entities.player.inventory.gu = { moonlight: { refined: true, progress: 100 } };
   state.entities.player.abilities.gu = ['moonlight'];
@@ -685,6 +686,25 @@ test('runtime conditions affect NPC intent and expire through the hourly system'
   assert.equal(S.NPC_AI.selectGoal(state, state.entities.fangzheng, { day: S.day, relation: (world, a, b) => world.relationships[[a, b].sort().join('::')] || { trust: 0, fear: 0 } }), 'avoidPlayer');
   state = ok(state, { type: 'action', id: 'wait', hours: 18 });
   assert.equal(S.CONDITION.has(state.entities.fangzheng, 'afraid'), false);
+});
+
+test('effect rack stacks instances, runs expiry hooks and emits domain events', () => {
+  const state = open(S.newWorld({ seed: 'effects' }), 'observe');
+  const entity = state.entities.player;
+  let expired = 0;
+  S.EFFECTS.register('testBurn', { stackable: true, onExpire: () => { expired += 1; } });
+  const first = S.EFFECTS.apply(entity, 'testBurn', { duration: 2, intensity: 3, clock: state.clock, state, stackable: true });
+  const second = S.EFFECTS.apply(entity, 'testBurn', { duration: 1, intensity: 4, clock: state.clock, state, stackable: true });
+  assert.notEqual(first.id, second.id);
+  assert.equal(entity.effects.active.length, 2);
+  S.ENGINE.registerEventListener('effect.expired', 'testEffectExpiry', ({ event }) => { if (event.payload.effectKind === 'testBurn') expired += 1; });
+  let gone = S.EFFECTS.tick(entity, state, 1);
+  assert.equal(gone.length, 1);
+  gone = S.EFFECTS.tick(entity, state, 1);
+  assert.equal(gone.length, 1);
+  assert.equal(expired, 2);
+  S.ENGINE.emit(state, 'effect.expired', { entityId: entity.id, effectKind: 'testBurn', effectId: first.id });
+  assert.equal(S.EFFECTS.has(entity, 'testBurn'), false);
 });
 
 test('invalid actions are rejected without mutating the original state', () => {
@@ -742,12 +762,14 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(S.ENGINE.COMPONENTS.includes('memory'));
   assert.ok(S.ENGINE.COMPONENTS.includes('conditions'));
   assert.ok(S.ENGINE.COMPONENTS.includes('knowledge'));
+  assert.ok(S.ENGINE.COMPONENTS.includes('effects'));
   assert.ok(S.ENGINE.COMPONENTS.includes('brain'));
   assert.equal(typeof S.ENTITY.createEntity, 'function');
   assert.equal(typeof S.NPC_AI.selectGoal, 'function');
   assert.equal(typeof S.DEFAULT_GOALS.register, 'function');
   assert.equal(typeof S.ABILITY.activate, 'function');
   assert.equal(typeof S.CONDITION.apply, 'function');
+  assert.equal(typeof S.EFFECTS.apply, 'function');
   assert.equal(typeof S.KNOWLEDGE.raiseSuspicion, 'function');
   assert.equal(typeof S.CONTRACTS.accept, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.arenaMatch, 'function');
@@ -778,7 +800,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
-  assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
+  assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'effectTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
   assert.deepEqual(snap.engine.registries.systems.day, ['worldDailyTick']);
 });
 

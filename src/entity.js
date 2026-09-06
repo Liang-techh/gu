@@ -31,6 +31,7 @@
       memory: { facts: {}, episodes: [] },
       knowledge: { facts: {}, masks: {}, suspicion: {}, sources: [] },
       conditions: { active: [] },
+      effects: { active: [], sequence: 0 },
       brain: { mode: 'idle', stack: [], plan: [], perceptions: [], blackboard: {}, lastDecision: null, decisions: [] },
       alive: true
     };
