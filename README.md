@@ -38,6 +38,7 @@
 - NPC 内容目标包 [src/gu-goals.js](<D:\Caves of Qud\gu-rpg\src\gu-goals.js>)：资源争夺、遗藏调查、学堂竞争、保护关系、避开玩家和势力结盟等目标从模拟内核移出，通过 Goal Registry 注入世界；
 - 内容事件监听包 [src/gu-listeners.js](<D:\Caves of Qud\gu-rpg\src\gu-listeners.js>)：传闻、旅行、演武、传承、战线、拍卖、交易和梦境的世界后果通过 Event Registry 注入，不再由主模拟器维护内容监听器；
 - 玩家行动内容包 [src/gu-actions.js](<D:\Caves of Qud\gu-rpg\src\gu-actions.js>)：旅行、修炼、采集、炼蛊、身份、交谈、委托、拍卖、传承、战斗等行动的世界规则从 `simulation.js` 移出，输入层只提交 command；
+- 世界内容提供器 [src/gu-world.js](<D:\Caves of Qud\gu-rpg\src\gu-world.js>)：世界状态初始种子、青茅山开场局势、延迟 NPC 激活和内容包关系初始化从 kernel 移出，替换世界不需要重写时间/dispatch/存档管线；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：30 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；
 - 小说事件结算包 [src/gu-event-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-event-rules.js>)：导演选择后的旗标、资源、关系、记忆、势力和战争后果通过统一事件注册表结算，模拟内核不再承载卷章事件处理器；
