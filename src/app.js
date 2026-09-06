@@ -86,6 +86,7 @@
     if (here === 'threeForkMountain' && s.inheritance.active && !s.inheritance.completed) out.push(button(`挑战传承第${s.inheritance.round + 1}轮`, { type: 'action', id: 'inheritance_round' }, false, 'choice'));
     if (['northernPlains', 'blackTribeCamp'].includes(here) && s.frontier.opened) out.push(button(`北原巡逻（补给 ${Math.round(s.frontier.supply)}）`, { type: 'action', id: 'frontier_patrol' }, false, 'choice'));
     if (here === 'trueYangTower' && s.tower.active) out.push(button(`闯真阳楼第${s.tower.floors + 1}层`, { type: 'action', id: 'tower_floor' }, false, 'choice'));
+    if (here === 'immortalAuction' && s.central.auctionActive) out.push(button(`参加仙蛊拍卖（已成交 ${s.central.lotsSold} 笔）`, { type: 'action', id: 'auction_lot', mode: 'bid' }, false, 'choice'));
     return out.concat(S.LOCATIONS[here].neighbors.map(id => button(`去${S.LOCATIONS[id].name}`, { type: 'action', id: 'travel', location: id }, false, 'travel')));
   }
   function wire() {

@@ -287,6 +287,9 @@ test('volume three content pack turns northern war and true yang tower into stat
   advance(168);
   state = ok(state, { type: 'action', id: 'travel', location: 'immortalAuction' });
   advance(288);
+  state = ok(state, { type: 'action', id: 'auction_lot', mode: 'bid' });
+  assert.equal(state.central.lotsSold, 1);
+  assert.ok(state.history.events.some(event => event.type === 'auction_lot'));
   state = ok(state, { type: 'action', id: 'travel', location: 'centralContinent' });
   advance(0);
   state = ok(state, { type: 'action', id: 'travel', location: 'foxFairyLand' });

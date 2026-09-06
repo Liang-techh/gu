@@ -159,7 +159,7 @@
       inheritance: { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false },
       frontier: { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 },
       tower: { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false },
-      central: { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, sectPressure: 0 },
+      central: { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, auctionHeat: 0, sectPressure: 0 },
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
       log: [],
       version: 1
@@ -564,12 +564,12 @@
     state.inheritance ||= { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false };
     state.frontier ||= { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 };
     state.tower ||= { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false };
-    state.central ||= { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, sectPressure: 0 };
+    state.central ||= { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, auctionHeat: 0, sectPressure: 0 };
     state.arena.matches = Math.max(0, Number(state.arena.matches) || 0); state.arena.wins = Math.max(0, Number(state.arena.wins) || 0); state.arena.losses = Math.max(0, Number(state.arena.losses) || 0); state.arena.streak = Math.max(0, Number(state.arena.streak) || 0); state.arena.reputation = Math.max(0, Number(state.arena.reputation) || 0);
     state.inheritance.attempts = Math.max(0, Number(state.inheritance.attempts) || 0); state.inheritance.round = Math.max(0, Number(state.inheritance.round) || 0); state.inheritance.difficulty = Math.max(1, Number(state.inheritance.difficulty) || 1); state.inheritance.discoveries ||= [];
     state.frontier.supply = clamp(Number(state.frontier.supply) || 0, 0, 100); state.frontier.campaignPressure = clamp(Number(state.frontier.campaignPressure) || 0, 0, 100); state.frontier.battles = Math.max(0, Number(state.frontier.battles) || 0); state.frontier.casualties = Math.max(0, Number(state.frontier.casualties) || 0);
     state.tower.floors = Math.max(0, Number(state.tower.floors) || 0); state.tower.attempts = Math.max(0, Number(state.tower.attempts) || 0); state.tower.discoveries ||= [];
-    state.central.lotsSold = Math.max(0, Number(state.central.lotsSold) || 0); state.central.sectPressure = clamp(Number(state.central.sectPressure) || 0, 0, 100);
+    state.central.lotsSold = Math.max(0, Number(state.central.lotsSold) || 0); state.central.auctionHeat = clamp(Number(state.central.auctionHeat) || 0, 0, 100); state.central.sectPressure = clamp(Number(state.central.sectPressure) || 0, 0, 100);
     p.cultivation.rank = clamp(p.cultivation.rank, 1, 9);
     p.cultivation.stage = clamp(p.cultivation.stage, 0, 3);
     p.cultivation.essenceMax = Math.max(20, Math.round(34 + p.cultivation.aptitude * 38 + p.cultivation.stage * 8 + (p.cultivation.rank - 1) * 12));
@@ -730,6 +730,11 @@
       if (zone) { zone.activity += event.payload.result === 'success' ? 7 : 4; zone.danger += event.payload.result === 'success' ? 1 : 2; }
       if (state.factions.giantSun) state.factions.giantSun.tension += event.payload.result === 'success' ? 0.5 : 1;
     });
+    Engine.registerEventListener('auction.lot', 'auctionMarketActivity', ({ state, event }) => {
+      const zone = state.zones.immortalAuction;
+      if (zone) zone.activity += event.payload.result === 'bid' ? 8 : 4;
+      if (state.factions.auctionImmortals) state.factions.auctionImmortals.tension += event.payload.result === 'bid' ? 0.8 : 0.2;
+    });
   }
 
   function performArenaMatch(state, p) {
@@ -814,6 +819,34 @@
     advance(state, 5, 'tower_floor');
   }
 
+  function performAuctionLot(state, p, command) {
+    if (p.position.location !== 'immortalAuction' || !state.central?.auctionActive) throw new Error('当前没有开放的中洲拍卖会');
+    const mode = command.mode || 'observe';
+    const price = 2 + Math.floor(state.central.auctionHeat / 12) + Math.floor(random(state) * 3);
+    if (!['bid', 'observe', 'rumor'].includes(mode)) throw new Error('未知的拍卖行动');
+    if (mode === 'bid') {
+      if ((p.inventory.stones || 0) < price) throw new Error(`竞拍至少需要 ${price} 枚元石`);
+      p.inventory.stones -= price;
+      state.central.lotsSold += 1;
+      state.central.auctionHeat += 4;
+      p.cultivation.insight += 3 + Math.min(5, Math.floor(price / 2));
+      state.factions.auctionImmortals.influence += 0.8;
+    } else if (mode === 'observe') {
+      state.central.auctionHeat += 1;
+      p.cultivation.insight += 2;
+      state.facts.auctionIntel = true;
+    } else {
+      p.inventory.stones += Math.max(1, Math.floor(price / 2));
+      state.central.auctionHeat += 5;
+      state.central.sectPressure += 1;
+      state.facts.auctionIntel = true;
+    }
+    state.central.auctionHeat = clamp(state.central.auctionHeat, 0, 100);
+    Engine.emit(state, 'auction.lot', { actorId: 'player', location: p.position.location, result: mode, price, lotsSold: state.central.lotsSold, heat: state.central.auctionHeat });
+    log(state, 'auction_lot', `你在中洲拍卖会选择${mode === 'bid' ? '竞拍' : mode === 'observe' ? '观察' : '出售情报'}，当前成交 ${state.central.lotsSold} 笔。`, { result: mode, price, lotsSold: state.central.lotsSold, heat: state.central.auctionHeat });
+    advance(state, 2, 'auction_lot');
+  }
+
   function performConversation(state, command, p) {
     const npc = requireSameLocation(state, command.target);
     const result = Conversation.resolve(CONVERSATION_DEFS, state, command, { day, relation, remember, log, affectFaction });
@@ -829,6 +862,7 @@
     Engine.registerAction('inheritance_round', ({ state, p }) => performInheritanceRound(state, p));
     Engine.registerAction('frontier_patrol', ({ state, p }) => performFrontierPatrol(state, p));
     Engine.registerAction('tower_floor', ({ state, p }) => performTowerFloor(state, p));
+    Engine.registerAction('auction_lot', ({ state, command, p }) => performAuctionLot(state, p, command));
     Engine.registerAction('conversation', ({ state, command, p }) => performConversation(state, command, p));
   }
 
@@ -1084,6 +1118,7 @@
     if (/三王传承|传承闯关|进入传承/.test(q)) return { ok: true, command: { type: 'action', id: 'inheritance_round' }, label: '挑战传承轮次' };
     if (/北原巡逻|军帐巡逻|侦察北原/.test(q)) return { ok: true, command: { type: 'action', id: 'frontier_patrol' }, label: '执行北原巡逻' };
     if (/真阳楼闯关|闯楼|登塔/.test(q)) return { ok: true, command: { type: 'action', id: 'tower_floor' }, label: '挑战真阳楼楼层' };
+    if (/拍卖|竞拍|仙蛊/.test(q)) return { ok: true, command: { type: 'action', id: 'auction_lot', mode: /观察|看看/.test(q) ? 'observe' : /情报|传闻/.test(q) ? 'rumor' : 'bid' }, label: '处理一笔拍卖会交易' };
     if (/听课|学习/.test(q)) return { ok: true, command: { type: 'action', id: 'study' }, label: '听课' };
     if (/采集|采摘|取水|调查|探索|观察/.test(q)) return { ok: true, command: { type: 'action', id: 'gather' }, label: '探索并采集' };
     if (/休息|睡觉/.test(q)) return { ok: true, command: { type: 'action', id: 'rest' }, label: '休息' };
