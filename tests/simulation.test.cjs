@@ -442,6 +442,20 @@ test('volume two content pack opens merchant city, arena, inheritance and sect f
   assert.ok(state.history.events.some(event => event.type === 'choice' && event.data?.source?.source?.endsWith('第124章.txt')));
 });
 
+test('inheritance scouting creates qualification, clue confidence and rival progress', () => {
+  let state = open(S.newWorld({ seed: 'inheritance-rules' }));
+  state.entities.player.position.location = 'threeForkMountain';
+  state.inheritance.active = true;
+  state = ok(state, { type: 'action', id: 'inheritance_scout' });
+  assert.equal(state.inheritance.clues.length, 1);
+  assert.ok(state.inheritance.clueConfidence > 0);
+  assert.ok(state.inheritance.qualification > 0);
+  state = ok(state, { type: 'action', id: 'inheritance_round', mode: 'greed' });
+  assert.ok(Object.keys(state.inheritance.rivalProgress).length > 0);
+  assert.ok(state.inheritance.discoveries[0]?.mode === 'greed' || state.inheritance.wrongTurns > 0);
+  assert.ok(state.events.recent.some(event => event.type === 'inheritance.round'));
+});
+
 test('volume three content pack turns northern war and true yang tower into stateful frontier events', () => {
   let state = open(S.newWorld({ seed: 'volume-three' }), 'observe');
   const choices = {
@@ -918,6 +932,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.KNOWLEDGE.raiseSuspicion, 'function');
   assert.equal(typeof S.CONTRACTS.accept, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.arenaMatch, 'function');
+  assert.equal(typeof S.REPEATABLE_SYSTEMS.inheritanceScout, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.dreamDive, 'function');
   assert.equal(typeof S.MARKET.trade, 'function');
   assert.equal(typeof S.COMBAT.attack, 'function');

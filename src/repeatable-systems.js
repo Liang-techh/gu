@@ -28,27 +28,55 @@
       advance(state, 2, 'arena_match');
     }
 
-    function inheritanceRound(state, p) {
+    function inheritanceScout(state, p) {
+      if (p.position.location !== 'threeForkMountain' || !state.inheritance?.active || state.inheritance.completed) throw new Error('当前没有可侦查的三王传承');
+      const kinds = ['sequence', 'qualification', 'hazard', 'rival'];
+      const kind = kinds[Math.floor(random(state) * kinds.length)];
+      const quality = clamp(0.32 + p.cultivation.insight * 0.012 + p.cultivation.aptitude * 0.12 - state.inheritance.attempts * 0.006, 0.1, 0.95);
+      state.inheritance.clues.push({ kind, quality, clock: state.clock, source: 'player-scout' });
+      state.inheritance.clueConfidence = clamp(state.inheritance.clueConfidence * 0.65 + quality * 0.35, 0, 1);
+      state.inheritance.qualification += kind === 'qualification' ? 2 : 1;
+      state.inheritance.window = Math.max(0, state.inheritance.window - 2);
+      p.needs.energy -= 5;
+      p.cultivation.insight += 2;
+      remember(state, 'player', 'world', { kind: 'inheritance-scout', valence: 2, text: `你侦查三王传承，确认了${kind}线索，但也让竞争者知道有人在提前布局。`, facts: { inheritanceClue: kind, inheritanceClueConfidence: state.inheritance.clueConfidence } });
+      log(state, 'inheritance_scout', `你侦查了三王传承，线索可信度达到 ${Math.round(state.inheritance.clueConfidence * 100)}%。`, { kind, quality, qualification: state.inheritance.qualification });
+      engine.emit(state, 'inheritance.scout', { actorId: p.id, kind, quality, confidence: state.inheritance.clueConfidence, qualification: state.inheritance.qualification });
+      advance(state, 2, 'inheritance_scout');
+    }
+
+    function inheritanceRound(state, p, command = {}) {
       if (p.position.location !== 'threeForkMountain' || !state.inheritance?.active || state.inheritance.completed) throw new Error('当前没有可进入的三王传承');
       const nextRound = state.inheritance.round + 1;
       const difficulty = 1 + Math.floor((nextRound - 1) / 10) * 0.22 + state.inheritance.attempts * 0.015;
+      const mode = command.mode || 'claim';
+      if (!['claim', 'greed'].includes(mode)) throw new Error('未知的传承推进方式');
+      const qualificationGate = nextRound >= 6 && state.inheritance.qualification < Math.floor(nextRound / 5);
+      const clueBonus = state.inheritance.clueConfidence * 0.14 + Math.min(0.08, state.inheritance.qualification * 0.01);
+      const greedPenalty = mode === 'greed' ? 0.1 + state.inheritance.greed * 0.01 : 0;
       const power = 0.38 + p.cultivation.rank * 0.07 + p.cultivation.insight * 0.007 + p.cultivation.aptitude * 0.06;
-      const success = random(state) < clamp(0.72 + power - difficulty * 0.34, 0.08, 0.92);
+      const success = !qualificationGate && random(state) < clamp(0.72 + power - difficulty * 0.34 + clueBonus - greedPenalty, 0.08, 0.92);
       state.inheritance.attempts += 1; state.inheritance.difficulty = difficulty;
+      state.inheritance.window = Math.max(0, state.inheritance.window - (mode === 'greed' ? 5 : 3));
+      const rivalId = ['shang', 'iron', 'demonic'][state.inheritance.attempts % 3];
+      state.inheritance.rivalProgress[rivalId] = (state.inheritance.rivalProgress[rivalId] || 0) + (success ? 0.5 : 1.5) + (mode === 'greed' ? 1 : 0);
       if (success) {
-        state.inheritance.round = nextRound; state.inheritance.discoveries.push({ round: nextRound, clock: state.clock });
-        p.cultivation.progress += 3 + difficulty * 2; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + 1;
+        state.inheritance.round = nextRound; state.inheritance.discoveries.push({ round: nextRound, clock: state.clock, mode, confidence: state.inheritance.clueConfidence });
+        const reward = mode === 'greed' ? 2 : 1;
+        p.cultivation.progress += 3 + difficulty * 2 + (mode === 'greed' ? 1 : 0); p.inventory.relicFragment = (p.inventory.relicFragment || 0) + reward;
+        if (mode === 'greed') state.inheritance.greed += 1;
         state.facts.threeKingsAttempts = state.inheritance.attempts;
         if (nextRound >= 30) state.inheritance.completed = true;
-        remember(state, 'player', 'world', { kind: 'inheritance', valence: 3, text: `你通过了三王传承第${nextRound}轮，下一轮的门槛更高。`, facts: { lastInheritanceRound: nextRound } });
-        log(state, 'inheritance_round', `你通过三王传承第 ${nextRound} 轮。`, { result: 'success', round: nextRound, difficulty });
+        remember(state, 'player', 'world', { kind: 'inheritance', valence: 3, text: `你通过了三王传承第${nextRound}轮，${mode === 'greed' ? '贪取捷径让竞争者更快锁定了你的路线。' : '下一轮的门槛更高。'}`, facts: { lastInheritanceRound: nextRound, inheritanceMode: mode } });
+        log(state, 'inheritance_round', `你通过了三王传承第 ${nextRound} 轮${mode === 'greed' ? '，并贪取了额外收益' : ''}。`, { result: 'success', round: nextRound, difficulty, mode, rivalId });
       } else {
+        state.inheritance.wrongTurns += 1;
         p.needs.energy -= 10; damageEntity(state, 'player', 4 + difficulty * 2, 'inheritance', 'inheritance_trial');
-        const reason = `你在三王传承第 ${nextRound} 轮受挫，传承拒绝了这次推进。`;
-        consequence(state, { kind: 'failure', actorId: p.id, source: 'inheritance_round', location: p.position.location, reason, data: { round: nextRound, difficulty }, pressure: 0.15 });
-        log(state, 'inheritance_round', reason, { result: 'failure', round: nextRound, difficulty });
+        const reason = qualificationGate ? `你缺少通过第 ${nextRound} 轮所需的资格线索，传承拒绝了这次推进。` : `你在三王传承第 ${nextRound} 轮受挫，传承拒绝了这次推进。`;
+        consequence(state, { kind: qualificationGate ? 'wrong_route' : 'failure', actorId: p.id, source: 'inheritance_round', location: p.position.location, reason, data: { round: nextRound, difficulty, mode, rivalId, clueConfidence: state.inheritance.clueConfidence }, pressure: 0.15 });
+        log(state, 'inheritance_round', reason, { result: 'failure', round: nextRound, difficulty, mode, rivalId, wrongTurns: state.inheritance.wrongTurns });
       }
-      engine.emit(state, 'inheritance.round', { result: success ? 'success' : 'failure', round: nextRound, difficulty, attempts: state.inheritance.attempts });
+      engine.emit(state, 'inheritance.round', { result: success ? 'success' : 'failure', round: nextRound, difficulty, attempts: state.inheritance.attempts, mode, rivalId, clueConfidence: state.inheritance.clueConfidence, qualification: state.inheritance.qualification });
       advance(state, 4, 'inheritance_round');
     }
 
@@ -173,7 +201,7 @@
       advance(state, 4, 'dream_dive');
     }
 
-    return { arenaMatch, inheritanceRound, frontierPatrol, towerFloor, auctionLot, dreamDive };
+    return { arenaMatch, inheritanceScout, inheritanceRound, frontierPatrol, towerFloor, auctionLot, dreamDive };
   }
 
   return { createRuntime };

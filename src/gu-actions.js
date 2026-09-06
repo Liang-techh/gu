@@ -178,7 +178,8 @@
     engine.registerAction('accept_contract', ({ state, command }) => contractRuntime.accept(state, command.contractId));
     engine.registerAction('complete_contract', ({ state, command }) => contractRuntime.complete(state, command.contractId));
     engine.registerAction('arena_match', ({ state, p }) => repeatableRuntime.arenaMatch(state, p));
-    engine.registerAction('inheritance_round', ({ state, p }) => repeatableRuntime.inheritanceRound(state, p));
+    engine.registerAction('inheritance_scout', ({ state, p }) => repeatableRuntime.inheritanceScout(state, p));
+    engine.registerAction('inheritance_round', ({ state, command, p }) => repeatableRuntime.inheritanceRound(state, p, command));
     engine.registerAction('frontier_patrol', ({ state, p }) => repeatableRuntime.frontierPatrol(state, p));
     engine.registerAction('tower_floor', ({ state, p }) => repeatableRuntime.towerFloor(state, p));
     engine.registerAction('auction_lot', ({ state, command, p }) => repeatableRuntime.auctionLot(state, p, command));
