@@ -57,7 +57,7 @@
         </div>
         <aside class="side-column">
           <article class="panel compact"><div class="panel-title"><h2>世界状态</h2><span>导演压力 ${state.director.pressure}/10</span></div>${snap.factions.map(f => `<div class="faction-row"><div><strong>${esc(f.name)}</strong><small>影响力 ${Math.round(f.influence)} · 态度 ${Math.round(f.attitude)}</small></div><i><em style="width:${f.tension}%"></em></i><small>紧张 ${Math.round(f.tension)}</small></div>`).join('')}</article>
-          ${coalitionPanel(s)}
+          ${coalitionPanel(state)}
           ${pursuitPanel(state)}
           ${agencyPanel(state)}
           ${marketPanel(state)}
