@@ -360,6 +360,11 @@ test('entity conflict uses body components, combat events and NPC memory', () =>
   assert.ok(state.entities.fangzheng.body.health < before);
   assert.ok(state.entities.fangzheng.body.wounds.length > 0);
   assert.ok(state.entities.fangzheng.memory.episodes.some(item => item.kind === 'injury'));
+  state.entities.player.inventory.gu = { moonlight: { refined: true, progress: 100 } };
+  state.entities.player.abilities.gu = ['moonlight'];
+  state.entities.player.cultivation.essence = 20;
+  state = ok(state, { type: 'combat', id: 'gu', guId: 'moonlight' });
+  assert.ok(state.history.events.some(event => event.type === 'ability_used'));
 });
 
 test('invalid actions are rejected without mutating the original state', () => {
@@ -377,6 +382,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.ENTITY.createEntity, 'function');
   assert.equal(typeof S.NPC_AI.selectGoal, 'function');
   assert.equal(typeof S.DEFAULT_GOALS.register, 'function');
+  assert.equal(typeof S.ABILITY.activate, 'function');
   assert.equal(typeof S.DIRECTOR.tick, 'function');
   assert.equal(typeof S.DIRECTOR.resolve, 'function');
   assert.ok(S.ENGINE.queryWith(state, 'identity', 'position', 'memory').length >= 10);

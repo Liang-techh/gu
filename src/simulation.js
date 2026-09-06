@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -16,6 +16,7 @@
   if (!Director) throw new Error('GuSimulationDirector must load before simulation.js');
   if (!DefaultGoals) throw new Error('GuSimulationDefaultGoals must load before simulation.js');
   if (!Intent) throw new Error('GuSimulationIntent must load before simulation.js');
+  if (!Ability) throw new Error('GuSimulationAbility must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
   const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS } = Content;
@@ -978,10 +979,10 @@
     let playerGuard = false;
     if (id === 'attack') playerDamage = 10 + p.cultivation.rank * 4 + p.cultivation.insight * 0.25;
     else if (id === 'gu') {
-      const gu = p.inventory.gu?.moonlight;
-      if (!gu?.refined || p.cultivation.essence < 8) throw new Error('需要已炼化的月光蛊和至少 8 点真元');
-      p.cultivation.essence -= 8;
-      playerDamage = 18 + p.cultivation.rank * 5;
+      const ability = Ability.activate(p, command.guId || 'moonlight', GU_SEEDS);
+      Engine.emit(state, 'ability.used', { actorId: p.id, abilityId: ability.id, location: p.position.location, cost: ability.cost, kind: ability.kind });
+      log(state, 'ability_used', `你催动${ability.name}，消耗 ${ability.cost} 点真元。`, { abilityId: ability.id, cost: ability.cost, targetId: target.id });
+      playerDamage = 6 + ability.power + p.cultivation.rank * 5;
     } else if (id === 'guard') playerGuard = true;
     else if (id === 'flee') {
       const chance = clamp(0.35 + (p.needs.energy / 250) - (target.cultivation?.rank || 1) * 0.04, 0.1, 0.85);
@@ -1078,7 +1079,7 @@
       if (p.cultivation.essence < cost) throw new Error('真元不足');
       p.cultivation.essence -= cost;
       current.progress += 22 + p.cultivation.aptitude * 12;
-      if (current.progress >= 100) { current.progress = 100; current.refined = true; log(state, 'milestone', `你炼化了${GU_SEEDS[guId].name}。`, { guId }); }
+      if (current.progress >= 100) { current.progress = 100; current.refined = true; Ability.learn(p, guId); log(state, 'milestone', `你炼化了${GU_SEEDS[guId].name}。`, { guId }); }
       else log(state, 'action', `你尝试炼化${GU_SEEDS[guId].name}，蛊虫仍在抵抗。`);
       p.inventory.gu[guId] = current;
       advance(state, 2, 'refine'); return;
@@ -1138,7 +1139,7 @@
     const p = state.entities.player;
     return {
       day: day(state), hour: hour(state), phase: phase(state), location: p.position.location,
-      player: { ...p.cultivation, name: p.identity.name, inventory: copy(p.inventory), needs: copy(p.needs) },
+      player: { ...p.cultivation, name: p.identity.name, inventory: copy(p.inventory), abilities: copy(p.abilities), needs: copy(p.needs) },
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
@@ -1154,5 +1155,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });
