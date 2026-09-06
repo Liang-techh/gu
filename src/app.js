@@ -57,6 +57,7 @@
         </div>
         <aside class="side-column">
           <article class="panel compact"><div class="panel-title"><h2>世界状态</h2><span>导演压力 ${state.director.pressure}/10</span></div>${snap.factions.map(f => `<div class="faction-row"><div><strong>${esc(f.name)}</strong><small>影响力 ${Math.round(f.influence)} · 态度 ${Math.round(f.attitude)}</small></div><i><em style="width:${f.tension}%"></em></i><small>紧张 ${Math.round(f.tension)}</small></div>`).join('')}</article>
+          <article class="panel compact"><div class="panel-title"><h2>历史账本</h2><span>观测 ${snap.history.facts.daysObserved || 1} 日</span></div><div class="log history-log">${snap.history.recent.slice(0, 6).map(e => `<p><time>日${e.day}</time>${esc(e.text)}</p>`).join('')}</div></article>
           <article class="panel compact"><div class="panel-title"><h2>行囊与组件</h2><span>数据不是 UI 状态</span></div><div class="inventory">${Object.entries(p.inventory).filter(([k]) => k !== 'gu').map(([k,v]) => `<span>${esc(itemName(k))}<b>${esc(v)}</b></span>`).join('')}${Object.entries(gu).map(([k,v]) => `<span>${esc(S.GU_SEEDS[k]?.name || k)}<b>${v.refined ? '已炼化' : Math.round(v.progress) + '%'}</b></span>`).join('')}</div></article>
           <article class="panel compact log-panel"><div class="panel-title"><h2>事件流</h2><span>最近 ${snap.log.length} 条</span></div><div class="log">${snap.log.map(e => `<p><time>日${e.day} ${String(e.clock % 24).padStart(2, '0')}:00</time>${esc(e.text)}</p>`).join('')}</div></article>
         </aside>

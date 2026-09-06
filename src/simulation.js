@@ -1,11 +1,12 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent);
-})(globalThis, function (Engine, Content) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory);
+})(globalThis, function (Engine, Content, History) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
   if (!Content) throw new Error('GuSimulationContent must load before simulation.js');
+  if (!History) throw new Error('GuSimulationHistory must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
   const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX } = Content;
@@ -46,6 +47,7 @@
 
   function log(state, type, text, data = {}) {
     const entry = { id: `e${state.events.history.length + 1}`, clock: state.clock, day: day(state), type, text, data };
+    History.record(state, entry);
     state.log.unshift(entry);
     state.events.history.push(entry);
     if (state.log.length > 160) state.log.length = 160;
@@ -125,6 +127,7 @@
     const state = {
       schema: SCHEMA_VERSION,
       content: { id: CONTENT_INDEX.id, version: CONTENT_VERSION },
+      history: History.create(seed, { id: CONTENT_INDEX.id, version: CONTENT_VERSION }),
       seed,
       rng: hash(seed),
       clock: 6,
@@ -520,6 +523,7 @@
     state.director.pressure = clamp(state.director.pressure + (p.needs.hunger > 65 ? 2 : 0) + (rel.trust < 0 ? 1 : 0), 0, 10);
     Engine.emit(state, 'world.day_tick', { day: day(state), pressure: state.director.pressure });
     log(state, 'day_tick', `第${day(state)}日结束，山寨、势力与人物各自推进了一步。`, { pressure: state.director.pressure });
+    History.snapshot(state);
   }
 
   function advance(state, hours, cause = 'action') {
@@ -755,6 +759,7 @@
     if (!state || state.schema !== SCHEMA_VERSION || !state.entities?.player || !state.factions || !state.events || !state.zones) throw new Error('无效的 simulation-first 存档');
     if (!Number.isInteger(state.clock) || !Number.isInteger(state.rng) || state.rng === 0) throw new Error('存档随机状态损坏');
     if (!LOCATIONS[state.entities.player.position.location]) throw new Error('存档地点不存在');
+    History.ensure(state);
     normalize(state);
     return state;
   }
@@ -767,7 +772,7 @@
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
   }
 

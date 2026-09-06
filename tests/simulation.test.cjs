@@ -16,6 +16,7 @@ test('world starts from novel-derived opening but resolves through an event cont
   const state = S.newWorld({ name: '测试者', aptitude: '乙等', seed: 'rain' });
   assert.equal(state.content.id, 'gu-qingmao-v1');
   assert.equal(S.CONTENT_INDEX.volumes[0].id, 'volume-1');
+  assert.equal(state.history.origin.contentId, state.content.id);
   assert.equal(state.events.active.id, 'openingRite');
   assert.equal(state.entities.fangyuan.identity.name, '古月方源');
   const next = open(state, 'reveal');
@@ -148,6 +149,18 @@ test('save validation preserves components, memories, relationships and determin
   const restored = S.validate(JSON.stringify(state));
   assert.deepEqual(restored, state);
   assert.equal(S.snapshot(restored).player.name, '古月族人');
+});
+
+test('history ledger records significant events and daily world snapshots independently of UI logs', () => {
+  let state = open(S.newWorld({ seed: 'history' }), 'observe');
+  state = ok(state, { type: 'action', id: 'wait', hours: 26 });
+  const snap = S.snapshot(state);
+  assert.ok(state.history.sequence > 0);
+  assert.ok(state.history.events.some(event => event.type === 'world_started'));
+  assert.ok(state.history.events.some(event => event.type === 'day_tick'));
+  assert.ok(state.history.snapshots.length >= 1);
+  assert.ok(snap.history.facts.daysObserved >= 2);
+  assert.ok(S.validate(JSON.stringify(state)).history.origin.seed === 'history');
 });
 
 test('entity conflict uses body components, combat events and NPC memory', () => {

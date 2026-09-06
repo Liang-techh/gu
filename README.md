@@ -24,6 +24,7 @@
 - 身体组件、随机部位伤害、伤口、死亡与连续冲突；
 - 自由意图解析：自然语言只生成 command，不能直接改状态；
 - 本地 JSON 存档与确定性恢复；
+- 独立 HistoryKit 风格历史账本：重大事件、势力/区域日快照和可回放摘要；
 - 基于小说原文的青茅山开局：开窍大典、方源、方正、学堂、竹林、月光蛊、酒虫与遗藏线索。
 
 ## 运行
@@ -51,7 +52,7 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       16/16 passing
+npm test       17/17 passing
 npm run check:canon  20/20 term/source checks
 ```
 
