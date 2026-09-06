@@ -317,6 +317,9 @@ test('free intent parser only returns commands; state changes remain rule-owned'
   assert.equal(parsed2.ok, true);
   const next = ok(state, parsed2.command);
   assert.equal(next.entities.player.position.location, 'bambooForest');
+  assert.equal(S.interpret('去中洲', state).command.location, 'centralContinent');
+  assert.equal(S.interpret('去狐仙福地', state).command.location, 'foxFairyLand');
+  assert.equal(S.interpret('去仙鹤门', state).command.location, 'immortalCraneSect');
 });
 
 test('save validation preserves components, memories, relationships and deterministic RNG', () => {
