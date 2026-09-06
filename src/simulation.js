@@ -273,7 +273,7 @@
     relation, affectFaction, remember, log, advance
   });
   directorRulesRuntime = DirectorRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES });
-  eventRulesRuntime = EventRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES, activateSeed: guWorldRuntime.activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening: guWorldRuntime.applyOpening, pursuit: pursuitRuntime });
+  eventRulesRuntime = EventRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES, activateSeed: guWorldRuntime.activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening: guWorldRuntime.applyOpening, pursuit: pursuitRuntime, consequence: Consequence.record });
   directorRulesRuntime.registerRules();
   eventRulesRuntime.registerHandlers();
   GuGoals.register({ engine: Engine, locations: LOCATIONS, clamp, relation, remember, log });

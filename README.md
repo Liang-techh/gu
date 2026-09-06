@@ -48,6 +48,7 @@
 - 持续五域战区：`worldWar.fronts` 保存各战区的补给、压力、控制权、战斗、伤亡和指挥者；`worldWarTick` 会在玩家离开时自动结算战线，玩家可支援、侦查、破坏补给或调停，战斗会写入 NPC 记忆、势力张力和持久后果；
 - NPC 战争目标接入战区：`prepareWar`、`protectClan`、`patrol` 和 `mediate` 在战区内会真实改变补给、控制权和压力，并留下目标事件，不再只是增加一个全局计数器；
 - 影宗隐秘网络：`shadowNetwork` 保存遗址、福地和中洲节点的控制、补给、隐蔽性、招募、情报、凝聚力和暴露度；NPC 可自主重建，玩家可招募、整理情报、隐藏或出卖暗线，网络会在日级系统中继续运转；
+- 状态反应型 AI 导演：影宗暴露度达到阈值后会动态生成 `shadowNetworkExposure` 局势窗口，玩家可以抹痕、套利、举报或忽略；导演不再只依赖固定章节日期和一次性旗标；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：30 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；
 - 小说事件结算包 [src/gu-event-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-event-rules.js>)：导演选择后的旗标、资源、关系、记忆、势力和战争后果通过统一事件注册表结算，模拟内核不再承载卷章事件处理器；

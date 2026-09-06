@@ -492,6 +492,24 @@ test('shadow sect rebuild becomes a secret network with NPC operations, exposure
   assert.ok(state.consequences.records.some(record => record.kind === 'shadow_network_betrayal'));
 });
 
+test('director reacts to shadow network exposure instead of waiting for a fixed chapter flag', () => {
+  let state = open(S.newWorld({ seed: 'shadow-exposure-director' }), 'observe');
+  state.entities.player.position.location = 'shadowSectRuins';
+  state.flags.shadowSectRebuilt = true;
+  state.flags.fiveRegionsWarOpened = true;
+  state.shadowNetwork.active = true;
+  state.shadowNetwork.nodes.ruins.active = true;
+  state.shadowNetwork.exposure = 72;
+  state.director.lastTick = 0;
+  const event = S.DIRECTOR.tick(state, { engine: S.ENGINE, day: S.day, log: () => {} });
+  assert.equal(event.id, 'shadowNetworkExposure');
+  assert.equal(state.events.active.id, 'shadowNetworkExposure');
+  const before = state.shadowNetwork.exposure;
+  state = ok(state, { type: 'resolve_event', choice: 'conceal' });
+  assert.ok(state.shadowNetwork.exposure < before);
+  assert.ok(state.events.recent.some(item => item.type === 'shadow-network.exposure_resolved'));
+});
+
 test('NPC knowledge keeps conflicting rumor alternatives until a stronger observation arrives', () => {
   const npc = S.ENTITY.createEntity('knowledge-audit', { name: '知识审计者', location: 'village' });
   S.KNOWLEDGE.record(npc, 'target', { location: 'village' }, { kind: 'rumor', confidence: 0.3, source: 'rumor:test' });

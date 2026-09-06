@@ -4,7 +4,7 @@
 })(globalThis, function () {
   'use strict';
 
-  function createRuntime({ engine, day, sourceNotes, activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening, pursuit }) {
+  function createRuntime({ engine, day, sourceNotes, activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening, pursuit, consequence }) {
     function registerHandlers() {
       engine.registerEvent('openingRite', ({ state, choice }) => applyOpening(state, choice));
       engine.registerEvent('moonlightRumor', ({ state, choice, event }) => {
@@ -255,6 +255,19 @@
         if (choice === 'ally') { relation(state, 'player', 'yingwuxie').trust += 5; state.shadowNetwork.recruits += 2; state.shadowNetwork.cohesion += 6; state.shadowNetwork.visibility += 4; state.director.pressure += 3; }
         if (choice === 'hide') { p.cultivation.insight += 5; state.shadowNetwork.visibility = Math.max(0, state.shadowNetwork.visibility - 8); state.shadowNetwork.exposure = Math.max(0, state.shadowNetwork.exposure - 6); state.director.pressure = Math.max(0, state.director.pressure - 1); }
         log(state, 'choice', `你处理了影宗残脉重新结网：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.shadowRebuild });
+        return true;
+      });
+      engine.registerEvent('shadowNetworkExposure', ({ state, choice, event }) => {
+        const p = state.entities.player;
+        const network = state.shadowNetwork;
+        state.facts.shadowExposureLastClock = state.clock;
+        if (choice === 'conceal') { if ((p.inventory.stones || 0) < 3) throw new Error('抹除暗线暴露至少需要三枚元石'); p.inventory.stones -= 3; network.exposure = Math.max(0, network.exposure - 18); network.visibility = Math.max(0, network.visibility - 6); network.resources = Math.max(0, network.resources - 4); for (const node of Object.values(network.nodes)) if (node.active) node.secrecy = Math.min(100, node.secrecy + 7); }
+        if (choice === 'exploit') { p.inventory.stones += 5; p.cultivation.insight += 4; network.intelligence = Math.max(0, network.intelligence - 2); network.exposure = Math.min(100, network.exposure + 12); state.central.tracePressure += 6; state.factions.centralSects.tension += 3; }
+        if (choice === 'report') { p.inventory.stones += 3; network.intelligence = Math.max(0, network.intelligence - 3); network.cohesion = Math.max(0, network.cohesion - 14); network.exposure = Math.min(100, network.exposure + 20); network.betrayals += 1; state.factions.centralSects.influence += 4; state.factions.shadowSect.tension += 6; }
+        if (choice === 'ignore') { network.exposure = Math.min(100, network.exposure + 8); state.director.pressure = clamp(state.director.pressure + 2, 0, 10); consequence(state, { kind: 'ignored_shadow_exposure', actorId: p.id, factionId: 'shadowSect', source: 'shadowNetworkExposure', location: p.position.location, reason: '你放弃处理影宗暴露窗口，追查因此继续沿网络扩散。', data: { exposure: network.exposure }, tension: 1, pressure: 0.3 }); }
+        remember(state, 'player', 'world', { kind: 'shadow-exposure', valence: choice === 'conceal' ? 2 : -1, text: `你处理了影宗暗线的暴露窗口：${event.choices.find(c => c.id === choice).label}。`, facts: { shadowExposureChoice: choice, exposure: network.exposure } });
+        log(state, 'choice', `你处理了影宗暗线的暴露窗口：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.shadowRebuild, exposure: network.exposure });
+        engine.emit(state, 'shadow-network.exposure_resolved', { actorId: p.id, choice, exposure: network.exposure, cohesion: network.cohesion, intelligence: network.intelligence });
         return true;
       });
       engine.registerEvent('fiveRegionsWar', ({ state, choice, event }) => {
