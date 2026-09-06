@@ -96,23 +96,58 @@
     state.events.pending ||= [];
     state.events.recent ||= [];
     state.events.sequence = (Number(state.events.sequence) || 0) + 1;
-    const event = { id: `ev${state.events.sequence}`, type, clock: state.clock, payload, phase: 'dispatch', status: 'open', handled: false, cancelled: false, consumed: false };
+    const event = { id: `ev${state.events.sequence}`, type, clock: state.clock, payload, phase: 'dispatch', phases: [], status: 'open', handled: false, cancelled: false, consumed: false };
     state.events.pending.push(event);
     if (state.events.pending.length > 128) state.events.pending.shift();
     state.events.recent.push(event);
     if (state.events.recent.length > 256) state.events.recent.shift();
-    const listeners = [...(eventListeners.get(type) || []), ...(eventListeners.get('*') || [])]
-      .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
-    for (const listener of listeners) {
-      if (event.cancelled) break;
-      const result = listener.handler({ state, event });
-      if (result === true) event.handled = true;
-      if (result === false || result?.cancelled) { event.cancelled = true; event.status = 'cancelled'; }
-      if (result?.consumed) { event.consumed = true; event.status = 'consumed'; }
-    }
-    if (event.status === 'open') event.status = event.consumed ? 'consumed' : 'settled';
+    const runPhase = phase => {
+      event.phase = phase;
+      event.phases.push(phase);
+      const listeners = [...(eventListeners.get(type) || []), ...(eventListeners.get('*') || [])]
+        .filter(listener => listener.phase === phase)
+        .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
+      for (const listener of listeners) {
+        if (phase !== 'after' && event.cancelled) break;
+        const result = listener.handler({ state, event, phase });
+        if (result === true) event.handled = true;
+        if (result === false || result?.cancelled) { event.cancelled = true; event.status = 'cancelled'; }
+        if (result?.consumed) { event.consumed = true; event.status = 'consumed'; }
+      }
+    };
+    runPhase('before');
+    if (!event.cancelled) runPhase('resolve');
+    runPhase('after');
+    if (event.cancelled) event.status = 'cancelled';
+    else if (event.consumed) event.status = 'consumed';
+    else event.status = 'settled';
     event.phase = 'settled';
     return event;
+  }
+
+  function registerEventListener(type, id, handler, priority = 0, phase = 'resolve') {
+    if (!type || !id || typeof handler !== 'function') throw new Error('事件监听器必须有 type、id 和函数');
+    if (!['before', 'resolve', 'after'].includes(phase)) throw new Error('事件阶段必须是 before、resolve 或 after');
+    const listeners = eventListeners.get(type) || [];
+    const next = { id, handler, priority: Number(priority) || 0, phase };
+    const index = listeners.findIndex(listener => listener.id === id && listener.phase === phase);
+    if (index >= 0) listeners[index] = next;
+    else listeners.push(next);
+    eventListeners.set(type, listeners);
+    return handler;
+  }
+
+  function registerEventPhaseListener(phase, type, id, handler, priority = 0) {
+    return registerEventListener(type, id, handler, priority, phase);
+  }
+
+  /*
+   * Kept here as a comment marker for the event state machine: all listeners
+   * are now phase-filtered above, so the old single-pass dispatcher cannot
+   * accidentally execute a resolve rule during before/after settlement.
+   */
+  function legacyEventListenerRegistration(type, id, handler, priority = 0) {
+    return registerEventListener(type, id, handler, priority, 'resolve');
   }
 
   function drain(state, consumer = () => {}) {
@@ -151,17 +186,6 @@
   function runEvent(id, context) {
     const handler = eventHandlers.get(id);
     return handler ? handler(context) : false;
-  }
-
-  function registerEventListener(type, id, handler, priority = 0) {
-    if (!type || !id || typeof handler !== 'function') throw new Error('事件监听器必须有 type、id 和函数');
-    const listeners = eventListeners.get(type) || [];
-    const next = { id, handler, priority: Number(priority) || 0 };
-    const index = listeners.findIndex(listener => listener.id === id);
-    if (index >= 0) listeners[index] = next;
-    else listeners.push(next);
-    eventListeners.set(type, listeners);
-    return handler;
   }
 
   function registerAction(id, handler) {
@@ -234,6 +258,7 @@
       interactions: [...interactionHandlers.keys()],
       events: [...eventHandlers.keys()],
       listeners: Object.fromEntries([...eventListeners.entries()].map(([type, listeners]) => [type, listeners.map(listener => listener.id)])),
+      listenerPhases: Object.fromEntries([...eventListeners.entries()].map(([type, listeners]) => [type, listeners.map(listener => ({ id: listener.id, phase: listener.phase, priority: listener.priority }))])),
       components: Object.fromEntries([...componentDefinitions.entries()].map(([id, definition]) => [id, { lifecycle: ['ensure', 'onAttach', 'onDetach', 'onPatch'].filter(name => typeof definition[name] === 'function') }])),
       actions: [...actionHandlers.keys()],
       actionHooks: Object.fromEntries([...actionHooks.entries()].map(([key, hooks]) => [key, hooks.map(hook => hook.id)])),
@@ -242,5 +267,5 @@
     };
   }
 
-  return { COMPONENTS, has, query, queryWith, attach, detach, patchComponent, registerComponent, initializeComponents, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerAction, registerActionHook, runAction, registerSystem, runSystems, registerDirectorRule, findDirectorEvents, findDirectorEvent, registries };
+  return { COMPONENTS, has, query, queryWith, attach, detach, patchComponent, registerComponent, initializeComponents, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerEventPhaseListener, legacyEventListenerRegistration, registerAction, registerActionHook, runAction, registerSystem, runSystems, registerDirectorRule, findDirectorEvents, findDirectorEvent, registries };
 });

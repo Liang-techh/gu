@@ -1,8 +1,10 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.GuSimulationBrain = factory();
-})(globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./goal-handler.js'));
+  else root.GuSimulationBrain = factory(root.GuSimulationGoalHandler);
+})(globalThis, function (GoalHandler) {
   'use strict';
+
+  if (!GoalHandler) throw new Error('GuSimulationGoalHandler must load before brain.js');
 
   // This is the simulation-side analogue of Qud's Brain + GoalHandler stack:
   // perception is materialized first, then a scored decision becomes an
@@ -14,6 +16,7 @@
     entity.brain.perceptions ||= [];
     entity.brain.blackboard ||= {};
     entity.brain.decisions ||= [];
+    GoalHandler.ensure(entity.brain);
     return entity.brain;
   }
 
@@ -57,15 +60,28 @@
     const scores = goals.map(goal => ({ goal, score: Number(context.scoreGoal(state, npc, goal, context)) || 0 }));
     scores.sort((a, b) => b.score - a.score || a.goal.localeCompare(b.goal));
     const forced = context.forceGoal ? context.forceGoal(state, npc, context) : null;
-    const selected = forced || scores[0]?.goal || 'idle';
-    const destination = npc.schedule?.[context.phase(state)] || npc.position?.location;
-    const plan = [];
-    if (destination && destination !== npc.position.location) plan.push({ type: 'move', destination, status: 'pending' });
-    plan.push({ type: 'goal', goal: selected, status: 'pending' });
-    const decision = { clock: state.clock, day: context.day(state), goal: selected, forced: !!forced, destination, scores, plan: plan.map(step => ({ ...step })), perception: { location: perception.location, nearby: perception.nearby.length, threats: perception.threats.length, danger: perception.zone?.danger || 0 } };
+    const current = GoalHandler.top(brain);
+    const resume = current && !['complete', 'failed'].includes(current.status);
+    const selected = resume ? current.id : forced || scores[0]?.goal || 'idle';
+    const destination = resume ? (current.destination || npc.schedule?.[context.phase(state)] || npc.position?.location) : (npc.schedule?.[context.phase(state)] || npc.position?.location);
+    const childGoal = !resume && context.childGoal ? context.childGoal(state, npc, selected, context) : null;
+    const executionGoal = childGoal || selected;
+    const plan = resume && brain.plan?.length ? brain.plan.map(step => ({ ...step })) : [];
+    if (!plan.length) {
+      if (destination && destination !== npc.position.location) plan.push({ type: 'move', destination, status: 'pending' });
+      plan.push({ type: 'goal', goal: executionGoal, status: 'pending' });
+    }
+    const decision = { clock: state.clock, day: context.day(state), goal: selected, executionGoal, childGoal: childGoal || null, forced: !!forced, destination, scores, plan: plan.map(step => ({ ...step })), perception: { location: perception.location, nearby: perception.nearby.length, threats: perception.threats.length, danger: perception.zone?.danger || 0 } };
     brain.mode = 'acting';
     brain.current = decision;
-    brain.stack = [{ id: selected, status: 'active', createdClock: state.clock, destination }];
+    if (!resume) {
+      GoalHandler.clear(brain);
+      GoalHandler.pushGoal(brain, selected, { createdClock: state.clock, destination, metadata: { source: forced ? 'forced' : 'scored' } });
+      if (childGoal) GoalHandler.pushChildGoal(brain, childGoal, { createdClock: state.clock, destination, metadata: { source: 'precondition', parent: selected } });
+    } else {
+      current.destination = destination;
+      current.phase = current.phase === 'start' ? 'running' : current.phase;
+    }
     brain.plan = plan;
     brain.lastDecision = decision;
     brain.decisions.unshift(decision);
@@ -84,10 +100,26 @@
   function completeGoal(entity, result) {
     const brain = ensure(entity);
     if (brain.plan?.[0]?.type === 'goal') brain.plan.shift();
-    if (brain.stack?.[0]) brain.stack[0].status = result === false ? 'failed' : 'complete';
+    const completed = GoalHandler.top(brain) ? GoalHandler.pop(brain, result !== false) : null;
+    if (completed && !brain.stack.length) brain.stack = [{ ...completed, status: completed.status }];
     brain.mode = brain.plan.length ? 'acting' : 'idle';
     brain.blackboard.lastResult = result === false ? 'failed' : 'complete';
   }
 
-  return { ensure, perceive, candidates, decide, consumeMove, completeGoal };
+  function pushGoal(entity, goal, options) { return GoalHandler.pushGoal(ensure(entity), goal, options); }
+  function pushChildGoal(entity, goal, options) { return GoalHandler.pushChildGoal(ensure(entity), goal, options); }
+  function insertGoalAsParent(entity, goal, options) { return GoalHandler.insertGoalAsParent(ensure(entity), goal, options); }
+  function topGoal(entity) { return GoalHandler.top(ensure(entity)); }
+  function takeAction(entity, engine, context) {
+    const brain = ensure(entity);
+    const result = GoalHandler.takeAction(brain, engine, context);
+    if (brain.plan?.[0]?.type === 'goal') brain.plan.shift();
+    if (result.frame && !brain.stack.length) brain.stack = [{ ...result.frame, status: result.status === 'failed' ? 'failed' : 'complete' }];
+    brain.mode = brain.stack.length ? 'acting' : 'idle';
+    brain.blackboard.lastResult = result.result === false ? 'failed' : 'complete';
+    return result;
+  }
+  function moveTowards(state, entity, destination, engine) { return GoalHandler.moveTowards(state, entity, destination, engine); }
+
+  return { ensure, perceive, candidates, decide, consumeMove, completeGoal, pushGoal, pushChildGoal, insertGoalAsParent, topGoal, takeAction, moveTowards, goalHandler: GoalHandler };
 });

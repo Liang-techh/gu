@@ -20,13 +20,13 @@
 
 `XRL.World.Event` 保存 ID、对象参数、字符串参数、整数参数和 flags；`XRL.Collections.EventRegistry` 按事件 ID 管理监听器，并支持有序注册、派发、序列化和清理。Qud 的事件既能阻止动作，也能让多个部件修改同一事件。
 
-本项目的 `Engine.emit` 已有有序监听、pending/recent 事件流和领域事件；与 Qud 的差距是事件目前主要是普通 JSON payload，尚未有取消、消费、阶段和来源链。以后动作结算应统一经过 `before -> resolve -> after` 事件阶段，而不是直接写状态。
+本项目的 `Engine.emit` 已有有序监听、pending/recent 事件流和领域事件，并已加入 `before -> resolve -> after -> settled` 阶段、阶段过滤、优先级、取消与消费状态。事件 payload 仍是可序列化 JSON；来源链、对象参数类型化和部件级自动订阅仍可继续增强，但动作结算已经有统一的阶段边界。
 
 ### 4. Brain 是目标栈，不是一次性目标字符串
 
 `XRL.World.Parts.Brain` 持有 `Goals`、`Allegiance`、`FactionFeelings`、`Opinions`、`PartyMembers`、`LastThought`、移动/战斗半径和状态 flags。`XRL.World.AI.GoalHandler` 支持 `PushGoal`、子目标、插入父目标、`Pop`、`Finished`、`TakeAction` 和 `MoveTowards`。`MoveTo`、`Kill`、`Wait` 等目标处理器可以组成层级计划。
 
-本项目此前的 `npc-ai.js` 只是在每四小时从目标字符串中选一个并立即执行。本轮新增 `src/brain.js`：NPC 先形成感知快照，再保存候选评分、当前决策、目标栈和下一步计划；`npc-ai.js` 仍兼容原有目标处理器，但已通过 Brain 运行 perception → decision → plan → step 的流水线。这样后续可以把“发现敌人→追踪→接近→战斗/撤退”改成真正的子目标栈。
+本项目此前的 `npc-ai.js` 只是在每四小时从目标字符串中选一个并立即执行。当前 `src/brain.js` 与 `src/goal-handler.js` 已将它改为可恢复流水线：NPC 先形成感知快照，再保存候选评分、当前决策、父子目标栈和下一步计划；移动、等待和目标动作分别消耗 handler 步骤，子目标结束后恢复父目标。`npc-ai.js` 仍兼容原有目标处理器，但已通过 Brain 运行 perception → decision → plan → step 的流水线。
 
 ### 5. Zone 是可挂起、可恢复的世界容器
 
@@ -42,6 +42,6 @@
 
 ## 已迁移与未迁移
 
-已迁移：组合式实体、组件生命周期注册表、可排序且可取消/消费的领域事件、区域资源与活动、记忆/知识、身份面具、追捕代理人、动态委托、共享市场，以及 Brain 的感知—决策—计划审计轨迹。
+已迁移：组合式实体、组件生命周期注册表、可排序且按阶段取消/消费的领域事件、区域资源与活动、记忆/知识、身份面具、追捕代理人、动态委托、共享市场，以及带父子 GoalHandler 的 Brain 感知—决策—计划—执行轨迹。
 
-尚未完成：完整的组件生命周期、事件可取消/分阶段结算、可配置 faction interests、真正的多层 GoalHandler 子目标执行、身体部位对能力和装备的动态约束，以及区域实体的真正流式加载/卸载。区域挂起与离线结算的第一版已落地，但仍需把离线摘要逐步扩展为区域级 NPC 经济、迁徙和战斗模拟。这些是继续完全重构时的明确工程清单。
+尚未完成：完整的组件生命周期、事件分阶段结算、可配置 faction interests 的内容化、身体部位对能力和装备的动态约束，以及区域实体的真正流式加载/卸载。可恢复的多层 GoalHandler 第一版已落地；区域挂起与离线结算也已落地，但仍需把离线摘要逐步扩展为区域级 NPC 经济、迁徙和战斗模拟。这些是继续完全重构时的明确工程清单。

@@ -122,6 +122,8 @@ test('faction cases make investigation a real NPC utility, not just a text rumor
   assert.ok(['investigate', 'observe', 'avoidPlayer'].includes(S.NPC_AI.selectGoal(state, npc, { day: S.day, relation })));
   state = ok(state, { type: 'action', id: 'wait', hours: 4 });
   assert.ok(state.facts.investigationActivity > 0 || state.intel.cases.player.factions.guYue.reports > 0);
+  assert.equal(state.entities.fangzheng.brain.lastDecision.childGoal, 'collectRumors');
+  assert.ok(state.entities.fangzheng.brain.lastDecision.executionGoal);
 });
 
 test('content-driven NPC contracts persist through acceptance, objective progress and delivery', () => {
@@ -169,6 +171,20 @@ test('NPC brains persist perception, scored decisions and a hierarchical next-st
   assert.ok(npc.brain.stack.length >= 1);
   assert.ok(npc.brain.lastDecision.plan.length >= 1);
   assert.equal(typeof S.BRAIN.perceive, 'function');
+});
+
+test('goal handler supports resumable parent and child goals', () => {
+  const brain = { stack: [] };
+  const root = S.GOAL_HANDLER.pushGoal(brain, 'investigate', { createdClock: 3 });
+  const child = S.GOAL_HANDLER.pushChildGoal(brain, 'travel', { createdClock: 4 });
+  assert.equal(brain.stack.length, 2);
+  assert.equal(brain.stack[0].child, child.instanceId);
+  assert.equal(S.GOAL_HANDLER.top(brain).id, 'travel');
+  S.GOAL_HANDLER.pop(brain, true);
+  assert.equal(S.GOAL_HANDLER.top(brain).instanceId, root.instanceId);
+  assert.equal(S.GOAL_HANDLER.top(brain).phase, 'resume');
+  S.GOAL_HANDLER.pop(brain, false);
+  assert.equal(S.GOAL_HANDLER.finished(brain), true);
 });
 
 test('NPC navigation follows a multi-zone route instead of requiring direct adjacency', () => {
@@ -658,6 +674,12 @@ test('component lifecycles and event settlement are extensible without special-c
   assert.equal(event.status, 'consumed');
   assert.equal(event.phase, 'settled');
   assert.equal(event.payload.observed, true);
+  const phases = [];
+  S.ENGINE.registerEventPhaseListener('before', 'test.phases', 'beforeHook', ({ phase }) => { phases.push(phase); });
+  S.ENGINE.registerEventPhaseListener('after', 'test.phases', 'afterHook', ({ phase }) => { phases.push(phase); });
+  const phased = S.ENGINE.emit(state, 'test.phases', {});
+  assert.deepEqual(phased.phases, ['before', 'resolve', 'after']);
+  assert.deepEqual(phases, ['before', 'after']);
 });
 
 test('engine registries expose component queries, goal handlers, interactions and domain events', () => {
@@ -677,6 +699,8 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.REPEATABLE_SYSTEMS.dreamDive, 'function');
   assert.equal(typeof S.MARKET.trade, 'function');
   assert.equal(typeof S.ZONE_RUNTIME.transition, 'function');
+  assert.equal(typeof S.GOAL_HANDLER.pushChildGoal, 'function');
+  assert.equal(typeof S.ENGINE.registerEventPhaseListener, 'function');
   assert.equal(typeof S.DIRECTOR_RULES.registerRules, 'function');
   assert.equal(typeof S.EVENT_RULES.registerHandlers, 'function');
   assert.equal(typeof S.DIRECTOR.tick, 'function');

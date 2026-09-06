@@ -75,25 +75,44 @@
       const decision = brain?.decide ? brain.decide(state, npc, {
         engine, relation, day, phase, scoreGoal: (world, entity, goal) => goalScore(world, entity, goal, { day, relation }),
         candidates: (world, entity) => goalCandidates(world, entity, { relation }),
-        forceGoal: (world, entity) => forcedGoal(world, entity, { relation })
+        forceGoal: (world, entity) => forcedGoal(world, entity, { relation }),
+        childGoal: (world, entity, goal) => goal === 'investigate' && !entity.brain.blackboard.investigationPrepared ? (entity.brain.blackboard.investigationPrepared = true, 'collectRumors') : null
       }) : null;
       const target = decision?.destination || npc.schedule[currentPhase] || npc.position.location;
       const goal = decision?.goal || selectGoal(state, npc, { day, relation });
       npc.goals.active = goal;
       npc.goals.history ||= [];
-      npc.goals.history.unshift({ goal, day: day(state), clock: state.clock });
+      npc.goals.history.unshift({ goal, day: day(state), clock: state.clock, status: 'planned' });
       npc.goals.history = npc.goals.history.slice(0, 16);
-      const route = engine.findPath(state.locations, npc.position.location, target);
-      const nextStep = route[1];
-      if (nextStep) {
-        const previous = npc.position.location;
-        npc.position.location = nextStep;
-        engine.emit(state, 'npc.moved', { npcId: npc.id, from: previous, to: nextStep, destination: target, goal });
-        log(state, 'npc_move', `${npc.identity.name} 从${locations[previous].name}前往${locations[nextStep].name}。`, { npcId: npc.id, goal, destination: target });
+      if (brain) {
+        const frame = brain.topGoal(npc);
+        const movement = target && npc.position.location !== target
+          ? brain.moveTowards(state, npc, target, engine)
+          : { status: 'reached', destination: target, from: npc.position.location, to: npc.position.location };
+        if (movement.status === 'moved') {
+          log(state, 'npc_move', `${npc.identity.name} 从${locations[movement.from].name}前往${locations[movement.to].name}。`, { npcId: npc.id, goal, destination: target, handler: frame?.instanceId });
+          brain.consumeMove(npc.brain, target, false);
+        } else if (movement.status === 'blocked') {
+          brain.completeGoal(npc, false);
+          npc.goals.history[0].status = 'blocked';
+        } else {
+          brain.consumeMove(npc.brain, target, true);
+          const action = brain.takeAction(npc, engine, { state, npc, faction: npc.faction && state.factions[npc.faction] });
+          npc.goals.history[0].status = action.status;
+          npc.goals.history[0].result = action.result;
+        }
+      } else {
+        const route = engine.findPath(state.locations, npc.position.location, target);
+        const nextStep = route[1];
+        if (nextStep) {
+          const previous = npc.position.location;
+          npc.position.location = nextStep;
+          engine.emit(state, 'npc.moved', { npcId: npc.id, from: previous, to: nextStep, destination: target, goal });
+          log(state, 'npc_move', `${npc.identity.name} 从${locations[previous].name}前往${locations[nextStep].name}。`, { npcId: npc.id, goal, destination: target });
+        }
+        const result = engine.runGoal(goal, { state, npc, faction: npc.faction && state.factions[npc.faction] });
+        if (npc.position.location === target) npc.goals.history[0].status = result === false ? 'failed' : 'complete';
       }
-      if (brain) brain.consumeMove(npc.brain, target, npc.position.location === target);
-      const result = engine.runGoal(goal, { state, npc, faction: npc.faction && state.factions[npc.faction] });
-      if (brain && npc.position.location === target) brain.completeGoal(npc, result);
       if (npc.position.location === state.entities.player.position.location && random(state) < 0.12) {
         remember(state, npc.id, 'player', { kind: 'encounter', valence: relValence(state, npc.id), text: `在${locations[npc.position.location].name}再次遇见了你。` });
       }

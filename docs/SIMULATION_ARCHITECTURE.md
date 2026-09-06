@@ -100,6 +100,8 @@ Projection / UI / 存档 / 日志
 
 NPC 行为运行时位于 `src/npc-ai.js`。它只依赖组件查询、地点图、时钟、随机源和 GoalHandler 回调：先把恐惧、饥饿、安全感、性格、势力紧张、玩家关系和近期目标历史转换成效用分数，再沿地点图移动，最后执行目标并记录遭遇记忆。具体的 `secureResources`、`prepareAlliance` 等目标仍由内容规则注册，因此同一 AI 层可以服务青茅山 NPC、北原部族或未来其他内容包；`goals.history` 会降低短期重复目标，避免 NPC 只按数组轮询。
 
+`src/goal-handler.js` 是可恢复的目标栈运行时：`pushGoal`、`pushChildGoal`、`insertGoalAsParent`、`pop`、`moveTowards` 和 `takeAction` 对齐 Qud 的 GoalHandler/MoveTo/Wait 边界。NPC 每个 AI 周期只推进当前 handler 的一个步骤；移动未完成时不会提前执行目标，抵达后才调用注册的目标处理器，子目标完成后把控制权交还父目标。栈帧包含父子关系、阶段、尝试次数、最后动作时钟和结果，能够存档、审计和继续执行。
+
 `src/default-goals.js` 提供内容包所需的通用目标处理器，例如学习、采集、巡逻、调查、招募、备战、疗伤和调停。它们会修改区域资源、危险度、势力影响、需求或记忆；`check-content` 会验证人口表和 NPC 种子中的每个目标都存在对应处理器。
 
 `src/ability.js` 负责实体能力的学习、可用性和发动。蛊虫炼化完成后写入实体的 `abilities.gu`，战斗只请求能力运行时并消费真元，再通过 `ability.used` 领域事件写入历史；新增蛊虫不需要复制一整段战斗条件分支。
@@ -132,7 +134,7 @@ NPC 目标还必须产出世界侧结果：采集会改变资源与势力影响�
 - `director_event`：导演观察世界条件后生成的局势节点，例如竹林酒香、学堂竞争、商队消息。
 - `combat`：实体间的连续冲突；攻击写入身体部位、伤口、死亡和对方记忆。
 
-规则事件会写入带持久 `sequence` 的 `events.pending` 领域事件流，例如 `world.travel`、`npc.goal_action`、`social.interaction` 和 `combat.damage`。队列只保留最近窗口，但序列号不会回绕；外部导演、调试器或未来的回放系统可以消费这些事件，不需要解析 UI 日志。注册动作还支持 `before/after` hooks，当前用于记录动作指标，未来可以接入通用消耗、权限、冷却和反应规则。
+规则事件会写入带持久 `sequence` 的 `events.pending` 领域事件流，例如 `world.travel`、`npc.goal_action`、`social.interaction` 和 `combat.damage`。每个事件按 `before → resolve → after → settled` 阶段运行；监听器可按阶段和优先级注册，before 可以取消，resolve 可以消费，after 负责收尾。队列只保留最近窗口，但序列号不会回绕；外部导演、调试器或未来的回放系统可以消费这些事件，不需要解析 UI 日志。注册动作还支持 `before/after` hooks，当前用于记录动作指标，未来可以接入通用消耗、权限、冷却和反应规则。
 
 运行时还提供事件监听器注册表。事件发出后，监听器可以为区域活动、危险度或统计账本添加派生后果；例如移动事件由区域访问监听器结算，演武和传承事件由各自的区域压力监听器结算。监听器不替代持久事件队列，而是把 Qud 式事件边界变成可组合的规则扩展点。
 
