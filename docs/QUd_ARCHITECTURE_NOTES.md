@@ -20,7 +20,7 @@
 
 `XRL.World.Event` 保存 ID、对象参数、字符串参数、整数参数和 flags；`XRL.Collections.EventRegistry` 按事件 ID 管理监听器，并支持有序注册、派发、序列化和清理。Qud 的事件既能阻止动作，也能让多个部件修改同一事件。
 
-本项目的 `Engine.emit` 已有有序监听、pending/recent 事件流和领域事件，并已加入 `before -> resolve -> after -> settled` 阶段、阶段过滤、优先级、取消与消费状态。事件 payload 仍是可序列化 JSON；来源链、对象参数类型化和部件级自动订阅仍可继续增强，但动作结算已经有统一的阶段边界。
+本项目的 `Engine.emit` 已有有序监听、pending/recent 事件流和领域事件，并已加入 `before -> resolve -> after -> settled` 阶段、阶段过滤、优先级、取消与消费状态。现在每个事件还拥有可序列化 provenance（来源、行动者、目标、地点、父事件），并在导演事件结算期间自动形成父子来源链；`consequence.js` 另行保存失败/忽略的持久后果，供 NPC 记忆、势力和导演读取。对象参数类型化和更细粒度的部件订阅仍可继续增强，但动作结算已经有统一的阶段边界和可追溯因果链。
 
 ### 4. Brain 是目标栈，不是一次性目标字符串
 

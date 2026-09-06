@@ -707,6 +707,28 @@ test('effect rack stacks instances, runs expiry hooks and emits domain events', 
   assert.equal(S.EFFECTS.has(entity, 'testBurn'), false);
 });
 
+test('domain events and durable consequences preserve provenance across save validation', () => {
+  let state = open(S.newWorld({ seed: 'provenance' }), 'observe');
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  const travelEvent = [...state.events.recent].reverse().find(event => event.type === 'world.travel');
+  assert.ok(travelEvent?.provenance?.id);
+  assert.equal(travelEvent.provenance.type, 'world.travel');
+  assert.ok(state.provenance.records.some(item => item.id === travelEvent.provenance.id));
+  const consequence = S.CONSEQUENCES.record(state, {
+    kind: 'failure', actorId: 'player', factionId: 'guYue', source: 'test:missed-ration', location: 'village',
+    reason: '你错过了一次补给窗口。', data: { resource: 'food' }, tension: 2
+  });
+  assert.equal(state.factions.guYue.consequences[0], consequence.id);
+  assert.equal(state.entities.player.memory.facts.consequences[consequence.id].data.resource, 'food');
+  const restored = S.validate(S.ENGINE.serializeState(state));
+  assert.equal(restored.consequences.records[0].id, consequence.id);
+  assert.equal(restored.provenance.records.some(item => item.id === travelEvent.provenance.id), true);
+  S.ENGINE.registerEvent('testIgnoredOpportunity', () => true);
+  restored.events.active = { id: 'testIgnoredOpportunity', title: '被忽略的补给窗口', source: 'test:director', choices: [{ id: 'ignore', label: '忽略' }] };
+  const ignored = ok(restored, { type: 'resolve_event', choice: 'ignore' });
+  assert.ok(ignored.consequences.records.some(item => item.kind === 'ignored_opportunity' && item.data.eventId === 'testIgnoredOpportunity'));
+});
+
 test('invalid actions are rejected without mutating the original state', () => {
   const state = S.newWorld({ seed: 'guard' });
   const before = JSON.stringify(state);

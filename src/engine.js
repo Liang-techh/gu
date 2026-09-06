@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.GuSimulationEngine = factory();
-})(globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./provenance.js'));
+  else root.GuSimulationEngine = factory(root.GuSimulationProvenance);
+})(globalThis, function (Provenance) {
   'use strict';
 
   const COMPONENTS = Object.freeze([
@@ -154,6 +154,7 @@
     state.events.recent ||= [];
     state.events.sequence = (Number(state.events.sequence) || 0) + 1;
     const event = { id: `ev${state.events.sequence}`, type, clock: state.clock, payload, phase: 'dispatch', phases: [], status: 'open', handled: false, cancelled: false, consumed: false };
+    event.provenance = Provenance?.forEvent ? Provenance.forEvent(state, event.id, type, payload) : null;
     state.events.pending.push(event);
     if (state.events.pending.length > 128) state.events.pending.shift();
     state.events.recent.push(event);

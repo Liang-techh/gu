@@ -38,7 +38,8 @@
       day: event.day ?? Math.floor((state.clock || 0) / 24) + 1,
       type: event.type,
       text: event.text || '',
-      data: event.data || {}
+      data: event.data || {},
+      provenance: event.provenance || event.data?.eventProvenance || null
     };
     history.events.unshift(item);
     history.events = history.events.slice(0, 256);

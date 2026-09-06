@@ -4,7 +4,7 @@
 })(globalThis, function () {
   'use strict';
 
-  function createRuntime({ engine, random, clamp, relation, remember, log, damageEntity, advance }) {
+  function createRuntime({ engine, random, clamp, relation, remember, log, damageEntity, advance, consequence = () => null }) {
     function arenaMatch(state, p) {
       if (p.position.location !== 'merchantCity' || !state.arena?.active) throw new Error('当前没有开放的商家城演武资格');
       const opponentPower = 0.18 + Math.floor(state.arena.wins / 3) * 0.06 + random(state) * 0.16;
@@ -20,7 +20,9 @@
       } else {
         state.arena.losses += 1; state.arena.streak = 0; state.arena.reputation = Math.max(0, state.arena.reputation - 1);
         damageEntity(state, 'player', 3 + state.arena.losses * 0.4, 'arena', 'arena_strike'); p.needs.energy -= 8;
-        log(state, 'arena_match', '你在演武场落败，伤势和旁观者的判断一起留下。', { result: 'loss', matches: state.arena.matches, losses: state.arena.losses });
+        const reason = '你在演武场落败，伤势和旁观者的判断一起留下。';
+        consequence(state, { kind: 'loss', actorId: p.id, source: 'arena_match', location: p.position.location, reason, data: { matches: state.arena.matches, losses: state.arena.losses }, pressure: 0.1 });
+        log(state, 'arena_match', reason, { result: 'loss', matches: state.arena.matches, losses: state.arena.losses });
       }
       engine.emit(state, 'arena.match', { result: win ? 'win' : 'loss', matches: state.arena.matches, wins: state.arena.wins, losses: state.arena.losses });
       advance(state, 2, 'arena_match');
@@ -42,7 +44,9 @@
         log(state, 'inheritance_round', `你通过三王传承第 ${nextRound} 轮。`, { result: 'success', round: nextRound, difficulty });
       } else {
         p.needs.energy -= 10; damageEntity(state, 'player', 4 + difficulty * 2, 'inheritance', 'inheritance_trial');
-        log(state, 'inheritance_round', `你在三王传承第 ${nextRound} 轮受挫，传承拒绝了这次推进。`, { result: 'failure', round: nextRound, difficulty });
+        const reason = `你在三王传承第 ${nextRound} 轮受挫，传承拒绝了这次推进。`;
+        consequence(state, { kind: 'failure', actorId: p.id, source: 'inheritance_round', location: p.position.location, reason, data: { round: nextRound, difficulty }, pressure: 0.15 });
+        log(state, 'inheritance_round', reason, { result: 'failure', round: nextRound, difficulty });
       }
       engine.emit(state, 'inheritance.round', { result: success ? 'success' : 'failure', round: nextRound, difficulty, attempts: state.inheritance.attempts });
       advance(state, 4, 'inheritance_round');
@@ -61,7 +65,9 @@
       } else {
         state.frontier.casualties += 1; state.frontier.campaignPressure += 3; damageEntity(state, 'player', 4 + state.frontier.campaignPressure * 0.08, 'frontier', 'patrol_ambush');
         state.factions.northernTribes.tension += 2;
-        log(state, 'frontier_patrol', '北原巡逻遭到伏击，补给和人员都付出了代价。', { result: 'failure', supply: state.frontier.supply, casualties: state.frontier.casualties });
+        const reason = '北原巡逻遭到伏击，补给和人员都付出了代价。';
+        consequence(state, { kind: 'failure', actorId: p.id, factionId: 'black', source: 'frontier_patrol', location: p.position.location, reason, data: { supply: state.frontier.supply, casualties: state.frontier.casualties }, tension: 1, pressure: 0.2 });
+        log(state, 'frontier_patrol', reason, { result: 'failure', supply: state.frontier.supply, casualties: state.frontier.casualties });
       }
       engine.emit(state, 'frontier.patrol', { result: success ? 'success' : 'failure', supply: state.frontier.supply, battles: state.frontier.battles, casualties: state.frontier.casualties });
       advance(state, 3, 'frontier_patrol');
@@ -81,7 +87,9 @@
         log(state, 'tower_floor', `你通过了八十八角真阳楼第 ${nextFloor} 层。`, { result: 'success', floor: nextFloor, difficulty });
       } else {
         p.needs.energy -= 12; damageEntity(state, 'player', 5 + difficulty * 2, 'trueYangTower', 'tower_trial');
-        log(state, 'tower_floor', `你在真阳楼第 ${nextFloor} 层受挫，楼层没有因此停止显化。`, { result: 'failure', floor: nextFloor, difficulty });
+        const reason = `你在真阳楼第 ${nextFloor} 层受挫，楼层没有因此停止显化。`;
+        consequence(state, { kind: 'failure', actorId: p.id, factionId: 'giantSun', source: 'tower_floor', location: p.position.location, reason, data: { floor: nextFloor, difficulty }, tension: 1, pressure: 0.2 });
+        log(state, 'tower_floor', reason, { result: 'failure', floor: nextFloor, difficulty });
       }
       engine.emit(state, 'tower.floor', { result: success ? 'success' : 'failure', floor: nextFloor, difficulty, attempts: state.tower.attempts });
       advance(state, 5, 'tower_floor');
@@ -157,7 +165,9 @@
       } else {
         state.eternalWar.failures += 1; state.eternalWar.dreamPressure = clamp(pressure + 10, 0, 100);
         damageEntity(state, 'player', 4 + pressure * 0.05, 'dreamRealms', 'dream_backlash'); p.needs.energy -= 10;
-        log(state, 'dream_dive', '梦境反噬把你从深层认知中强行拖回现实。', { result: 'failure', pressure: state.eternalWar.dreamPressure });
+        const reason = '梦境反噬把你从深层认知中强行拖回现实。';
+        consequence(state, { kind: 'failure', actorId: p.id, factionId: 'dreamPathForces', source: 'dream_dive', location: p.position.location, reason, data: { pressure: state.eternalWar.dreamPressure }, tension: 1, pressure: 0.25 });
+        log(state, 'dream_dive', reason, { result: 'failure', pressure: state.eternalWar.dreamPressure });
       }
       engine.emit(state, 'dream.dive', { actorId: p.id, result: success ? 'success' : 'failure', pressure: state.eternalWar.dreamPressure, dives: state.eternalWar.dives });
       advance(state, 4, 'dream_dive');

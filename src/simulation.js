@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./effect.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEffect, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Effect, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -26,6 +26,7 @@
   if (!Ability) throw new Error('GuSimulationAbility must load before simulation.js');
   if (!Condition) throw new Error('GuSimulationCondition must load before simulation.js');
   if (!Effect) throw new Error('GuSimulationEffect must load before simulation.js');
+  if (!Consequence) throw new Error('GuSimulationConsequence must load before simulation.js');
   if (!Contracts) throw new Error('GuSimulationContracts must load before simulation.js');
   if (!RepeatableSystems) throw new Error('GuSimulationRepeatableSystems must load before simulation.js');
   if (!DirectorRules) throw new Error('GuDirectorRules must load before simulation.js');
@@ -70,7 +71,9 @@
   }
 
   function log(state, type, text, data = {}) {
-    const entry = { id: `e${state.events.history.length + 1}`, clock: state.clock, day: day(state), type, text, data };
+    const sameClockEvent = [...(state.events?.recent || [])].reverse().find(event => event.clock === state.clock);
+    const eventProvenance = data.eventProvenance || state.events?.active?.provenance || sameClockEvent?.provenance || null;
+    const entry = { id: `e${state.events.history.length + 1}`, clock: state.clock, day: day(state), type, text, data, provenance: eventProvenance };
     History.record(state, entry);
     state.log.unshift(entry);
     state.events.history.push(entry);
@@ -86,7 +89,9 @@
     Object.assign(owner.memory.facts[subjectId], memory.facts || {});
     owner.memory.episodes.unshift({ clock: state.clock, subjectId, kind: memory.kind || 'observation', valence: memory.valence || 0, text: memory.text || '' });
     owner.memory.episodes = owner.memory.episodes.slice(0, 24);
-    Knowledge.record(owner, subjectId, memory.facts || {}, { kind: memory.kind, clock: state.clock, source: memory.source || memory.kind || 'memory', confidence: memory.confidence, provenance: memory.provenance || [] });
+    const currentEvent = [...(state.events?.recent || [])].reverse().find(event => event.clock === state.clock);
+    const provenance = memory.provenance || (currentEvent?.provenance?.id ? [currentEvent.provenance.id] : []);
+    Knowledge.record(owner, subjectId, memory.facts || {}, { kind: memory.kind, clock: state.clock, source: memory.source || memory.kind || 'memory', confidence: memory.confidence, provenance });
     if (memory.kind === 'suspicion' || memory.kind === 'threat' || memory.kind === 'rumor' || memory.kind === 'rumor-social') {
       Knowledge.raiseSuspicion(owner, subjectId, memory.kind === 'suspicion' ? 10 : memory.kind === 'threat' ? 12 : 3, { clock: state.clock, reason: memory.kind });
     }
@@ -125,6 +130,8 @@
       clock: 6,
       playerId: 'player',
       entities: {},
+      provenance: { sequence: 0, records: [] },
+      consequences: { sequence: 0, records: [], counts: {} },
       locations: copy(LOCATIONS),
       zones: {},
       factions: {},
@@ -220,7 +227,24 @@
   }
 
   function resolveDirectorEvent(state, choice) {
-    return Director.resolve(state, choice, { engine: Engine, advance });
+    return Director.resolve(state, choice, {
+      engine: Engine,
+      advance,
+      onChoiceResolved: ({ state: world, event, choice: selected }) => {
+        const choiceDef = event.choices.find(item => item.id === selected);
+        if (!choiceDef || !['ignore', 'avoid'].includes(selected) && choiceDef.consequence !== 'ignored') return;
+        const consequence = Consequence.record(world, {
+          kind: 'ignored_opportunity',
+          actorId: world.playerId,
+          source: event.source?.source || event.source || event.id,
+          location: world.entities[world.playerId]?.position?.location,
+          reason: `你放弃或回避了“${event.title}”中的机会。`,
+          data: { eventId: event.id, choice: selected },
+          pressure: 0.25
+        });
+        Engine.emit(world, 'world.consequence', { actorId: world.playerId, location: consequence.location, source: consequence.source, kind: consequence.kind, consequenceId: consequence.id, eventId: event.id });
+      }
+    });
   }
 
 
@@ -240,6 +264,8 @@
     state.worldWar ||= { shadowRebuilt: false, fiveRegions: false, southern: false, western: false, heavenly: false, heat: 0 };
     state.eternalWar ||= { divineEmperor: false, twoHeavens: false, madDemonCave: false, dream: false, starHost: false, dreamPressure: 0, cosmicHeat: 0, dives: 0, successes: 0, failures: 0 };
     state.intel ||= { leads: [], cases: {} }; state.intel.leads ||= []; state.intel.cases ||= {};
+    Consequence.ensure(state); state.consequences.records = state.consequences.records.slice(0, 256);
+    state.provenance ||= { sequence: 0, records: [] }; state.provenance.records ||= []; state.provenance.records = state.provenance.records.slice(0, 512);
     state.intel.leads = state.intel.leads.slice(0, 256);
     state.pursuit ||= { teams: {}, sequence: 0, alert: 0, contacts: 0 }; state.pursuit.teams ||= {}; state.pursuit.sequence = Math.max(0, Number(state.pursuit.sequence) || 0); state.pursuit.alert = clamp(Number(state.pursuit.alert) || 0, 0, 100); state.pursuit.contacts = Math.max(0, Number(state.pursuit.contacts) || 0);
     state.agency ||= { commissions: {}, sequence: 0, reputation: 0, completed: 0, failed: 0 }; state.agency.commissions ||= {}; state.agency.sequence = Math.max(0, Number(state.agency.sequence) || 0); state.agency.reputation = clamp(Number(state.agency.reputation) || 0, -100, 100); state.agency.completed = Math.max(0, Number(state.agency.completed) || 0); state.agency.failed = Math.max(0, Number(state.agency.failed) || 0);
@@ -804,7 +830,7 @@
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => { const identity = Identity.visible(e, 'player', Knowledge); return { id: e.id, name: identity.name, role: identity.role, tags: identity.tags, masked: identity.masked, goal: e.goals.active, brain: { mode: e.brain?.mode || 'idle', current: e.brain?.current?.goal || e.goals.active, plan: copy(e.brain?.plan || []).slice(0, 3), lastPerceptionClock: e.brain?.blackboard?.lastPerceptionClock ?? null }, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null, suspicion: Knowledge.suspicion(e, 'player') }; }),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude, market: copy(f.market || null) })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), zones: Object.fromEntries(Object.entries(state.zones).map(([id, zone]) => [id, ZoneRuntime.snapshot(zone)])), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), intel: copy(state.intel), pursuit: copy(state.pursuit), agency: copy(state.agency), market: copy(state.market), worldWar: copy(state.worldWar), eternalWar: copy(state.eternalWar), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), domainEvents: copy(state.events.recent || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), zones: Object.fromEntries(Object.entries(state.zones).map(([id, zone]) => [id, ZoneRuntime.snapshot(zone)])), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), intel: copy(state.intel), pursuit: copy(state.pursuit), agency: copy(state.agency), market: copy(state.market), worldWar: copy(state.worldWar), eternalWar: copy(state.eternalWar), contracts: copy(state.contracts), consequences: copy(state.consequences), provenance: copy(state.provenance), eventStream: copy(state.events.pending || []), domainEvents: copy(state.events.recent || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
   }
 
@@ -812,7 +838,7 @@
   Engine.registerComponent('body', { ensure: entity => Body.ensure(entity), serialize: ({ value }) => ({ ...value, limbs: { ...(value.limbs || {}) }, wounds: [...(value.wounds || [])] }), deserialize: ({ value }) => ({ ...value, limbs: { ...(value.limbs || {}) }, wounds: [...(value.wounds || [])] }) });
   Engine.registerComponent('effects', { ensure: entity => Effect.ensure(entity), serialize: ({ value }) => ({ ...value, active: (value.active || []).map(item => ({ ...item, data: { ...(item.data || {}) } })) }), deserialize: ({ value }) => ({ ...value, active: (value.active || []).map(item => ({ ...item, data: { ...(item.data || {}) } })) }) });
   Engine.registerComponent('brain', { ensure: entity => Brain.ensure(entity), onAttach: ({ entity, value }) => value || Brain.ensure(entity) });
-  repeatableRuntime = RepeatableSystems.createRuntime({ engine: Engine, random, clamp, relation, remember, log, damageEntity, advance });
+  repeatableRuntime = RepeatableSystems.createRuntime({ engine: Engine, random, clamp, relation, remember, log, damageEntity, advance, consequence: Consequence.record });
   pursuitRuntime = Pursuit.createRuntime({ engine: Engine, createEntity: Entity.createEntity, locations: LOCATIONS, random, clamp, relation, remember, log, advance, knowledge: Knowledge });
   marketRuntime = Market.createRuntime({ engine: Engine, clamp, random, factionInterests: FACTION_INTERESTS });
   agencyRuntime = Agency.createRuntime({ engine: Engine, locations: LOCATIONS, random, clamp, relation, remember, log, advance, knowledge: Knowledge, market: marketRuntime });
@@ -826,5 +852,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, EFFECTS: Effect, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, EFFECTS: Effect, CONSEQUENCES: Consequence, PROVENANCE: Provenance, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });
