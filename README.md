@@ -40,6 +40,7 @@
 - 玩家行动内容包 [src/gu-actions.js](<D:\Caves of Qud\gu-rpg\src\gu-actions.js>)：旅行、修炼、采集、炼蛊、身份、交谈、委托、拍卖、传承、战斗等行动的世界规则从 `simulation.js` 移出，输入层只提交 command；
 - 世界内容提供器 [src/gu-world.js](<D:\Caves of Qud\gu-rpg\src\gu-world.js>)：世界状态初始种子、青茅山开场局势、延迟 NPC 激活和内容包关系初始化从 kernel 移出，替换世界不需要重写时间/dispatch/存档管线；
 - 世界状态提供器 [src/gu-state.js](<D:\Caves of Qud\gu-rpg\src\gu-state.js>)：蛊真人专属的存档默认值、组件修复、数值边界和区域状态归一化从 kernel 移出，换内容包时只替换状态 schema provider；
+- 高代价命运逆转：春秋蝉式行动只在濒死绝境开放，消耗有限次数、丢失当前资源、改变世界随机轨迹并留下身体裂痕，同时只携带低置信度的未来回声；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：30 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；
 - 小说事件结算包 [src/gu-event-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-event-rules.js>)：导演选择后的旗标、资源、关系、记忆、势力和战争后果通过统一事件注册表结算，模拟内核不再承载卷章事件处理器；

@@ -29,6 +29,24 @@ test('world starts from novel-derived opening but resolves through an event cont
   assert.ok(next.log.some(entry => entry.type === 'choice'));
 });
 
+test('spring autumn reset trades a near-death state for limited future echoes', () => {
+  let state = open(S.newWorld({ name: '逆流者', aptitude: '乙等', seed: 'spring-autumn' }));
+  state.entities.player.body.health = 10;
+  state.entities.player.memory.facts.world.relicLead = true;
+  state.entities.player.memory.facts.world.marketPlan = 'delay';
+  const result = S.dispatch(state, { type: 'action', id: 'spring_autumn_reset' });
+  assert.equal(result.ok, true, result.message);
+  state = result.state;
+  assert.equal(state.rebirth.count, 1);
+  assert.equal(state.rebirth.charges, 0);
+  assert.equal(state.events.active.id, 'openingRite');
+  assert.equal(state.entities.player.identity.name, '逆流者');
+  assert.ok(state.facts.futureEchoes.some(echo => echo.fact === 'relicLead'));
+  assert.ok(state.entities.player.body.maxHealth < 78);
+  assert.ok(state.log.some(entry => entry.type === 'reincarnation'));
+  assert.equal(S.dispatch(state, { type: 'action', id: 'spring_autumn_reset' }).ok, false);
+});
+
 test('zones have population tables, resources and regeneration independent of story events', () => {
   const state = S.newWorld({ seed: 'zones' });
   assert.ok(Object.keys(state.zones).length >= 7);

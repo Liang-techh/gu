@@ -61,6 +61,45 @@
       advance(state, 1, 'openingRite');
     }
 
+    function rebirth(state, player) {
+      const ledger = state.rebirth || { charges: 1, count: 0, scars: [], echoes: [] };
+      if (ledger.charges <= 0) throw new Error('春秋蝉已经没有足够的逆流之力');
+      const maxHealth = Math.max(1, Number(player.body?.maxHealth) || 78);
+      const health = Math.max(0, Number(player.body?.health) || 0);
+      if (health > maxHealth * 0.24) throw new Error('尚未陷入足以逆转命运的绝境');
+      const count = Math.max(0, Number(ledger.count) || 0) + 1;
+      const echoes = Object.entries(player.memory?.facts?.world || {})
+        .filter(([, value]) => value !== undefined && value !== null)
+        .slice(-8)
+        .map(([fact, value]) => ({ fact, value: copy(value), confidence: 0.55, source: 'spring-autumn', carriedFromClock: state.clock }));
+      const next = newWorld({
+        seed: `${state.seed}:rebirth:${count}`,
+        name: player.identity?.name || '古月族人',
+        aptitude: player.cultivation?.aptitudeName,
+        scarPenalty: count * 6
+      });
+      next.rebirth = {
+        charges: Math.max(0, Number(ledger.charges) || 0) - 1,
+        count,
+        scars: [...(ledger.scars || []), { count, source: 'spring-autumn', cause: '绝境逆转', clock: state.clock }].slice(-8),
+        echoes: [...(ledger.echoes || []), ...echoes].slice(-16)
+      };
+      next.facts.rebirthCount = count;
+      next.facts.futureEchoes = copy(next.rebirth.echoes);
+      next.entities.player.memory.facts.world.futureEchoes = copy(next.rebirth.echoes);
+      next.entities.player.memory.facts.world.rebirthCount = count;
+      next.entities.player.memory.episodes.unshift({ clock: next.clock, subjectId: 'world', kind: 'reincarnation', valence: 5, text: '你从一场必死的结局中逆流而回，但春秋蝉留下了无法抹去的裂痕。' });
+      next.entities.player.memory.episodes = next.entities.player.memory.episodes.slice(0, 24);
+      next.entities.player.body.maxHealth = Math.max(40, next.entities.player.body.maxHealth - count * 6);
+      next.entities.player.body.health = next.entities.player.body.maxHealth;
+      next.entities.player.cultivation.insight += Math.min(4, echoes.length);
+      next.director.pressure = Math.min(10, next.director.pressure + Math.min(4, count));
+      log(next, 'reincarnation', `你以春秋蝉逆转了一次必死结局。代价：失去当前积累，并留下第${count}道命运裂痕。`, { count, echoes: echoes.length, charges: next.rebirth.charges });
+      for (const key of Object.keys(state)) delete state[key];
+      Object.assign(state, next);
+      return state;
+    }
+
     function newWorld(options = {}) {
       const seed = String(options.seed ?? '青茅山');
       const aptitudeName = aptitude[options.aptitude] ? options.aptitude : '丙等';
@@ -87,6 +126,7 @@
         events: { active: null, pending: [], recent: [], history: [], sequence: 0 },
         combat: null,
         combatLedger: { sequence: 0, exchanges: [], lastPairClock: {} },
+        rebirth: { charges: 1, count: 0, scars: [], echoes: [] },
         arena: { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 },
         inheritance: { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false },
         frontier: { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 },
@@ -109,6 +149,7 @@
         schedule: {}, goals: ['survive', 'grow']
       });
       state.entities.player.inventory = { water: 5, moonPetal: 6, wine: 1, stones: 8 };
+      state.entities.player.body.maxHealth = Math.max(40, state.entities.player.body.maxHealth - Math.max(0, Number(options.scarPenalty) || 0));
       state.entities.player.body.health = state.entities.player.body.maxHealth;
       state.entities.player.needs = { energy: 92, hunger: 8, safety: 70 };
       identity.ensure(state.entities.player, knowledge);
@@ -131,7 +172,7 @@
       return state;
     }
 
-    return { newWorld, activateSeed, openingEvent, applyOpening };
+    return { newWorld, activateSeed, openingEvent, applyOpening, rebirth };
   }
 
   return { createRuntime };

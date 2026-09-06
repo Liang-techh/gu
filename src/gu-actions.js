@@ -12,7 +12,7 @@
     requireSameLocation, beginConflict, ability, body, equipment,
     conversation, conversationDefs, day, affectFaction, identity, knowledge,
     contractRuntime, repeatableRuntime, pursuitRuntime, agencyRuntime, combatRuntime,
-    marketRuntime
+    marketRuntime, rebirth
   }) {
     function performConversation(state, command, p) {
       const npc = requireSameLocation(state, command.target);
@@ -47,6 +47,7 @@
       advance(state, Number(command.hours) || 2, 'wait');
       log(state, 'action', '你等待了一段时间，观察世界如何自行变化。');
     });
+    engine.registerAction('spring_autumn_reset', ({ state, p }) => rebirth(state, p));
     engine.registerAction('travel', ({ state, command, p }) => {
       const target = command.location;
       if (!locations[target] || !locations[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');

@@ -12,6 +12,7 @@
     { id: 'cultivate', label: '修炼', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'cultivate' }) },
     { id: 'wait', label: '等待两小时', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'wait', hours: 2 }) },
     { id: 'rest', label: '休息', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'rest' }) },
+    { id: 'spring_autumn_reset', label: '春秋蝉·逆流重启', kind: 'choice', when: ({ state }) => { const p = state.entities?.player; return (state.rebirth?.charges || 0) > 0 && (p?.body?.health || 0) <= (p?.body?.maxHealth || 1) * 0.24; }, command: () => ({ type: 'action', id: 'spring_autumn_reset' }) },
     { id: 'identity_mask:wear', label: '戴上无名散修面具', kind: 'choice', when: ({ state }) => state.entities?.player?.knowledge?.activeMask === 'trueName', command: () => ({ type: 'action', id: 'identity_mask', mode: 'wear', maskId: 'anonymous' }) },
     { id: 'identity_mask:drop', label: '恢复真实身份', kind: 'choice', when: ({ state }) => state.entities?.player?.knowledge?.activeMask && state.entities.player.knowledge.activeMask !== 'trueName', command: () => ({ type: 'action', id: 'identity_mask', mode: 'drop' }) },
     { id: 'pursuit_agent:bribe', label: '收买追捕队', kind: 'choice', when: ({ state, here }) => pursuitContactAvailable(state, here), command: () => ({ type: 'action', id: 'pursuit_agent', mode: 'bribe' }) },

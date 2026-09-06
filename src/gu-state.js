@@ -24,6 +24,11 @@
       for (const entity of Object.values(state.entities || {})) { knowledge.ensure(entity); identity.ensure(entity, knowledge); equipment.ensure(entity); brain.ensure(entity); }
       engine.initializeComponents(state);
       zoneRuntime.ensureState(state, player?.position?.location);
+      state.rebirth ||= { charges: 1, count: 0, scars: [], echoes: [] };
+      state.rebirth.charges = clamp(Number(state.rebirth.charges) || 0, 0, 9);
+      state.rebirth.count = Math.max(0, Number(state.rebirth.count) || 0);
+      state.rebirth.scars ||= []; state.rebirth.echoes ||= [];
+      state.rebirth.scars = state.rebirth.scars.slice(-8); state.rebirth.echoes = state.rebirth.echoes.slice(-16);
       state.contracts ||= { available: [], active: {}, completed: [] };
       state.contracts.available ||= []; state.contracts.active ||= {}; state.contracts.completed ||= [];
       state.arena ||= { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 };
