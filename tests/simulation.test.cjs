@@ -487,6 +487,21 @@ test('agency commissions let the player outsource information work to an NPC', (
   assert.ok(state.history.events.some(event => event.type === 'agency_result'));
 });
 
+test('NPC trade goals mutate a shared market and enter the rumor/history pipeline', () => {
+  let state = open(S.newWorld({ seed: 'npc-market' }), 'observe');
+  const npc = state.entities.jiafu;
+  npc.position.location = 'caravanCamp';
+  npc.schedule = { morning: 'caravanCamp', afternoon: 'caravanCamp', evening: 'caravanCamp', night: 'caravanCamp' };
+  npc.goals.queue = ['trade'];
+  npc.inventory.stones = 20;
+  const beforeSupply = state.market.supply.water;
+  state = ok(state, { type: 'action', id: 'wait', hours: 4 });
+  assert.ok(state.market.transactions.length >= 1);
+  assert.ok(state.market.supply.water !== beforeSupply || state.market.supply.food !== 20);
+  assert.ok(state.events.recent.some(event => event.type === 'market.trade'));
+  assert.ok(state.log.some(event => event.type === 'market_trade'));
+});
+
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
   let state = open(S.newWorld({ seed: 'intent' }), 'observe');
   const parsed = S.interpret('去竹林', state);
@@ -606,6 +621,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.CONTRACTS.accept, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.arenaMatch, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.dreamDive, 'function');
+  assert.equal(typeof S.MARKET.trade, 'function');
   assert.equal(typeof S.DIRECTOR_RULES.registerRules, 'function');
   assert.equal(typeof S.EVENT_RULES.registerHandlers, 'function');
   assert.equal(typeof S.DIRECTOR.tick, 'function');

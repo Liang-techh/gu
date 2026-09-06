@@ -13,6 +13,7 @@
     socialize: ({ state, npc, remember }) => { state.facts.socialActivity = (state.facts.socialActivity || 0) + 1; remember(state, npc.id, 'world', { kind: 'social', valence: 0.5, text: `${npc.identity.name}在当前区域维持关系网络。` }); },
     collectRumors: ({ state, npc, remember }) => { const count = state.facts.rumors?.length || 0; remember(state, npc.id, 'world', { kind: 'rumor', valence: 0.5, text: `${npc.identity.name}从关系网中整理了${count}条近期传闻。`, facts: { lastRumorCount: count } }); },
     auction: ({ state, npc, faction }) => { state.facts.auctionActivity = (state.facts.auctionActivity || 0) + 1; if (faction) faction.influence += 0.2; npc.cultivation.insight += 0.2; },
+    trade: ({ state, npc, faction, market, engine, log }) => { if (!['caravanCamp', 'village'].includes(npc.position.location)) return false; const result = market?.npcTrade(state, npc, faction); if (faction) faction.influence += 0.6; state.facts.marketActivity = (state.facts.marketActivity || 0) + 1; engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'trade', location: npc.position.location, faction: npc.faction, market: result?.ok ? result.goodId : null }); log(state, 'npc_goal_action', `${npc.identity.name}完成了一次交易，商路继续流动。`, { npcId: npc.id, goal: 'trade' }); npc.cultivation.insight += 0.2; return result?.ok ?? false; },
     investigate: ({ state, npc, remember }) => { state.facts.investigationActivity = (state.facts.investigationActivity || 0) + 1; const caseState = state.intel?.cases?.player; const factionCase = npc.faction ? caseState?.factions?.[npc.faction] : null; if (factionCase) { factionCase.pressure = Math.max(0, factionCase.pressure - 0.8); factionCase.reports = (factionCase.reports || 0) + 1; factionCase.lastClock = state.clock; } remember(state, npc.id, 'player', { kind: 'investigation', valence: 0.5, source: `investigation:${npc.faction || 'independent'}`, text: `${npc.identity.name}继续整理当前区域的线索。`, facts: { lastInvestigationClock: state.clock, investigationFaction: npc.faction || 'independent' } }); },
     recruit: ({ state, faction }) => { state.facts.recruitmentActivity = (state.facts.recruitmentActivity || 0) + 1; if (faction) faction.influence += 0.25; },
     work: ({ state, npc }) => { const zone = state.zones[npc.position.location]; if (zone) zone.activity += 1; state.facts.workActivity = (state.facts.workActivity || 0) + 1; },
@@ -36,8 +37,8 @@
     survive: ({ npc }) => { npc.needs.safety = Math.min(100, npc.needs.safety + 0.4); }
   };
 
-  function register({ engine, remember }) {
-    for (const [id, handler] of Object.entries(DEFAULT_GOALS)) engine.registerGoal(id, context => handler({ ...context, remember }));
+  function register({ engine, remember, market, log }) {
+    for (const [id, handler] of Object.entries(DEFAULT_GOALS)) engine.registerGoal(id, context => handler({ ...context, remember, market, engine, log }));
     return Object.keys(DEFAULT_GOALS);
   }
 

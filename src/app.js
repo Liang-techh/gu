@@ -59,6 +59,7 @@
           <article class="panel compact"><div class="panel-title"><h2>世界状态</h2><span>导演压力 ${state.director.pressure}/10</span></div>${snap.factions.map(f => `<div class="faction-row"><div><strong>${esc(f.name)}</strong><small>影响力 ${Math.round(f.influence)} · 态度 ${Math.round(f.attitude)}</small></div><i><em style="width:${f.tension}%"></em></i><small>紧张 ${Math.round(f.tension)}</small></div>`).join('')}</article>
           ${pursuitPanel(state)}
           ${agencyPanel(state)}
+          ${marketPanel(state)}
           <article class="panel compact"><div class="panel-title"><h2>历史账本</h2><span>观测 ${snap.history.facts.daysObserved || 1} 日</span></div><div class="log history-log">${snap.history.recent.slice(0, 6).map(e => `<p><time>日${e.day}</time>${esc(e.text)}</p>`).join('')}</div></article>
           <article class="panel compact"><div class="panel-title"><h2>行囊与组件</h2><span>数据不是 UI 状态</span></div><div class="inventory">${Object.entries(p.inventory).filter(([k]) => k !== 'gu').map(([k,v]) => `<span>${esc(itemName(k))}<b>${esc(v)}</b></span>`).join('')}${Object.entries(gu).map(([k,v]) => `<span>${esc(S.GU_SEEDS[k]?.name || k)}<b>${v.refined ? '已炼化' : Math.round(v.progress) + '%'}</b></span>`).join('')}</div></article>
           <article class="panel compact log-panel"><div class="panel-title"><h2>事件流</h2><span>最近 ${snap.log.length} 条</span></div><div class="log">${snap.log.map(e => `<p><time>日${e.day} ${String(e.clock % 24).padStart(2, '0')}:00</time>${esc(e.text)}</p>`).join('')}</div></article>
@@ -87,6 +88,13 @@
     const commissions = Object.values(s.agency?.commissions || {}).filter(item => item.status === 'active');
     if (!commissions.length) return '';
     return `<article class="panel compact"><div class="panel-title"><h2>代理人委托</h2><span>信誉 ${Math.round(s.agency.reputation || 0)}</span></div>${commissions.map(item => { const agent = s.entities[item.agentId]; return `<div class="faction-row"><div><strong>${esc(agent?.identity.name || item.agentId)}</strong><small>${esc(item.kind)} · ${esc(s.locations[item.targetLocation]?.name || item.targetLocation)}</small></div><i><em style="width:${Math.min(100, item.progress / ({ rumor: 4, scout: 6, trade: 5, influence: 8 }[item.kind] || 4) * 100)}%"></em></i><small>${Math.round(item.progress)}h</small></div>`; }).join('')}</article>`;
+  }
+  function marketPanel(s) {
+    const goods = Object.entries(s.market?.prices || {});
+    if (!goods.length) return '';
+    const labels = { water: '清水', moonPetal: '月兰花瓣', food: '食物', relicFragment: '遗藏碎片' };
+    const recent = (s.market.transactions || []).slice(0, 3);
+    return `<article class="panel compact"><div class="panel-title"><h2>共享市场</h2><span>第${s.market.day}日 · ${recent.length}笔近期交易</span></div><div class="inventory">${goods.map(([id, price]) => `<span>${labels[id] || id}<b>${Number(price).toFixed(1)}元石</b></span>`).join('')}</div>${recent.map(item => `<small>日${Math.floor(item.clock / 24) + 1}：${esc(s.entities[item.actorId]?.identity?.name || '某人')} ${item.side === 'buy' ? '买入' : '卖出'}${labels[item.goodId] || item.goodId} ×${item.amount}</small>`).join('<br>')}</article>`;
   }
   function itemName(id) { return ({ water: '清水', moonPetal: '月兰花瓣', wine: '酒', stones: '元石', food: '食物', relicFragment: '遗藏碎片' }[id] || id); }
   function actionButtons(s) {

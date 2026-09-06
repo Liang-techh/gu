@@ -28,6 +28,7 @@
 - 情报网络与案件压力：传闻保留事件来源、传播路径和置信度，并在 `intel.cases` 中按目标与势力累计调查压力，NPC 的调查目标会真实消耗和更新这些压力；
 - 势力追捕队与代理人 [src/pursuit.js](<D:\Caves of Qud\gu-rpg\src\pursuit.js>)：追捕使作为真实 `agent` 实体在地图中寻路、接触和记忆目标，玩家可收买、误导或警告追兵，进度和警戒会显示在 UI；
 - NPC 委托网络 [src/agency.js](<D:\Caves of Qud\gu-rpg\src\agency.js>)：玩家可把打探、侦查、交易和游说交给同地点 NPC，委托跨小时推进，受关系、位置、精力和人格影响并留下可回放的结果事件；
+- 共享动态市场 [src/market.js](<D:\Caves of Qud\gu-rpg\src\market.js>)：NPC 自主交易、玩家委托交易和未来的玩家交易共用报价、供需、元石结算与交易事件；普通交易会进入区域活动和低风险传闻，但不会被误判成追杀证据；
 - 独立行动目录 [src/action-catalog.js](<D:\Caves of Qud\gu-rpg\src\action-catalog.js>)：可用 command 根据当前世界状态生成，UI、自由意图解析和未来 AI 代理共享同一行动入口；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：30 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；

@@ -11,6 +11,7 @@
     'combat.damage': { kind: 'rumor-violence', valence: -3, fact: 'heardViolence', text: '你听说{subject}在{location}留下了伤势或伤痕。' },
     'world.resource_gathered': { kind: 'rumor-resource', valence: 1, fact: 'heardResourceClaim', text: '你听说{subject}正在{location}争夺资源。' },
     'auction.lot': { kind: 'rumor-market', valence: 1, fact: 'heardAuctionMove', text: '你听说{subject}在{location}改变了一笔交易的价格和关系。' },
+    'market.trade': { kind: 'rumor-market', valence: 1, fact: 'heardMarketTrade', text: '你听说{subject}在{location}完成了一笔交易。' },
     'identity.revealed': { kind: 'rumor-social', valence: 1, fact: 'heardIdentityReveal', text: '你听说{subject}在{location}向某个对象透露了自己的身份。' },
     'frontier.patrol': { kind: 'rumor-war', valence: -1, fact: 'heardWarReport', text: '你听说北原巡逻线又发生了变化。' },
     'tower.floor': { kind: 'rumor-inheritance', valence: 1, fact: 'heardTowerAttempt', text: '你听说真阳楼的闯关者又改变了一层传承记录。' }
@@ -39,6 +40,7 @@
   }
 
   function caseImpact(rule, event) {
+    if (event.type === 'market.trade') return 0;
     if (event.type === 'identity.revealed') return 3;
     if (event.type === 'auction.lot') return event.payload?.trace >= 10 ? 2.5 : 1;
     if (rule.kind.includes('conflict') || rule.kind.includes('violence')) return 2;

@@ -21,7 +21,7 @@
     return state.agency;
   }
 
-  function createRuntime({ engine, locations, random, clamp, relation, remember, log, advance, knowledge }) {
+  function createRuntime({ engine, locations, random, clamp, relation, remember, log, advance, knowledge, market }) {
     function activeFor(state, agentId) {
       return Object.values(ensure(state).commissions).filter(item => item.status === 'active' && item.agentId === agentId);
     }
@@ -69,7 +69,8 @@
           player.cultivation.insight += 3;
           remember(state, player.id, commission.targetLocation, { kind: 'observation', source: `agency:${commission.id}`, confidence: clamp(commission.quality + 0.35, 0.5, 0.9), provenance: [commission.id, agent.id], text: `${agent.identity.name}完成侦查，带回了关于${locations[commission.targetLocation]?.name || commission.targetLocation}的可靠观察。`, facts: { agencyScout: commission.id, zoneDanger: zone?.danger || 0 } });
         } else if (commission.kind === 'trade') {
-          player.inventory.stones += 2; player.inventory.water = (player.inventory.water || 0) + 1;
+          const result = market?.trade(state, { actor: player, goodId: 'water', amount: 1, side: 'buy', factionId: agent.faction, location: commission.targetLocation, reason: `agency:${commission.id}` });
+          if (!result?.ok) player.inventory.stones += 1;
           if (faction) faction.influence += 0.8;
         } else {
           if (faction) { faction.attitude += 3; faction.tension = Math.max(0, faction.tension - 1); }
