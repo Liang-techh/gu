@@ -379,6 +379,39 @@
       advance(state, 6, 'rest');
     });
     engine.registerAction('challenge', ({ state, command }) => beginConflict(state, command.target, command.kind || 'challenge'));
+    engine.registerAction('encounter_trade', ({ state, command, p }) => {
+      const npc = requireNearby(state, command.target);
+      const goodId = command.goodId || 'water';
+      const amount = Math.max(1, Math.floor(Number(command.amount) || 1));
+      const side = command.side || 'buy';
+      const price = marketRuntime.quote(state, goodId, amount);
+      if (side === 'buy' && (p.inventory.stones || 0) < price) throw new Error(`元石不足：这笔交易需要${price}枚元石`);
+      if (side === 'sell' && (p.inventory[goodId] || 0) < amount) throw new Error(`你没有足够的${goodId}可出售`);
+      const result = engine.runInteraction('trade', { state, p, npc, relation: relation(state, 'player', npc.id), goodId, amount, side, reason: 'local_encounter' });
+      if (!result) throw new Error('对方没有接受这笔交易');
+      relation(state, 'player', npc.id).lastSeen = state.clock;
+      log(state, 'encounter_trade', `你在近距离遭遇中与${npc.identity.name}完成了${side === 'buy' ? '买入' : '卖出'}。`, { npcId: npc.id, goodId, amount, side, price: result.price });
+      advance(state, 1, 'encounter_trade');
+    });
+    engine.registerAction('ask_support', ({ state, command, p }) => {
+      const npc = requireNearby(state, command.target);
+      const rel = relation(state, 'player', npc.id);
+      if (rel.trust < 5) throw new Error(`${npc.identity.name}还没有理由为你承担风险`);
+      if (rel.fear >= 35) throw new Error(`${npc.identity.name}对你过于警惕，不会答应临时相助`);
+      state.cooperations ||= { sequence: 0, active: [], history: [] };
+      state.cooperations.active ||= [];
+      if (state.cooperations.active.some(item => item.status === 'active' && item.npcId === npc.id)) throw new Error('这名 NPC 已经答应在附近协助你');
+      state.cooperations.sequence = (Number(state.cooperations.sequence) || 0) + 1;
+      const support = { id: `support-${state.cooperations.sequence}`, npcId: npc.id, location: p.position.location, createdAt: state.clock, expiresAt: state.clock + 8, uses: 1, status: 'active', kind: 'local_aid' };
+      state.cooperations.active.unshift(support);
+      rel.trust -= 1;
+      rel.debt += 2;
+      remember(state, npc.id, 'player', { kind: 'support-promise', valence: 3, text: `${p.identity.name}请求你在附近的冲突中暂时相助。`, facts: { promisedSupport: true, supportId: support.id } });
+      remember(state, 'player', npc.id, { kind: 'support-request', valence: 2, text: `你请${npc.identity.name}在附近的冲突中暂时相助。`, facts: { supportRequested: true, supportId: support.id } });
+      engine.emit(state, 'social.cooperation', { actorId: p.id, targetId: npc.id, location: p.position.location, cooperationId: support.id, expiresAt: support.expiresAt, uses: support.uses });
+      log(state, 'cooperation', `${npc.identity.name}答应在接下来的几小时内为你承担一次风险。`, { npcId: npc.id, cooperationId: support.id, expiresAt: support.expiresAt });
+      advance(state, 1, 'ask_support');
+    });
     for (const id of ['attack', 'gu', 'guard', 'flee']) engine.registerAction(id, ({ state, command }) => combatRuntime.playerAction(state, command));
     engine.registerAction('refine', ({ state, command, p }) => {
       if (p.position.location !== 'academy' && p.position.location !== 'village') throw new Error('这里没有适合炼化蛊虫的安静场所');

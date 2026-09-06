@@ -12,6 +12,29 @@
     return state.locations?.[here]?.interactions?.includes(id) === true;
   }
 
+  function localEncounterPeople(state, here, localMap) {
+    const player = state.entities?.player;
+    const location = state.locations?.[here];
+    const playerCell = player?.position?.cell;
+    return Object.values(state.entities || {}).filter(entity => {
+      if (entity.id === 'player' || !entity.alive || entity.position?.location !== here || !entity.position?.cell) return false;
+      if (!localMap || !location || !playerCell) return true;
+      const distance = localMap.distance(playerCell, entity.position.cell);
+      return distance <= 1 && localMap.visible(here, location, playerCell, entity.position.cell, 2);
+    });
+  }
+
+  function relationFor(state, a, b) {
+    return state.relationships?.[[a, b].sort().join('::')] || { trust: 0, fear: 0, debt: 0, affinity: 0 };
+  }
+
+  function policyFor(state, npc, market) {
+    return state.factions?.[npc.faction]?.market?.policy
+      || state.factions?.[npc.faction]?.interests?.market
+      || market?.FACTION_POLICIES?.[npc.faction]
+      || null;
+  }
+
   const DEFINITIONS = Object.freeze([
     { id: 'cultivate', label: '修炼', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'cultivate' }) },
     { id: 'wait', label: '等待两小时', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'wait', hours: 2 }) },
@@ -70,7 +93,7 @@
     { id: 'coalition_action:defect', label: '公开退出盟约', kind: 'choice', when: ({ here, state }) => ['village', 'centralContinent', 'southernBorder', 'westernDesert', 'heavenlyCourt', 'longLifeHeaven', 'dreamRealms'].includes(here) && Object.keys(state.coalitions?.pacts || {}).some(id => id.split('::').includes(state.entities?.player?.faction)), command: () => ({ type: 'action', id: 'coalition_action', mode: 'defect' }) }
   ]);
 
-  function list(state, { locations, localObjects } = {}) {
+  function list(state, { locations, localObjects, localMap, market } = {}) {
     const here = state.entities?.player?.position?.location;
     const context = { state, here };
     const actions = DEFINITIONS.filter(definition => definition.when(context)).map(definition => ({
@@ -104,7 +127,17 @@
         if (near && ['trace', 'relic'].includes(object.kind) && object.discovered && !object.resolved) actions.push({ id: `local:follow:${object.id}`, label: `追查${object.label}`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'follow' } });
       }
     }
-    const nearbyAgents = Object.values(state.entities || {}).filter(entity => entity.id !== 'player' && entity.alive && !entity.agent && entity.position?.location === here && Object.values(state.agency?.commissions || {}).filter(item => item.status === 'active' && item.agentId === entity.id).length < 2).slice(0, 4);
+    const nearbyPeople = localEncounterPeople(state, here, localMap);
+    for (const npc of nearbyPeople) {
+      const policy = policyFor(state, npc, market);
+      if (policy?.buy?.[0]) actions.push({ id: `encounter:trade:buy:${npc.id}:${policy.buy[0]}`, label: `向${npc.identity.name}买${(market?.GOODS?.[policy.buy[0]]?.label || policy.buy[0])}`, kind: 'encounter', command: { type: 'action', id: 'encounter_trade', target: npc.id, goodId: policy.buy[0], side: 'buy', amount: 1 } });
+      const sellGood = (policy?.sell || []).find(goodId => (state.entities.player.inventory?.[goodId] || 0) > 0);
+      if (sellGood) actions.push({ id: `encounter:trade:sell:${npc.id}:${sellGood}`, label: `向${npc.identity.name}卖${(market?.GOODS?.[sellGood]?.label || sellGood)}`, kind: 'encounter', command: { type: 'action', id: 'encounter_trade', target: npc.id, goodId: sellGood, side: 'sell', amount: 1 } });
+      const relation = relationFor(state, 'player', npc.id);
+      const hasSupport = Object.values(state.cooperations?.active || {}).some(item => item.status === 'active' && item.npcId === npc.id);
+      if (!hasSupport && relation.trust >= 5 && relation.fear < 35) actions.push({ id: `encounter:support:${npc.id}`, label: `请${npc.identity.name}暂时相助`, kind: 'encounter', command: { type: 'action', id: 'ask_support', target: npc.id } });
+    }
+    const nearbyAgents = nearbyPeople.filter(entity => !entity.agent && Object.values(state.agency?.commissions || {}).filter(item => item.status === 'active' && item.agentId === entity.id).length < 2).slice(0, 4);
     for (const npc of nearbyAgents) actions.push({ id: `commission_agent:${npc.id}`, label: `委托${npc.identity.name}打探`, kind: 'choice', command: { type: 'action', id: 'commission_agent', mode: 'recruit', target: npc.id, kind: 'rumor' } });
     return actions;
   }

@@ -204,6 +204,56 @@ test('player approach triggers the same local contact event as NPC approach', ()
   assert.equal(state.entities.fangzheng.memory.facts.player.playerApproached, true);
 });
 
+test('nearby NPC trade uses the shared market and is only catalogued at contact range', () => {
+  let state = open(S.newWorld({ seed: 'local-trade' }), 'observe');
+  const npc = state.entities.fangzheng;
+  state.entities.player.position.location = 'academy';
+  state.entities.player.position.cell = { x: 3, y: 2 };
+  npc.position.location = 'academy';
+  npc.position.cell = { x: 3, y: 1 };
+  npc.agent = true;
+  let actions = S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS, localMap: S.LOCAL_MAP, market: S.MARKET });
+  assert.ok(actions.some(item => item.command.id === 'encounter_trade' && item.command.target === 'fangzheng' && item.command.side === 'buy'));
+  state.entities.player.position.cell = { x: 0, y: 0 };
+  actions = S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS, localMap: S.LOCAL_MAP, market: S.MARKET });
+  assert.equal(actions.some(item => item.command.id === 'encounter_trade' && item.command.target === 'fangzheng'), false);
+  state.entities.player.position.cell = { x: 3, y: 2 };
+  const beforeStones = state.entities.player.inventory.stones;
+  const beforeFood = state.entities.player.inventory.food || 0;
+  state = ok(state, { type: 'action', id: 'encounter_trade', target: 'fangzheng', goodId: 'food', side: 'buy', amount: 1 });
+  assert.equal(state.entities.player.inventory.food, beforeFood + 1);
+  assert.ok(state.entities.player.inventory.stones < beforeStones);
+  assert.ok(state.market.transactions.some(item => item.reason === 'local_encounter' && item.actorId === 'player' && item.goodId === 'food'));
+  assert.ok(state.events.recent.some(event => event.type === 'market.trade' && event.payload.reason === 'local_encounter'));
+});
+
+test('local cooperation becomes one-use combat support and expires from the ledger', () => {
+  let state = open(S.newWorld({ seed: 'local-support' }), 'observe');
+  const supporter = state.entities.fangzheng;
+  const target = state.entities.mobei;
+  state.entities.player.position.location = 'academy';
+  state.entities.player.position.cell = { x: 3, y: 2 };
+  supporter.position.location = 'academy';
+  supporter.position.cell = { x: 3, y: 1 };
+  supporter.agent = true;
+  target.position.location = 'academy';
+  target.position.cell = { x: 3, y: 2 };
+  target.agent = true;
+  const actions = S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS, localMap: S.LOCAL_MAP, market: S.MARKET });
+  assert.ok(actions.some(item => item.command.id === 'ask_support' && item.command.target === supporter.id));
+  state = ok(state, { type: 'action', id: 'ask_support', target: supporter.id });
+  assert.equal(state.cooperations.active.length, 1);
+  const cooperationId = state.cooperations.active[0].id;
+  assert.ok(state.events.recent.some(event => event.type === 'social.cooperation' && event.payload.cooperationId === cooperationId));
+  state = ok(state, { type: 'action', id: 'challenge', target: target.id });
+  assert.equal(state.combat.support.npcId, supporter.id);
+  state = ok(state, { type: 'combat', id: 'guard' });
+  assert.equal(state.cooperations.active.length, 0);
+  assert.equal(state.cooperations.history[0].status, 'used');
+  assert.ok(state.events.recent.some(event => event.type === 'combat.support_used' && event.payload.cooperationId === cooperationId));
+  assert.ok(state.combatLedger.exchanges.some(item => item.kind === 'cooperation' && item.attackerId === supporter.id));
+});
+
 test('environment affordances expose composable observe, forage, relic search and scouting interactions', () => {
   let state = open(S.newWorld({ seed: 'affordances' }), 'observe');
   assert.deepEqual(S.AFFORDANCES.available(state, state.entities.player).map(item => item.id), ['observeZone']);

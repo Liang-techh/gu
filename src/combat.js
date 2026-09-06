@@ -115,12 +115,28 @@
       const exchangeResult = playerDamage
         ? exchange(state, player.id, target.id, { kind: id === 'gu' ? 'gu' : 'strike', power: playerDamage, reason: 'player_turn', location: player.position?.location, emitStarted: false, updateFear: false })
         : null;
+      let supportResult = null;
+      const support = state.combat?.support;
+      if (state.combat && support && !support.used) {
+        const ally = find(state, support.npcId);
+        const cooperation = state.cooperations?.active?.find(item => item.id === support.cooperationId && item.status === 'active');
+        if (ally?.alive && cooperation && ally.position?.location === player.position?.location && ally.id !== target.id) {
+          supportResult = exchange(state, ally.id, target.id, { kind: 'cooperation', power: 5 + (ally.cultivation?.rank || 1) * 3 + (ally.personality?.loyalty || 0) * 0.03, reason: 'local_aid', location: player.position?.location, emitStarted: false, updateFear: false });
+          if (supportResult) {
+            support.used = true;
+            cooperation.status = 'used'; cooperation.usedAt = state.clock; cooperation.uses = 0;
+            state.cooperations.history ||= []; state.cooperations.history.unshift(cooperation);
+            state.cooperations.active = state.cooperations.active.filter(item => item !== cooperation);
+            engine.emit(state, 'combat.support_used', { cooperationId: cooperation.id, supporterId: ally.id, targetId: target.id, location: player.position?.location, damage: supportResult.damage });
+          }
+        }
+      }
       if (!target.alive) {
         if (relation) relation(state, player.id, target.id).fear += 25;
         if (target.faction && state.factions?.[target.faction]) state.factions[target.faction].tension += 8;
         state.combat = null;
         advance?.(state, 1, 'combat');
-        return { ok: true, exchange: exchangeResult, ended: true };
+        return { ok: true, exchange: exchangeResult, support: supportResult, ended: true };
       }
       const targetPower = 6 + (target.cultivation?.rank || 1) * 4 + (target.personality?.ambition || 0) * 0.04;
       damage(state, player.id, playerGuard ? targetPower * 0.35 : targetPower, target.id, 'npc_strike');
@@ -128,7 +144,7 @@
       combat.round += 1;
       if (!player.alive) state.combat = null;
       advance?.(state, 1, 'combat');
-      return { ok: true, exchange: exchangeResult, ended: !state.combat };
+      return { ok: true, exchange: exchangeResult, support: supportResult, ended: !state.combat };
     }
 
     function chooseOpponent(state, actor, { engine: queryEngine = engine, includePlayer = false } = {}) {

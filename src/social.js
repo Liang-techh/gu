@@ -73,9 +73,24 @@
         result = { fearDelta: actor.id === state.playerId ? 9 : 4 };
       } else if (mode === 'trade') {
         if (actor.id === state.playerId) {
-          if ((actor.inventory?.stones || 0) < 1) return false;
-          actor.inventory.stones -= 1;
-          actor.inventory.water = (actor.inventory.water || 0) + 1;
+          if (market) {
+            const trade = market.trade(state, {
+              actor,
+              goodId: options.goodId || 'water',
+              amount: options.amount || 1,
+              side: options.side || 'buy',
+              factionId: target.faction || actor.faction,
+              location: actor.position?.location,
+              reason: options.reason || 'social_trade'
+            });
+            if (!trade?.ok) return false;
+            result = { tradeId: trade.id, goodId: trade.goodId, amount: trade.amount, side: trade.side, price: trade.price };
+          } else {
+            if ((actor.inventory?.stones || 0) < 1) return false;
+            actor.inventory.stones -= 1;
+            actor.inventory.water = (actor.inventory.water || 0) + 1;
+            result = { goodId: 'water', amount: 1, side: 'buy', price: 1 };
+          }
         } else if (market) {
           const trade = market.npcTrade(state, actor, actor.faction && state.factions?.[actor.faction]);
           if (!trade?.ok) return false;
@@ -84,7 +99,7 @@
         r.trust += actor.id === state.playerId ? 2 : 0.5;
         if (actor.id === state.playerId && target.faction) affectFaction(state, target.faction, 1, 0);
         remember(state, target.id, actor.id, { kind: 'trade', valence: 1, text: `${name(actor)}与你完成了一次交易。`, facts: { traded: true } });
-        result ||= { goodId: 'water', price: 1 };
+        result ||= { goodId: 'water', amount: 1, side: 'buy', price: 1 };
       } else if (mode === 'mediate') {
         r.affinity += 1;
         if (actor.faction && state.factions?.[actor.faction]) state.factions[actor.faction].tension = Math.max(0, state.factions[actor.faction].tension - 0.3);

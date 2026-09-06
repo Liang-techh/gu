@@ -57,18 +57,26 @@
     const tiles = [];
     for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
       const cell = { x, y }; const cellKey = `${x},${y}`; const npc = occupant.get(cellKey); const object = objectAt.get(cellKey);
-      if (playerCell.x === x && playerCell.y === y) tiles.push('<div class="local-tile player-here" title="你"><span>🧍</span></div>');
-      else if (npc) tiles.push(`<div class="local-tile npc-here" title="${esc(npc.identity.name)}"><span>●</span></div>`);
-      else if (object) tiles.push(`<div class="local-tile object-here" title="${esc(object.label)}"><span>${esc(object.glyph || '◇')}</span></div>`);
+      const isPlayer = playerCell.x === x && playerCell.y === y;
+      const isVisible = isPlayer || local.visible(here, location, playerCell, cell, 4);
+      const isAdjacent = local.distance(playerCell, cell) === 1;
+      const direction = isAdjacent && local.isWalkable(cell, map)
+        ? local.ORDER.find(id => local.DIRECTIONS[id].x === cell.x - playerCell.x && local.DIRECTIONS[id].y === cell.y - playerCell.y)
+        : null;
+      const stepAttr = direction ? ` data-command='${esc(JSON.stringify({ type: 'action', id: 'step', direction }))}' title="向${local.DIRECTIONS[direction].label}移动"` : '';
+      if (!isVisible) tiles.push('<div class="local-tile fog" aria-label="视野外"></div>');
+      else if (isPlayer) tiles.push('<div class="local-tile player-here" title="你"><span>🧍</span></div>');
+      else if (npc) tiles.push(`<div class="local-tile npc-here${direction ? ' tile-step' : ''}"${stepAttr} aria-label="${esc(npc.identity.name)}"><span>●</span></div>`);
+      else if (object) tiles.push(`<div class="local-tile object-here${direction ? ' tile-step' : ''}"${stepAttr} aria-label="${esc(object.label)}"><span>${esc(object.glyph || '◇')}</span></div>`);
       else if (!local.isWalkable(cell, map)) tiles.push('<div class="local-tile blocked" aria-label="障碍">▪</div>');
-      else tiles.push(`<div class="local-tile terrain-${esc(map.terrain)}">${esc(local.terrainSymbol(map.terrain))}</div>`);
+      else tiles.push(`<div class="local-tile terrain-${esc(map.terrain)}${direction ? ' tile-step' : ''}"${stepAttr}>${esc(local.terrainSymbol(map.terrain))}</div>`);
     }
     const exits = local.ORDER.map(direction => {
       const target = map.neighbors[local.ORDER.indexOf(direction)];
       if (!target) return `<span class="road-exit absent">${local.DIRECTIONS[direction].label} · 无路</span>`;
       return `<button class="road-exit" data-command='${esc(JSON.stringify({ type: 'action', id: 'step', direction }))}'>${local.DIRECTIONS[direction].label} · ${esc(locName(target))}</button>`;
     }).join('');
-    return `<article class="panel map-panel"><div class="panel-title"><h2>眼前的路</h2><span>${esc(location.name || here)} · 局部视野</span></div><div class="local-grid" style="--local-width:${map.width}">${tiles.join('')}</div><div class="road-exits">${exits}</div><p class="map-caption">你只能看见脚边的路和附近的人。走到边缘，才会进入另一处地点。</p></article>`;
+    return `<article class="panel map-panel" tabindex="0" aria-label="局部二维世界"><div class="panel-title"><h2>眼前的路</h2><span>${esc(location.name || here)} · 局部视野</span></div><div class="local-map-frame"><div class="local-grid" style="--local-width:${map.width}">${tiles.join('')}</div><div class="movement-hint"><span>方向键 / WASD</span><span>点击相邻格移动</span><span>🧍 你 · ● 人 · ◇ 发现</span></div></div><div class="road-exits">${exits}</div><p class="map-caption">地图就是你所在的世界。走到相邻格会推进一小时；走到边缘才会沿道路进入另一处地点，视野外不会提前显示。</p></article>`;
   }
 
   function nearbyPanel(s) {
@@ -148,12 +156,20 @@
 
   function itemName(id) { return ({ water: '清水', moonPetal: '月兰花瓣', wine: '酒', stones: '元石', food: '食物', relicFragment: '遗藏碎片' }[id] || id); }
   function actionButtons(s) {
-    return S.ACTION_CATALOG.list(s, { locations: S.LOCATIONS, localObjects: S.LOCAL_OBJECTS })
+    return S.ACTION_CATALOG.list(s, { locations: S.LOCATIONS, localObjects: S.LOCAL_OBJECTS, localMap: S.LOCAL_MAP, market: S.MARKET })
       .filter(item => item.kind !== 'travel' && !item.id.startsWith('commission_agent:'))
       .map(item => button(item.command.label || item.label, item.command, false, item.kind)).join('');
   }
   function wire() {
     document.querySelectorAll('[data-command]').forEach(el => el.addEventListener('click', () => run(JSON.parse(el.dataset.command))));
+    document.onkeydown = event => {
+      if (!state || state.combat || state.events.active || ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      const directions = { ArrowUp: 'north', w: 'north', W: 'north', ArrowRight: 'east', d: 'east', D: 'east', ArrowDown: 'south', s: 'south', S: 'south', ArrowLeft: 'west', a: 'west', A: 'west' };
+      const direction = directions[event.key];
+      if (!direction) return;
+      event.preventDefault();
+      run({ type: 'action', id: 'step', direction });
+    };
     document.getElementById('save-game').onclick = () => { save(); toast('世界已保存。'); };
     document.getElementById('new-world').onclick = () => { if (confirm('离开会回到世界入口，本地存档仍会保留。确定吗？')) { state = null; startScreen(); } };
     document.getElementById('run-command').onclick = () => {

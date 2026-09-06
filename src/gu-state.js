@@ -15,6 +15,13 @@
       state.encounters.recent ||= []; state.encounters.lastByNpc ||= {}; state.encounters.contactState ||= {};
       state.encounters.sequence = Math.max(0, Number(state.encounters.sequence) || 0);
       state.encounters.recent = state.encounters.recent.slice(0, 128);
+      state.cooperations ||= { sequence: 0, active: [], history: [] };
+      state.cooperations.active ||= []; state.cooperations.history ||= [];
+      state.cooperations.sequence = Math.max(0, Number(state.cooperations.sequence) || 0);
+      const expiredCooperations = state.cooperations.active.filter(item => item.status === 'active' && Number(item.expiresAt) <= state.clock);
+      for (const item of expiredCooperations) { item.status = 'expired'; state.cooperations.history.unshift(item); }
+      state.cooperations.active = state.cooperations.active.filter(item => item.status === 'active');
+      state.cooperations.history = state.cooperations.history.slice(0, 128);
       const knownEntityIds = new Set([...Object.keys(state.entities || {}), ...Object.keys(state.entityCache || {})]);
       for (const id of Object.keys(state.social.lastActorClock)) if (!knownEntityIds.has(id)) delete state.social.lastActorClock[id];
       combat.ensure(state);
