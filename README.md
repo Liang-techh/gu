@@ -13,7 +13,7 @@
 - 独立运行时内核：组件查询、领域事件流、GoalHandler/Conversation/Interaction 注册表，以及按小时/按日排序执行的系统管线；
 - 独立内容包 [src/content.js](<D:\Caves of Qud\gu-rpg\src\content.js>)：地点、人口表、势力、人物、蛊虫和章节来源可按内容版本扩展；
 - 独立区域构建器 [src/zone-builder.js](<D:\Caves of Qud\gu-rpg\src\zone-builder.js>)：按地点标签生成资源状态，并按人口表重建环境居民；
-- 内容包已覆盖第一卷青茅山后段，以及第二卷白骨山—商家城—三叉山—天梯山的首批区域链；
+- 内容包已覆盖第一卷青茅山后段、第二卷白骨山—商家城—三叉山—天梯山，以及第三卷北原草原—黑家军营—王庭福地—八十八角真阳楼的首批区域链；
 - 商家城演武与三王传承不是一次性剧情：可以反复行动，积累连胜、声望、轮次、难度、资源和伤势；
 - `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
 - 事件历史、导演事件、可订阅事件监听器和统一 `dispatch` 结算入口；
@@ -31,7 +31,7 @@
 - 本地 JSON 存档与确定性恢复；
 - 90 日长跑审计：世界状态保持有限、结构有效，存档可重新验证；
 - 独立 HistoryKit 风格历史账本：重大事件、势力/区域日快照和可回放摘要；
-- 基于小说原文的青茅山开局：开窍大典、方源、方正、学堂、竹林、月光蛊、酒虫与遗藏线索。
+- 基于小说原文的青茅山开局：开窍大典、方源、方正、学堂、竹林、月光蛊、酒虫与遗藏线索；第三卷内容已加入黑楼兰、太白云生、东方余亮、马英杰及北原战争导演事件。
 
 ## 运行
 
@@ -58,8 +58,8 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       22/22 passing
-npm run check:canon  33/33 term/source checks
+npm test       23/23 passing
+npm run check:canon  46/46 term/source checks
 ```
 
 当前是可运行的青茅山垂直切片，不声称已经完成 Qud 级别的格点物理、身体部位、液体/温度、完整历史生成和全卷内容。后续系统会继续以可测试的组件/事件模块逐层加入。

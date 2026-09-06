@@ -14,8 +14,9 @@ function open(state, choice = 'observe') {
 
 test('world starts from novel-derived opening but resolves through an event contract', () => {
   const state = S.newWorld({ name: '测试者', aptitude: '乙等', seed: 'rain' });
-  assert.equal(state.content.id, 'gu-southern-border-v2');
+  assert.equal(state.content.id, 'gu-frontier-v3');
   assert.equal(S.CONTENT_INDEX.volumes[0].id, 'volume-1');
+  assert.equal(S.CONTENT_INDEX.volumes[2].id, 'volume-3');
   assert.equal(state.history.origin.contentId, state.content.id);
   assert.equal(state.events.active.id, 'openingRite');
   assert.equal(state.entities.fangyuan.identity.name, '古月方源');
@@ -183,6 +184,7 @@ test('volume two content pack opens merchant city, arena, inheritance and sect f
       if (state.events.active) state = ok(state, { type: 'resolve_event', choice: choices[state.events.active.id] || state.events.active.choices[0].id });
       else state = ok(state, { type: 'action', id: 'wait', hours: 12 });
     }
+    while (state.events.active) state = ok(state, { type: 'resolve_event', choice: choices[state.events.active.id] || state.events.active.choices[0].id });
   };
   state = ok(state, { type: 'action', id: 'travel', location: 'village' });
   advance(900);
@@ -208,6 +210,50 @@ test('volume two content pack opens merchant city, arena, inheritance and sect f
   assert.ok(state.history.events.some(entry => entry.type === 'arena_match'));
   assert.ok(state.history.events.some(entry => entry.type === 'inheritance_round'));
   assert.ok(state.history.events.some(event => event.type === 'choice' && event.data?.source?.source?.endsWith('第124章.txt')));
+});
+
+test('volume three content pack turns northern war and true yang tower into stateful frontier events', () => {
+  let state = open(S.newWorld({ seed: 'volume-three' }), 'observe');
+  const choices = {
+    marketArrival: 'listen', auction: 'observe', allianceCouncil: 'aid', wolfTide: 'mobilize',
+    threeClanTournament: 'observe', ironInvestigation: 'cooperate', merchantCityArrival: 'enter',
+    merchantArena: 'recruit', threeKingsInheritance: 'scout', heavenClimbTransmission: 'follow',
+    northernWarArrival: 'enter', blackCampaign: 'mediate', imperialCourtOpening: 'relief', trueYangTowerFormation: 'watch'
+  };
+  const advance = hours => {
+    for (let i = 0; i < hours / 12; i++) {
+      if (state.events.active) state = ok(state, { type: 'resolve_event', choice: choices[state.events.active.id] || state.events.active.choices[0].id });
+      else state = ok(state, { type: 'action', id: 'wait', hours: 12 });
+    }
+    while (state.events.active) state = ok(state, { type: 'resolve_event', choice: choices[state.events.active.id] || state.events.active.choices[0].id });
+  };
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  advance(900);
+  state = ok(state, { type: 'action', id: 'travel', location: 'caravanCamp' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'whiteBoneMountain' });
+  if (state.events.active) state = ok(state, { type: 'resolve_event', choice: choices[state.events.active.id] || state.events.active.choices[0].id });
+  state = ok(state, { type: 'action', id: 'travel', location: 'merchantCity' });
+  advance(60);
+  state = ok(state, { type: 'action', id: 'travel', location: 'threeForkMountain' });
+  advance(120);
+  state = ok(state, { type: 'action', id: 'travel', location: 'heavenClimbMountain' });
+  advance(180);
+  state = ok(state, { type: 'action', id: 'travel', location: 'northernPlains' });
+  advance(120);
+  state = ok(state, { type: 'action', id: 'travel', location: 'blackTribeCamp' });
+  advance(240);
+  state = ok(state, { type: 'action', id: 'travel', location: 'imperialCourt' });
+  advance(240);
+  state = ok(state, { type: 'action', id: 'travel', location: 'trueYangTower' });
+  advance(120);
+  assert.equal(state.flags.northernFrontierOpened, true);
+  assert.equal(state.flags.blackCampaign, true);
+  assert.equal(state.flags.imperialCourtOpened, true);
+  assert.equal(state.flags.trueYangTowerFormed, true);
+  assert.equal(state.entities.heiloulan.identity.name, '黑楼兰');
+  assert.equal(state.entities.taibaiyunsheng.identity.name, '太白云生');
+  assert.ok(state.history.events.some(event => event.data?.source?.source?.endsWith('第149章.txt')));
+  assert.ok(state.frontier.campaignPressure > 0);
 });
 
 test('free intent parser only returns commands; state changes remain rule-owned', () => {

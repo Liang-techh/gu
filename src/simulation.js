@@ -93,7 +93,7 @@
     state.entities[id] = entity;
     if (state.facts.latentNpcs) delete state.facts.latentNpcs[id];
     remember(state, id, 'world', { kind: 'arrival', text: `${seed.name}进入了青茅山的公共视野。`, facts: { arrivedDay: day(state) } });
-    log(state, 'world_arrival', `${seed.name}进入了青茅山。`, { npcId: id });
+    log(state, 'world_arrival', `${seed.name}进入了当前区域的公共视野。`, { npcId: id });
     return entity;
   }
 
@@ -168,11 +168,13 @@
       factions: {},
       relationships: {},
       facts: {},
-      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false },
+      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false, northernFrontierOpened: false, blackCampaign: false, imperialCourtOpened: false, trueYangTowerFormed: false },
       events: { active: null, pending: [], history: [], sequence: 0 },
       combat: null,
       arena: { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 },
       inheritance: { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false },
+      frontier: { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 },
+      tower: { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false },
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
       log: [],
       version: 1
@@ -290,6 +292,26 @@
       { id: 'follow', label: '追踪门派队伍', hint: '打开更高层级的门派竞争。' },
       { id: 'sell', label: '把消息卖给商家城', hint: '获得资源与商家关系，但会让传承竞争者增加。' },
       { id: 'ignore', label: '留在三叉山积累实力', hint: '暂时避开门派冲突，保留行动自由。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'northernWarArrival', priority: 120, when: state => state.flags.heavenClimbRumor && !state.flags.northernFrontierOpened && day(state) >= 55 && ['heavenClimbMountain', 'northernPlains'].includes(state.entities.player.position.location), build: () => ({ id: 'northernWarArrival', type: 'war', title: '北原战报与远方军帐', text: '天梯山传承的消息尚未冷却，北原草原的战报已经沿商路传来：黑家盟军、东方盟军和各部族正在争夺进入王庭福地的资格。战争的补给、侦察和伤亡会先于英雄叙事改变这片土地。', source: SOURCE_NOTES.northernWar, choices: [
+      { id: 'enter', label: '沿商路北上', hint: '开启北原草原、军营和部族战争系统。' },
+      { id: 'observe', label: '先收集战报', hint: '获得北原情报，但战争压力会继续累积。' },
+      { id: 'avoid', label: '暂不卷入北原', hint: '保留南疆行动自由，错过早期军帐关系。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'blackCampaign', priority: 130, when: state => state.flags.northernFrontierOpened && !state.flags.blackCampaign && day(state) >= 62 && ['northernPlains', 'blackTribeCamp'].includes(state.entities.player.position.location), build: () => ({ id: 'blackCampaign', type: 'war', title: '黑盟军帐的选择', text: '黑楼兰的军帐把部族、后勤、侦察和个人野心压在同一张战图上。东方盟军并未撤退，中小部族却已经开始计算自己还能承受多少伤亡。', source: SOURCE_NOTES.northernWar, choices: [
+      { id: 'mobilize', label: '加入黑盟后勤', hint: '提升黑家影响，消耗资源并增加战争暴露。' },
+      { id: 'mediate', label: '为中小部族求情', hint: '降低部分战争压力，但会触怒强硬派。' },
+      { id: 'scout', label: '侦察东方军势', hint: '获得情报，增加与东方盟军的敌意。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'imperialCourtOpening', priority: 140, when: state => state.flags.blackCampaign && !state.flags.imperialCourtOpened && day(state) >= 72 && ['blackTribeCamp', 'imperialCourt'].includes(state.entities.player.position.location), build: () => ({ id: 'imperialCourtOpening', type: 'politics', title: '王庭福地的门槛', text: '战争把各族推向王庭福地。有人要求休养，有人要求继续攻伐；王庭的资格不只是奖励，也是一种把部族伤亡继续转成资源的制度。', source: SOURCE_NOTES.tribeCrisis, choices: [
+      { id: 'support', label: '支持继续攻伐', hint: '获得强势盟军信任，但中小部族的怨恨会增加。' },
+      { id: 'relief', label: '推动部族休养', hint: '降低战争压力，牺牲一部分黑盟影响。' },
+      { id: 'broker', label: '交换自己的情报', hint: '把战报和传承资格变成个人筹码。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'trueYangTowerFormation', priority: 150, when: state => state.flags.imperialCourtOpened && !state.flags.trueYangTowerFormed && day(state) >= 78 && state.entities.player.position.location === 'trueYangTower', build: () => ({ id: 'trueYangTowerFormation', type: 'inheritance', title: '八十八角真阳楼显化', text: '风雪与王庭福地的力量共同让八十八角真阳楼逐层显化。塔楼不是静态副本：外界天气、血脉资格、战争后勤和闯关者的选择都会改变它的开放状态。', source: SOURCE_NOTES.towerFormation, choices: [
+      { id: 'enter', label: '寻找进入真阳楼的资格', hint: '开启塔楼闯关，但会暴露你的行动轨迹。' },
+      { id: 'assist', label: '帮助部族稳定后勤', hint: '提升北原势力关系，延缓个人探索。' },
+      { id: 'watch', label: '观察楼层显化规律', hint: '获得塔楼情报，等待更安全的窗口。' }
     ] }) });
   }
 
@@ -451,6 +473,46 @@
       log(state, 'choice', `你处理了天梯山传承消息：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.heavenClimb });
       return true;
     });
+    Engine.registerEvent('northernWarArrival', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.northernFrontierOpened = choice !== 'avoid';
+      state.frontier.opened = state.flags.northernFrontierOpened;
+      if (state.frontier.opened) { activateSeed(state, 'heiloulan'); activateSeed(state, 'taibaiyunsheng'); state.factions.black.influence += 4; state.factions.northernTribes.tension += 3; }
+      if (choice === 'enter') { p.cultivation.insight += 8; state.frontier.supply -= 8; remember(state, 'player', 'world', { kind: 'war', valence: 2, text: '你沿商路进入北原，开始把军队、后勤和部族关系当成同一个系统观察。', facts: { northernLead: true } }); }
+      if (choice === 'observe') { p.cultivation.insight += 12; state.frontier.campaignPressure += 2; }
+      if (choice === 'avoid') { state.director.pressure += 1; p.cultivation.progress += 6; }
+      log(state, 'choice', `你处理了北原战报：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.northernWar });
+      return true;
+    });
+    Engine.registerEvent('blackCampaign', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.blackCampaign = true; state.frontier.battles += 1; state.frontier.campaignPressure += 4;
+      activateSeed(state, 'dongfangyuliang'); activateSeed(state, 'mayingjie');
+      if (choice === 'mobilize') { p.needs.energy -= 14; state.frontier.supply -= 12; state.factions.black.influence += 8; state.factions.dongfang.tension += 5; remember(state, 'heiloulan', 'player', { kind: 'war', valence: 4, text: '你愿意把行动力投入黑盟的军帐和后勤。' }); }
+      if (choice === 'mediate') { state.frontier.campaignPressure = Math.max(0, state.frontier.campaignPressure - 3); state.factions.black.influence -= 3; state.factions.northernTribes.attitude += 8; remember(state, 'taibaiyunsheng', 'player', { kind: 'mediation', valence: 4, text: '你试图让中小部族在战争中保留喘息的余地。' }); }
+      if (choice === 'scout') { p.cultivation.insight += 10; state.factions.dongfang.attitude -= 8; state.facts.dongfangIntel = true; }
+      log(state, 'choice', `你处理了黑盟军帐：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.northernWar });
+      return true;
+    });
+    Engine.registerEvent('imperialCourtOpening', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.imperialCourtOpened = true; state.frontier.campaignPressure += 3; state.facts.imperialCourt = { openedDay: day(state), choice };
+      if (choice === 'support') { state.factions.black.influence += 8; state.factions.northernTribes.tension += 6; state.frontier.supply -= 8; }
+      if (choice === 'relief') { state.factions.black.influence -= 5; state.factions.northernTribes.tension = Math.max(0, state.factions.northernTribes.tension - 8); state.frontier.campaignPressure = Math.max(0, state.frontier.campaignPressure - 4); }
+      if (choice === 'broker') { p.cultivation.insight += 12; p.inventory.stones += 4; state.facts.trueYangLead = true; }
+      log(state, 'choice', `你处理了王庭福地的军政争议：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.tribeCrisis });
+      return true;
+    });
+    Engine.registerEvent('trueYangTowerFormation', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.trueYangTowerFormed = true; state.tower.formed = true; state.tower.active = choice !== 'assist'; state.facts.trueYangTower = { formedDay: day(state), choice };
+      state.factions.giantSun.influence = Math.min(100, state.factions.giantSun.influence + 5); state.frontier.campaignPressure += 4;
+      if (choice === 'enter') { p.cultivation.insight += 14; state.tower.attempts += 1; remember(state, 'player', 'world', { kind: 'tower', valence: 4, text: '你把真阳楼视为会受战争、天气和资格影响的活系统，而不是一座静态宝库。', facts: { towerLead: true } }); }
+      if (choice === 'assist') { state.frontier.supply += 12; state.factions.northernTribes.attitude += 6; }
+      if (choice === 'watch') { p.cultivation.insight += 10; state.tower.discoveries.push({ kind: 'formation-pattern', day: day(state) }); }
+      log(state, 'choice', `你处理了八十八角真阳楼显化：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.towerFormation });
+      return true;
+    });
   }
 
   function normalize(state) {
@@ -459,8 +521,12 @@
     state.contracts.available ||= []; state.contracts.active ||= {}; state.contracts.completed ||= [];
     state.arena ||= { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 };
     state.inheritance ||= { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false };
+    state.frontier ||= { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 };
+    state.tower ||= { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false };
     state.arena.matches = Math.max(0, Number(state.arena.matches) || 0); state.arena.wins = Math.max(0, Number(state.arena.wins) || 0); state.arena.losses = Math.max(0, Number(state.arena.losses) || 0); state.arena.streak = Math.max(0, Number(state.arena.streak) || 0); state.arena.reputation = Math.max(0, Number(state.arena.reputation) || 0);
     state.inheritance.attempts = Math.max(0, Number(state.inheritance.attempts) || 0); state.inheritance.round = Math.max(0, Number(state.inheritance.round) || 0); state.inheritance.difficulty = Math.max(1, Number(state.inheritance.difficulty) || 1); state.inheritance.discoveries ||= [];
+    state.frontier.supply = clamp(Number(state.frontier.supply) || 0, 0, 100); state.frontier.campaignPressure = clamp(Number(state.frontier.campaignPressure) || 0, 0, 100); state.frontier.battles = Math.max(0, Number(state.frontier.battles) || 0); state.frontier.casualties = Math.max(0, Number(state.frontier.casualties) || 0);
+    state.tower.floors = Math.max(0, Number(state.tower.floors) || 0); state.tower.attempts = Math.max(0, Number(state.tower.attempts) || 0); state.tower.discoveries ||= [];
     p.cultivation.rank = clamp(p.cultivation.rank, 1, 9);
     p.cultivation.stage = clamp(p.cultivation.stage, 0, 3);
     p.cultivation.essenceMax = Math.max(20, Math.round(34 + p.cultivation.aptitude * 38 + p.cultivation.stage * 8 + (p.cultivation.rank - 1) * 12));
@@ -726,6 +792,12 @@
     state.factions.guYue.relations.xiong = clamp((state.factions.guYue.relations.xiong || 0) - (state.factions.guYue.tension > 55 ? 1 : 0), -100, 100);
     state.factions.caravans.relations.guYue = clamp((state.factions.caravans.relations.guYue || 0) + (state.facts.marketActivity ? 1 : 0), -100, 100);
     state.director.pressure = clamp(state.director.pressure + (p.needs.hunger > 65 ? 2 : 0) + (rel.trust < 0 ? 1 : 0), 0, 10);
+    if (state.frontier?.opened) {
+      state.frontier.supply = clamp(state.frontier.supply - 0.8 + (state.facts.marketActivity ? 0.35 : 0), 0, 100);
+      state.frontier.campaignPressure = clamp(state.frontier.campaignPressure + (state.frontier.supply < 25 ? 1 : 0), 0, 100);
+      if (state.factions.black && state.frontier.supply < 25) state.factions.black.tension += 1;
+      if (state.factions.northernTribes && state.frontier.campaignPressure > 40) state.factions.northernTribes.tension += 1;
+    }
     Engine.emit(state, 'world.day_tick', { day: day(state), pressure: state.director.pressure });
     log(state, 'day_tick', `第${day(state)}日结束，山寨、势力与人物各自推进了一步。`, { pressure: state.director.pressure });
     History.snapshot(state);
@@ -987,7 +1059,7 @@
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
   }
 

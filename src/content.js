@@ -17,7 +17,11 @@
     whiteBoneMountain: { name: '白骨山道', type: 'wilderness', neighbors: ['caravanCamp', 'merchantCity'], tags: ['wild', 'route', 'resource'], population: 'road' },
     merchantCity: { name: '商家城', type: 'metropolis', neighbors: ['whiteBoneMountain', 'threeForkMountain'], tags: ['safe', 'market', 'politics'], population: 'city' },
     threeForkMountain: { name: '三叉山', type: 'wilderness', neighbors: ['merchantCity', 'heavenClimbMountain'], tags: ['wild', 'inheritance', 'danger'], population: 'inheritance' },
-    heavenClimbMountain: { name: '天梯山', type: 'sacred', neighbors: ['threeForkMountain'], tags: ['sacred', 'inheritance', 'danger'], population: 'heavenClimb' }
+    heavenClimbMountain: { name: '天梯山', type: 'sacred', neighbors: ['threeForkMountain', 'northernPlains'], tags: ['sacred', 'inheritance', 'danger'], population: 'heavenClimb' },
+    northernPlains: { name: '北原草原', type: 'wilderness', neighbors: ['heavenClimbMountain', 'blackTribeCamp'], tags: ['wild', 'route', 'war'], population: 'northernRoad' },
+    blackTribeCamp: { name: '黑家大军营地', type: 'military', neighbors: ['northernPlains', 'imperialCourt'], tags: ['war', 'market', 'politics'], population: 'blackCamp' },
+    imperialCourt: { name: '王庭福地', type: 'sacred', neighbors: ['blackTribeCamp', 'trueYangTower'], tags: ['sacred', 'safe', 'politics'], population: 'imperialCourt' },
+    trueYangTower: { name: '八十八角真阳楼', type: 'ruin', neighbors: ['imperialCourt'], tags: ['inheritance', 'danger', 'tower'], population: 'trueYangTower' }
   };
 
   const POPULATION_TABLES = {
@@ -31,7 +35,11 @@
     road: [{ role: '赶路蛊师', faction: 'caravans', goals: ['travel', 'secureResources'], weight: 4 }, { role: '山匪', faction: 'demonic', goals: ['ambush', 'avoidPlayer'], weight: 1 }],
     city: [{ role: '商家城居民', faction: 'shang', goals: ['trade', 'collectRumors'], weight: 6 }, { role: '演武场蛊师', faction: 'shang', goals: ['winRivalry', 'gainRecognition'], weight: 4 }],
     inheritance: [{ role: '传承探索者', faction: null, goals: ['findRelic', 'survive'], weight: 6 }, { role: '正道小组', faction: 'shang', goals: ['patrol', 'secureResources'], weight: 3 }],
-    heavenClimb: [{ role: '传承争夺者', faction: 'iron', goals: ['findRelic', 'avoidPlayer'], weight: 4 }, { role: '门派弟子', faction: 'shang', goals: ['proveWorth', 'patrol'], weight: 3 }]
+    heavenClimb: [{ role: '传承争夺者', faction: 'iron', goals: ['findRelic', 'avoidPlayer'], weight: 4 }, { role: '门派弟子', faction: 'shang', goals: ['proveWorth', 'patrol'], weight: 3 }],
+    northernRoad: [{ role: '北原侦察蛊师', faction: 'northernTribes', goals: ['patrol', 'collectRumors'], weight: 5 }, { role: '野外狼骑', faction: 'northernTribes', goals: ['hunt', 'avoidPlayer'], weight: 3 }],
+    blackCamp: [{ role: '黑家军士', faction: 'black', goals: ['patrol', 'protectClan'], weight: 5 }, { role: '中小部族族长', faction: 'northernTribes', goals: ['trade', 'protectClan'], weight: 2 }],
+    imperialCourt: [{ role: '王庭侍从', faction: 'black', goals: ['maintainOrder', 'collectRumors'], weight: 5 }, { role: '部族使者', faction: 'northernTribes', goals: ['trade', 'prepareAlliance'], weight: 3 }],
+    trueYangTower: [{ role: '真阳楼闯关者', faction: 'northernTribes', goals: ['findRelic', 'proveWorth'], weight: 5 }, { role: '楼外谋士', faction: 'demonic', goals: ['collectRumors', 'avoidPlayer'], weight: 2 }]
   };
 
   const FACTION_SEEDS = {
@@ -41,7 +49,11 @@
     caravans: { name: '商队与散修', color: '#a6b77c', influence: 32, tension: 12, attitude: 4 },
     demonic: { name: '魔道游修', color: '#8d6b9f', influence: 20, tension: 35, attitude: -16 },
     iron: { name: '铁家与正道巡查', color: '#8f9aa6', influence: 24, tension: 8, attitude: 2 },
-    shang: { name: '商家城', color: '#d4a85a', influence: 72, tension: 16, attitude: 8 }
+    shang: { name: '商家城', color: '#d4a85a', influence: 72, tension: 16, attitude: 8 },
+    black: { name: '黑家盟军', color: '#4b5668', influence: 74, tension: 46, attitude: 0 },
+    northernTribes: { name: '北原诸部族', color: '#a8794d', influence: 58, tension: 52, attitude: -4 },
+    dongfang: { name: '东方盟军', color: '#8b6d9e', influence: 55, tension: 48, attitude: -8 },
+    giantSun: { name: '巨阳遗产与真阳楼', color: '#d6a735', influence: 90, tension: 30, attitude: 0 }
   };
 
   const GU_SEEDS = {
@@ -155,6 +167,34 @@
       cultivation: { rank: 5, stage: 1, aptitude: 0.84 },
       schedule: { morning: 'village', afternoon: 'ancestralHall', evening: 'village', night: 'village' },
       goals: ['investigate', 'maintainOrder', 'protectDaughter']
+    },
+    heiloulan: {
+      name: '黑楼兰', role: '黑家盟主', faction: 'black', location: 'blackTribeCamp', fromDay: 58,
+      personality: { ambition: 98, caution: 58, loyalty: 82, greed: 44, curiosity: 56 },
+      cultivation: { rank: 5, stage: 2, aptitude: 0.9 },
+      schedule: { morning: 'blackTribeCamp', afternoon: 'blackTribeCamp', evening: 'blackTribeCamp', night: 'blackTribeCamp' },
+      goals: ['prepareWar', 'gainRecognition', 'maintainOrder']
+    },
+    taibaiyunsheng: {
+      name: '太白云生', role: '治疗蛊师', faction: 'black', location: 'blackTribeCamp', fromDay: 58,
+      personality: { ambition: 42, caution: 72, loyalty: 84, greed: 10, curiosity: 78 },
+      cultivation: { rank: 5, stage: 1, aptitude: 0.78 },
+      schedule: { morning: 'blackTribeCamp', afternoon: 'blackTribeCamp', evening: 'blackTribeCamp', night: 'blackTribeCamp' },
+      goals: ['healWounded', 'mediate', 'protectClan']
+    },
+    dongfangyuliang: {
+      name: '东方余亮', role: '东方盟主', faction: 'dongfang', location: 'northernPlains', fromDay: 62,
+      personality: { ambition: 91, caution: 88, loyalty: 66, greed: 52, curiosity: 94 },
+      cultivation: { rank: 5, stage: 2, aptitude: 0.86 },
+      schedule: { morning: 'northernPlains', afternoon: 'northernPlains', evening: 'northernPlains', night: 'northernPlains' },
+      goals: ['prepareWar', 'collectRumors', 'ambush']
+    },
+    mayingjie: {
+      name: '马英杰', role: '马家少族长', faction: 'northernTribes', location: 'northernPlains', fromDay: 66,
+      personality: { ambition: 86, caution: 68, loyalty: 72, greed: 48, curiosity: 74 },
+      cultivation: { rank: 4, stage: 1, aptitude: 0.76 },
+      schedule: { morning: 'northernPlains', afternoon: 'blackTribeCamp', evening: 'northernPlains', night: 'northernPlains' },
+      goals: ['gainRecognition', 'prepareAlliance', 'trade']
     }
   };
 
@@ -170,12 +210,16 @@
     whiteBone: { source: 'reference/novel/第2卷：魔子出山/第10章.txt', note: '白骨山是青茅山之后的旅途节点，路途、资源和风险从山寨秩序中脱离出来。' },
     merchantCity: { source: 'reference/novel/第2卷：魔子出山/第102章.txt', note: '商家城以演武场、城规、贵宾身份和家族权力构成新的城市型社会模拟空间。' },
     threeKings: { source: 'reference/novel/第2卷：魔子出山/第124章.txt', note: '三叉山的三王传承把正魔两道、资源争夺和周期性开放机制连接起来。' },
-    heavenClimb: { source: 'reference/novel/第2卷：魔子出山/第136章.txt', note: '天梯山与狐仙福地传承将门派竞争和更高层级的区域事件引入世界。' }
+    heavenClimb: { source: 'reference/novel/第2卷：魔子出山/第136章.txt', note: '天梯山与狐仙福地传承将门派竞争和更高层级的区域事件引入世界。' },
+    northernWar: { source: 'reference/novel/第3卷：魔头乱世/第101章.txt', note: '北原黑盟大军、部族军帐和战争后勤把势力竞争扩展为持续战争区域。' },
+    imperialCourt: { source: 'reference/novel/第3卷：魔头乱世/第149章.txt', note: '王庭福地与八十八角真阳楼将历史遗产、血脉资格和周期性探索变成区域规则。' },
+    tribeCrisis: { source: 'reference/novel/第3卷：魔头乱世/第200章.txt', note: '中小部族在真阳楼攻略中的伤亡与求援，提供战争压力、休养和资源交换的模拟依据。' },
+    towerFormation: { source: 'reference/novel/第3卷：魔头乱世/第149章.txt', note: '真阳楼由风雪与王庭福地条件共同成形，塔楼探索应受世界状态影响而非固定开门。' }
   };
 
   const CONTENT_INDEX = {
-    id: 'gu-southern-border-v2',
-    title: '蛊真人 · 南疆 simulation-first 内容包',
+    id: 'gu-frontier-v3',
+    title: '蛊真人 · 南疆—北原 simulation-first 内容包',
     volumes: [{ id: 'volume-1', title: '第1卷：魔性不改', arcs: [
       { id: 'opening', chapters: ['第6章.txt', '第7章.txt', '第14章.txt'], sourceKeys: ['opening', 'academy', 'relic'] },
       { id: 'market-and-wolf', chapters: ['第109章.txt', '第110章.txt', '第112章.txt', '第123章.txt'], sourceKeys: ['market', 'auction', 'wolf'] },
@@ -184,6 +228,10 @@
     { id: 'volume-2', title: '第2卷：魔子出山', arcs: [
       { id: 'journey-to-city', chapters: ['第10章.txt', '第102章.txt'], sourceKeys: ['whiteBone', 'merchantCity'] },
       { id: 'inheritance-frontier', chapters: ['第124章.txt', '第136章.txt'], sourceKeys: ['threeKings', 'heavenClimb'] }
+    ] },
+    { id: 'volume-3', title: '第3卷：魔头乱世', arcs: [
+      { id: 'northern-war', chapters: ['第101章.txt', '第109章.txt', '第124章.txt'], sourceKeys: ['northernWar', 'tribeCrisis'] },
+      { id: 'imperial-court', chapters: ['第149章.txt', '第200章.txt', '第243章.txt'], sourceKeys: ['imperialCourt', 'towerFormation'] }
     ] }
   ]
   };
@@ -195,5 +243,5 @@
     { id: 'inheritance-scout', title: '三王传承的侦查报告', giver: 'weiyang', availableFromDay: 40, flags: ['threeKingsAwakened'], locations: ['threeForkMountain'], objective: { type: 'inheritanceRound', count: 5 }, reward: { insight: 8, faction: { id: 'shang', attitude: 6 } } }
   ];
 
-  return { CONTENT_VERSION: 2, CONTENT_INDEX, CONTRACT_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
+  return { CONTENT_VERSION: 3, CONTENT_INDEX, CONTRACT_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
 });

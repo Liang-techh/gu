@@ -16,7 +16,11 @@ const checks = [
   ['whiteBone', ['白骨山']],
   ['merchantCity', ['商家城', '铁若男']],
   ['threeKings', ['三王传承', '三叉山']],
-  ['heavenClimb', ['天梯山', '狐仙福地']]
+  ['heavenClimb', ['天梯山', '狐仙福地']],
+  ['northernWar', ['北原', '黑盟大军', '黑楼兰', '王帐']],
+  ['imperialCourt', ['王庭福地', '八十八角真阳楼', '巨阳仙尊']],
+  ['tribeCrisis', ['中小型', '太白云生', '灭族']],
+  ['towerFormation', ['八十八角真阳楼', '王庭福地', '真阳楼']]
 ];
 const failures = [];
 let total = 0;
