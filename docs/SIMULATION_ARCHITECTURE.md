@@ -50,11 +50,11 @@ Projection / UI / 存档 / 日志
 
 ## 系统管线
 
-`src/engine.js` 还提供按阶段注册的 system registry。当前每个小时依次运行 `conditionTick`、`effectTick`、`playerNeeds` 和 `npcSimulation`，跨过世界日时运行 `worldDailyTick`，再由导演观察完整的结算结果。系统有明确优先级，因而新增生产、疾病、天气、追捕或区域生态系统时，不必继续把规则塞进单一 `advance()` 分支；同一管线也能被测试、回放和未来的批量世界模拟调用。
+`src/engine.js` 还提供按阶段注册的 system registry。`src/gu-systems.js` 将每个小时的 `conditionTick`、`effectTick`、`playerNeeds`、追捕、NPC AI、代理人推进，以及每个世界日的市场、NPC 恢复、区域离线结算、家族压力、北原补给、五域战争、终局战争和历史快照分别注册并排序，导演在完整结算后观察世界。系统有明确优先级，因而新增生产、疾病、天气、追捕或区域生态系统时，不必继续把规则塞进单一 `advance()` 或 `dailyTick()` 分支；同一管线也能被测试、回放和未来的批量世界模拟调用。
 
 实体还可以拥有运行时 `conditions.active` 状态效果。`src/condition.js` 提供状态的附着、刷新、查询、移除和计时；当前威胁会附着 `afraid`，冲突会附着 `wounded`，小时系统负责过期事件，NPC 目标选择会优先响应恐惧。这是对 Qud Parts/Events 边界的轻量抽象：状态不是一次性文本，而是可以被多个系统观察的组件。
 
-在此之上，`src/effect.js` 提供 Qud `EffectRack` 的通用实例层：效果拥有独立 `kind/id`、持续时间、强度、来源、叠加策略、数据载荷和 `onApply/onRefresh/onTick/onExpire/onRemove` 生命周期。当前冲突会给每次命中附着可叠加的 `wound` 效果，小时系统逐实体推进并发出 `effect.expired` 领域事件；因此“伤势”“中毒”“蛊虫反噬”“临时增益”可以共用同一运行时，而不必继续扩张条件或战斗专用分支。`src/combat.js` 是统一战斗解析器：玩家连续冲突、环境伤害、离线冲突和活跃 NPC 伏击都经由同一个 `damage/attack` 入口，自动写入部位、伤势、死亡、记忆、事件 provenance 和持久后果；NPC 额外使用 pair cooldown，避免同一小时重复交换。
+在此之上，`src/effect.js` 提供 Qud `EffectRack` 的通用实例层：效果拥有独立 `kind/id`、持续时间、强度、来源、叠加策略、数据载荷和 `onApply/onRefresh/onTick/onExpire/onRemove` 生命周期。当前冲突会给每次命中附着可叠加的 `wound` 效果，小时系统逐实体推进并发出 `effect.expired` 领域事件；因此“伤势”“中毒”“蛊虫反噬”“临时增益”可以共用同一运行时，而不必继续扩张条件或战斗专用分支。`src/combat.js` 是统一战斗解析器：玩家攻击/蛊术/防守/脱身回合、环境伤害、离线冲突和活跃 NPC 伏击都经由同一个 `damage/exchange` 入口，自动写入部位、伤势、死亡、记忆、事件 provenance 和持久后果；NPC 额外使用 pair cooldown，避免同一小时重复交换。战斗回合由 Action Registry 注册，`simulation.js` 不再保留玩家战斗分支。
 
 `src/knowledge.js` 把记忆中的事实进一步结构化为 `value / confidence / kind / clock / source / provenance`，并维护每个实体对其他实体的 `suspicion` 与身份 `masks`。传闻默认低置信度，亲历观察和秘密线索置信度更高；怀疑度达到阈值后，NPC AI 会优先调查、观察或避开玩家。这样“谁知道什么”成为世界状态，而不只是日志文本。
 

@@ -1,11 +1,12 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'), require('./gu-systems.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat, root.GuSimulationGuSystems);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat, GuSystems) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
   if (!Content) throw new Error('GuSimulationContent must load before simulation.js');
+  if (!GuSystems) throw new Error('GuSimulationGuSystems must load before simulation.js');
   if (!Identity) throw new Error('GuSimulationIdentity must load before simulation.js');
   if (!Pursuit) throw new Error('GuSimulationPursuit must load before simulation.js');
   if (!Agency) throw new Error('GuSimulationAgency must load before simulation.js');
@@ -585,6 +586,7 @@
       advance(state, 6, 'rest');
     });
     Engine.registerAction('challenge', ({ state, command }) => beginConflict(state, command.target, command.kind || 'challenge'));
+    for (const id of ['attack', 'gu', 'guard', 'flee']) Engine.registerAction(id, ({ state, command }) => combatRuntime.playerAction(state, command));
     Engine.registerAction('refine', ({ state, command, p }) => {
       if (p.position.location !== 'academy' && p.position.location !== 'village') throw new Error('这里没有适合炼化蛊虫的安静场所');
       const guId = command.guId || 'moonlight';
@@ -661,73 +663,6 @@
     return clamp(rel.trust + rel.affinity - rel.fear, -100, 100);
   }
 
-  function dailyTick(state) {
-    marketRuntime.dailyTick(state);
-    for (const npc of Engine.queryWith(state, 'needs', 'memory')) {
-      if (npc.id === 'player') continue;
-      npc.needs.energy = clamp(npc.needs.energy + 35, 0, 100);
-      npc.needs.hunger = clamp(npc.needs.hunger - 25, 0, 100);
-      for (const episode of npc.memory.episodes) episode.valence *= 0.985;
-    }
-    const p = state.entities.player;
-    ZoneRuntime.dailyTick(state, { playerLocation: p.position.location, random, engine: Engine, market: marketRuntime, consequence: Consequence.record, remember, log, damageEntity });
-    const rel = relation(state, 'player', 'guYue');
-    state.factions.guYue.tension += p.cultivation.rank > 1 ? 1 : 0;
-    state.factions.bai.tension += state.factions.guYue.tension > 45 ? 1 : 0;
-    state.factions.guYue.relations.bai = clamp((state.factions.guYue.relations.bai || 0) - (state.factions.guYue.tension > 40 ? 1 : 0), -100, 100);
-    state.factions.guYue.relations.xiong = clamp((state.factions.guYue.relations.xiong || 0) - (state.factions.guYue.tension > 55 ? 1 : 0), -100, 100);
-    state.factions.caravans.relations.guYue = clamp((state.factions.caravans.relations.guYue || 0) + (state.facts.marketActivity ? 1 : 0), -100, 100);
-    state.director.pressure = clamp(state.director.pressure + (p.needs.hunger > 65 ? 2 : 0) + (rel.trust < 0 ? 1 : 0), 0, 10);
-    if (state.frontier?.opened) {
-      state.frontier.supply = clamp(state.frontier.supply - 0.8 + (state.facts.marketActivity ? 0.35 : 0), 0, 100);
-      state.frontier.campaignPressure = clamp(state.frontier.campaignPressure + (state.frontier.supply < 25 ? 1 : 0), 0, 100);
-      if (state.factions.black && state.frontier.supply < 25) state.factions.black.tension += 1;
-      if (state.factions.northernTribes && state.frontier.campaignPressure > 40) state.factions.northernTribes.tension += 1;
-    }
-    if (state.worldWar?.fiveRegions) {
-      state.worldWar.heat = clamp(state.worldWar.heat + 0.35, 0, 100);
-      if (state.factions.heavenlyCourt) state.factions.heavenlyCourt.tension += 0.25;
-      if (state.factions.longLifeHeaven) state.factions.longLifeHeaven.tension += 0.2;
-      if (state.factions.southernSuperClans && state.worldWar.southern) state.factions.southernSuperClans.tension += 0.15;
-      if (state.factions.westernDesertFang && state.worldWar.western) state.factions.westernDesertFang.tension += 0.15;
-    }
-    if (state.eternalWar?.twoHeavens) {
-      state.eternalWar.cosmicHeat = clamp(state.eternalWar.cosmicHeat + 0.3, 0, 100);
-      state.eternalWar.dreamPressure = clamp(state.eternalWar.dreamPressure + (state.eternalWar.dream ? 0.2 : 0), 0, 100);
-      if (state.factions.twoHeavensForces) state.factions.twoHeavensForces.tension += 0.2;
-      if (state.eternalWar.cosmicHeat > 60 && state.factions.heavenlyCourt) state.factions.heavenlyCourt.tension += 0.25;
-    }
-    Engine.emit(state, 'world.day_tick', { day: day(state), pressure: state.director.pressure });
-    log(state, 'day_tick', `第${day(state)}日结束，山寨、势力与人物各自推进了一步。`, { pressure: state.director.pressure });
-    History.snapshot(state);
-  }
-
-  function registerSystemHandlers() {
-    Engine.registerSystem('hour', 'playerNeeds', ({ state }) => {
-      const p = state.entities.player;
-      p.needs.energy -= 0.7;
-      p.needs.hunger += 0.55;
-      p.cultivation.essence = Math.min(p.cultivation.essenceMax, p.cultivation.essence + 0.35 * p.cultivation.aptitude);
-      if (p.needs.hunger > 85) p.cultivation.progress = Math.max(0, p.cultivation.progress - 0.2);
-    }, 100);
-    Engine.registerSystem('hour', 'conditionTick', ({ state }) => {
-      for (const entity of Engine.queryWith(state, 'conditions')) {
-        const expired = Condition.tick(entity, 1);
-        for (const id of expired) Engine.emit(state, 'condition.expired', { entityId: entity.id, conditionId: id });
-      }
-    }, 110);
-    Engine.registerSystem('hour', 'effectTick', ({ state }) => {
-      for (const entity of Engine.queryWith(state, 'effects')) {
-        const expired = Effect.tick(entity, state, 1);
-        for (const item of expired) Engine.emit(state, 'effect.expired', { entityId: entity.id, effectId: item.id, effectKind: item.kind });
-      }
-    }, 109);
-    Engine.registerSystem('hour', 'npcSimulation', ({ state }) => NpcAI.tick(state, { engine: Engine, locations: LOCATIONS, phase, hour, day, random, clamp, relation, remember, log, relValence, brain: Brain, social: socialRuntime, combat: combatRuntime }), 50);
-    Engine.registerSystem('hour', 'pursuitSimulation', ({ state }) => pursuitRuntime.tick(state), 60);
-    Engine.registerSystem('hour', 'agencySimulation', ({ state }) => agencyRuntime.tick(state), 40);
-    Engine.registerSystem('day', 'worldDailyTick', ({ state }) => dailyTick(state), 0);
-  }
-
   function advance(state, hours, cause = 'action') {
     for (let i = 0; i < hours; i++) {
       const oldDay = day(state);
@@ -764,43 +699,6 @@
     log(state, 'combat_start', `你与${target.identity.name}在${LOCATIONS[p.position.location].name}交锋。`, { targetId, kind });
   }
 
-  function combatAction(state, command) {
-    const combat = state.combat;
-    const p = state.entities.player;
-    if (!combat) throw new Error('当前没有冲突');
-    const target = state.entities[combat.defender];
-    if (!target?.alive) { state.combat = null; return; }
-    const id = command.id;
-    let playerDamage = 0;
-    let playerGuard = false;
-    if (id === 'attack') playerDamage = 10 + p.cultivation.rank * 4 + p.cultivation.insight * 0.25;
-    else if (id === 'gu') {
-      const ability = Ability.activate(p, command.guId || 'moonlight', GU_SEEDS, Body);
-      Engine.emit(state, 'ability.used', { actorId: p.id, abilityId: ability.id, location: p.position.location, cost: ability.cost, kind: ability.kind });
-      log(state, 'ability_used', `你催动${ability.name}，消耗 ${ability.cost} 点真元。`, { abilityId: ability.id, cost: ability.cost, targetId: target.id });
-      playerDamage = 6 + ability.power + p.cultivation.rank * 5;
-    } else if (id === 'guard') playerGuard = true;
-    else if (id === 'flee') {
-      const chance = clamp(0.35 + (p.needs.energy / 250) - (target.cultivation?.rank || 1) * 0.04, 0.1, 0.85);
-      if (random(state) < chance) { state.combat = null; log(state, 'combat_escape', '你脱离了冲突，但这段关系不会因此恢复原状。'); advance(state, 1, 'combat'); return; }
-      log(state, 'combat_escape_failed', '你试图脱身，却被对方逼回原地。');
-    } else throw new Error('未知冲突动作');
-    if (playerDamage) damageEntity(state, target.id, playerDamage, 'player', id === 'gu' ? 'gu' : 'strike');
-    if (!target.alive) {
-      relation(state, 'player', target.id).fear += 25;
-      if (target.faction && state.factions[target.faction]) state.factions[target.faction].tension += 8;
-      state.combat = null;
-      advance(state, 1, 'combat');
-      return;
-    }
-    const targetPower = 6 + (target.cultivation?.rank || 1) * 4 + (target.personality?.ambition || 0) * 0.04;
-    damageEntity(state, 'player', playerGuard ? targetPower * 0.35 : targetPower, target.id, 'npc_strike');
-    p.needs.energy -= 5;
-    combat.round += 1;
-    if (!p.alive) { state.combat = null; }
-    advance(state, 1, 'combat');
-  }
-
   function action(state, command) {
     const p = requirePlayer(state);
     const id = command.id;
@@ -821,7 +719,10 @@
     try {
       if (state.entities.player.cultivation.vitality <= 0) throw new Error('你已经失去行动能力');
       if (command.type === 'resolve_event') resolveDirectorEvent(state, command.choice);
-      else if (command.type === 'combat') combatAction(state, command);
+      else if (command.type === 'combat') {
+        const registered = Engine.runAction(command.id, { state, command, p: state.entities.player });
+        if (!registered.handled) throw new Error('未知冲突动作');
+      }
       else if (command.type === 'action') action(state, command);
       else throw new Error('未知指令类型');
       normalize(state);
@@ -863,7 +764,7 @@
   pursuitRuntime = Pursuit.createRuntime({ engine: Engine, createEntity: Entity.createEntity, locations: LOCATIONS, random, clamp, relation, remember, log, advance, knowledge: Knowledge });
   marketRuntime = Market.createRuntime({ engine: Engine, clamp, random, factionInterests: FACTION_INTERESTS });
   socialRuntime = Social.createRuntime({ engine: Engine, relation, remember, log, affectFaction, condition: Condition, market: marketRuntime });
-  combatRuntime = Combat.createRuntime({ engine: Engine, body: Body, condition: Condition, effect: Effect, remember, log, consequence: Consequence.record, relation, random });
+  combatRuntime = Combat.createRuntime({ engine: Engine, body: Body, condition: Condition, effect: Effect, remember, log, consequence: Consequence.record, relation, random, ability: Ability, guSeeds: GU_SEEDS, clamp, advance });
   agencyRuntime = Agency.createRuntime({ engine: Engine, locations: LOCATIONS, random, clamp, relation, remember, log, advance, knowledge: Knowledge, market: marketRuntime });
   directorRulesRuntime = DirectorRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES });
   eventRulesRuntime = EventRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES, activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening, pursuit: pursuitRuntime });
@@ -874,6 +775,12 @@
   registerInteractionHandlers();
   registerEventListeners();
   registerActionHandlers();
-  registerSystemHandlers();
+  GuSystems.register({
+    engine: Engine, history: History, zoneRuntime: ZoneRuntime, npcAI: NpcAI, brain: Brain,
+    social: socialRuntime, combat: combatRuntime, market: marketRuntime, pursuit: pursuitRuntime,
+    agency: agencyRuntime, condition: Condition, effect: Effect, locations: LOCATIONS, phase,
+    hour, day, random, clamp, relation, remember, log, relValence, consequence: Consequence.record,
+    damageEntity
+  });
   return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, EQUIPMENT_DEFS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, EQUIPMENT: Equipment, EFFECTS: Effect, CONSEQUENCES: Consequence, PROVENANCE: Provenance, SOCIAL: socialRuntime, COMBAT: combatRuntime, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

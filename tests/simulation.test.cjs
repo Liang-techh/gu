@@ -919,12 +919,12 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
-  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
+  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
   assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'effectTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
-  assert.deepEqual(snap.engine.registries.systems.day, ['worldDailyTick']);
+  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
 });
 
 test('action catalog derives available commands from world state instead of UI conditionals', () => {
