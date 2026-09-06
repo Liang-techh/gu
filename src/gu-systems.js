@@ -36,7 +36,19 @@
     engine.registerSystem('hour', 'pursuitSimulation', ({ state }) => pursuit.tick(state), 60);
     engine.registerSystem('hour', 'npcSimulation', ({ state }) => npcAI.tick(state, {
       engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence,
-      brain, social, combat
+      brain,
+      goalAction: (world, npc, goal, context) => {
+        const consequence = {};
+        if (combat && ['ambush', 'patrol'].includes(goal)) {
+          const exchange = combat.npcAttack(world, npc, { engine, goal });
+          if (exchange) consequence.combatId = exchange.id;
+        }
+        if (social && ['collectRumors', 'mediate', 'protectBrother', 'protectClan', 'socialize', 'trade'].includes(goal)) {
+          const interaction = social.act(world, npc, goal, { engine });
+          if (interaction) consequence.interactionId = interaction.id;
+        }
+        return consequence;
+      }
     }), 50);
     engine.registerSystem('hour', 'agencySimulation', ({ state }) => agency.tick(state), 40);
 
