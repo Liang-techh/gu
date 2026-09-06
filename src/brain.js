@@ -62,7 +62,7 @@
     const plan = [];
     if (destination && destination !== npc.position.location) plan.push({ type: 'move', destination, status: 'pending' });
     plan.push({ type: 'goal', goal: selected, status: 'pending' });
-    const decision = { clock: state.clock, day: context.day(state), goal: selected, forced: !!forced, destination, scores, perception: { location: perception.location, nearby: perception.nearby.length, threats: perception.threats.length, danger: perception.zone?.danger || 0 } };
+    const decision = { clock: state.clock, day: context.day(state), goal: selected, forced: !!forced, destination, scores, plan: plan.map(step => ({ ...step })), perception: { location: perception.location, nearby: perception.nearby.length, threats: perception.threats.length, danger: perception.zone?.danger || 0 } };
     brain.mode = 'acting';
     brain.current = decision;
     brain.stack = [{ id: selected, status: 'active', createdClock: state.clock, destination }];

@@ -11,6 +11,16 @@
     relicFragment: { base: 8, label: '遗藏碎片' }
   });
 
+  const FACTION_POLICIES = Object.freeze({
+    caravans: { buy: ['water', 'food'], sell: ['moonPetal', 'relicFragment'], motive: '流动补给与套利' },
+    shang: { buy: ['moonPetal', 'relicFragment'], sell: ['food', 'water'], motive: '控制稀缺资源' },
+    guYue: { buy: ['food', 'water'], sell: ['moonPetal'], motive: '维持山寨生存' },
+    demonic: { buy: ['relicFragment', 'moonPetal'], sell: ['food'], motive: '高风险机会' },
+    auctionImmortals: { buy: ['relicFragment', 'moonPetal'], sell: ['water', 'food'], motive: '信息与稀缺品溢价' },
+    centralSects: { buy: ['relicFragment', 'water'], sell: ['food', 'moonPetal'], motive: '传承与秩序' },
+    northernTribes: { buy: ['food', 'water'], sell: ['relicFragment'], motive: '战争后勤' }
+  });
+
   function ensure(state) {
     state.market ||= { prices: {}, supply: {}, demand: {}, transactions: [], day: 1 };
     state.market.prices ||= {}; state.market.supply ||= {}; state.market.demand ||= {}; state.market.transactions ||= [];
@@ -21,6 +31,15 @@
     }
     state.market.day = Math.max(1, Number(state.market.day) || 1);
     return state.market;
+  }
+
+  function ensureFaction(faction) {
+    if (!faction) return null;
+    faction.market ||= { volume: 0, treasury: Math.max(10, Math.round((faction.influence || 10) * 0.5)), goods: {}, lastClock: -1, motive: FACTION_POLICIES[faction.id]?.motive || '维持势力运转' };
+    faction.market.goods ||= {};
+    faction.market.volume = Math.max(0, Number(faction.market.volume) || 0);
+    faction.market.treasury = Math.max(0, Number(faction.market.treasury) || 0);
+    return faction.market;
   }
 
   function createRuntime({ engine, clamp, random }) {
@@ -48,6 +67,14 @@
       }
       const transaction = { id: `trade-${state.events.sequence + 1}-${market.transactions.length + 1}`, actorId: actor.id, factionId, goodId, amount: quantity, side, price, location, reason, clock: state.clock };
       market.transactions.unshift(transaction); market.transactions = market.transactions.slice(0, 256);
+      const faction = factionId && state.factions?.[factionId];
+      const factionMarket = ensureFaction(faction);
+      if (factionMarket) {
+        factionMarket.volume += quantity;
+        factionMarket.goods[goodId] = (factionMarket.goods[goodId] || 0) + (side === 'buy' ? quantity : -quantity);
+        factionMarket.treasury = Math.max(0, factionMarket.treasury + (side === 'sell' ? price : -price));
+        factionMarket.lastClock = state.clock;
+      }
       engine.emit(state, 'market.trade', transaction);
       return { ok: true, ...transaction };
     }
@@ -56,7 +83,11 @@
       npc.inventory ||= {};
       const location = npc.position.location;
       const stableRoll = [...String(npc.id)].reduce((sum, char) => sum + char.charCodeAt(0), state.clock) % 100;
-      const preferred = location === 'riverbank' || location === 'caravanCamp' ? 'water' : location === 'bambooForest' ? 'moonPetal' : stableRoll < 50 ? 'food' : 'water';
+      const policy = FACTION_POLICIES[faction?.id];
+      ensureFaction(faction);
+      const policyGoods = policy?.buy || [];
+      const locationGood = location === 'riverbank' || location === 'caravanCamp' ? 'water' : location === 'bambooForest' ? 'moonPetal' : stableRoll < 50 ? 'food' : 'water';
+      const preferred = policyGoods.length ? policyGoods[stableRoll % policyGoods.length] : locationGood;
       npc.inventory.stones = Math.max(2, npc.inventory.stones || 0);
       if ((npc.inventory[preferred] || 0) > 0 && stableRoll < 65) return trade(state, { actor: npc, goodId: preferred, side: 'sell', factionId: faction?.id, location, reason: 'npc_goal' });
       const result = trade(state, { actor: npc, goodId: preferred, side: 'buy', factionId: faction?.id, location, reason: 'npc_goal' });
@@ -74,8 +105,8 @@
       market.day += 1;
     }
 
-    return { GOODS, ensure, quote, trade, npcTrade, dailyTick };
+    return { GOODS, FACTION_POLICIES, ensure, ensureFaction, quote, trade, npcTrade, dailyTick };
   }
 
-  return { GOODS, createRuntime };
+  return { GOODS, FACTION_POLICIES, createRuntime };
 });

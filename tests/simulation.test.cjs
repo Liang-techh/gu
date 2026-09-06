@@ -150,7 +150,7 @@ test('NPC brains persist perception, scored decisions and a hierarchical next-st
   assert.ok(Array.isArray(npc.brain.lastDecision.scores));
   assert.ok(npc.brain.decisions.length >= 1);
   assert.ok(npc.brain.stack.length >= 1);
-  assert.ok(npc.brain.plan.length >= 1);
+  assert.ok(npc.brain.lastDecision.plan.length >= 1);
   assert.equal(typeof S.BRAIN.perceive, 'function');
 });
 
@@ -511,6 +511,7 @@ test('NPC trade goals mutate a shared market and enter the rumor/history pipelin
   const beforeSupply = state.market.supply.water;
   state = ok(state, { type: 'action', id: 'wait', hours: 4 });
   assert.ok(state.market.transactions.length >= 1);
+  assert.ok(state.factions.caravans.market.volume >= 1);
   assert.ok(state.market.supply.water !== beforeSupply || state.market.supply.food !== 20);
   assert.ok(state.events.recent.some(event => event.type === 'market.trade'));
   assert.ok(state.log.some(event => event.type === 'market_trade'));
@@ -621,6 +622,27 @@ test('invalid actions are rejected without mutating the original state', () => {
   assert.equal(JSON.stringify(state), before);
 });
 
+test('component lifecycles and event settlement are extensible without special-casing the simulation', () => {
+  const calls = [];
+  S.ENGINE.registerComponent('testLifecycle', {
+    onAttach: ({ value }) => { calls.push('attach'); return { ...value, attached: true }; },
+    onPatch: () => calls.push('patch'),
+    onDetach: () => calls.push('detach')
+  });
+  const entity = {};
+  S.ENGINE.attach(entity, 'testLifecycle', { value: 1 });
+  S.ENGINE.patchComponent(entity, 'testLifecycle', { changed: true });
+  S.ENGINE.detach(entity, 'testLifecycle');
+  assert.deepEqual(calls, ['attach', 'patch', 'detach']);
+  const state = S.newWorld({ seed: 'event-settlement' });
+  S.ENGINE.registerEventListener('test.settlement', 'consumeHigh', () => ({ consumed: true }), 20);
+  S.ENGINE.registerEventListener('test.settlement', 'observeLow', ({ event }) => { event.payload.observed = true; }, 0);
+  const event = S.ENGINE.emit(state, 'test.settlement', { value: 1 });
+  assert.equal(event.status, 'consumed');
+  assert.equal(event.phase, 'settled');
+  assert.equal(event.payload.observed, true);
+});
+
 test('engine registries expose component queries, goal handlers, interactions and domain events', () => {
   let state = open(S.newWorld({ seed: 'engine-api' }), 'observe');
   assert.ok(S.ENGINE.COMPONENTS.includes('memory'));
@@ -645,6 +667,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   const before = S.snapshot(state).eventStream.length;
   state = ok(state, { type: 'action', id: 'travel', location: 'village' });
   const snap = S.snapshot(state);
+  assert.ok(snap.engine.registries.components.brain.lifecycle.includes('ensure'));
   assert.ok(snap.eventStream.length > before);
   assert.ok(snap.eventStream.some(event => event.type === 'world.travel'));
   assert.ok(snap.engine.registries.goals.includes('secureResources'));
