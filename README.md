@@ -13,6 +13,7 @@
 - 独立运行时内核：组件查询、领域事件流、GoalHandler/Conversation/Interaction 注册表，以及按小时/按日排序执行的系统管线；
 - 独立内容包 [src/content.js](<D:\Caves of Qud\gu-rpg\src\content.js>)：地点、人口表、势力、人物、蛊虫和章节来源可按内容版本扩展；
 - 独立区域构建器 [src/zone-builder.js](<D:\Caves of Qud\gu-rpg\src\zone-builder.js>)：按地点标签生成资源状态，并按人口表重建环境居民；
+- 独立 NPC AI 层 [src/npc-ai.js](<D:\Caves of Qud\gu-rpg\src\npc-ai.js>)：目标选择、日程导航、需求驱动和同场记忆通过依赖注入接入运行时；
 - 内容包已覆盖第一卷青茅山后段、第二卷白骨山—商家城—三叉山—天梯山，以及第三卷北原草原—黑家军营—王庭福地—八十八角真阳楼的首批区域链；
 - 商家城演武与三王传承不是一次性剧情：可以反复行动，积累连胜、声望、轮次、难度、资源和伤势；
 - 北原巡逻与真阳楼闯层是第三卷的重复系统：补给、战争压力、伤亡、楼层难度和探索记录会持续变化；

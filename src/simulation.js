@@ -1,13 +1,14 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder);
-})(globalThis, function (Engine, Content, History, ZoneBuilder) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
   if (!Content) throw new Error('GuSimulationContent must load before simulation.js');
   if (!History) throw new Error('GuSimulationHistory must load before simulation.js');
   if (!ZoneBuilder) throw new Error('GuSimulationZoneBuilder must load before simulation.js');
+  if (!NpcAI) throw new Error('GuSimulationNpcAI must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
   const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS } = Content;
@@ -557,43 +558,6 @@
     }
   }
 
-  function npcGoal(state, npc) {
-    const rel = relation(state, npc.id, 'player');
-    if (rel.fear > 30) return 'avoidPlayer';
-    if (npc.needs.hunger > 70) return 'findFood';
-    if (npc.personality.ambition > 75 && state.director.pressure > 3) return 'gainRecognition';
-    return npc.goals.queue[(day(state) + npc.id.length) % npc.goals.queue.length] || 'idle';
-  }
-
-  function simulateNpcHour(state) {
-    const currentPhase = phase(state);
-    for (const npc of Engine.queryWith(state, 'identity', 'position', 'needs', 'goals', 'schedule')) {
-      if (npc.id === 'player' || !npc.alive) continue;
-      npc.needs.energy = clamp(npc.needs.energy - 0.8, 0, 100);
-      npc.needs.hunger = clamp(npc.needs.hunger + 0.6, 0, 100);
-      if (hour(state) % 4 !== 0) continue;
-      const target = npc.schedule[currentPhase] || npc.position.location;
-      const goal = npcGoal(state, npc);
-      npc.goals.active = goal;
-      const route = Engine.findPath(state.locations, npc.position.location, target);
-      const nextStep = route[1];
-      if (nextStep) {
-        const previous = npc.position.location;
-        npc.position.location = nextStep;
-        Engine.emit(state, 'npc.moved', { npcId: npc.id, from: previous, to: nextStep, destination: target, goal });
-        log(state, 'npc_move', `${npc.identity.name} 从${LOCATIONS[previous].name}前往${LOCATIONS[nextStep].name}。`, { npcId: npc.id, goal, destination: target });
-      }
-      if (hour(state) % 4 === 0) npcDoGoal(state, npc, goal);
-      if (npc.position.location === state.entities.player.position.location && random(state) < 0.12) {
-        remember(state, npc.id, 'player', { kind: 'encounter', valence: relValence(state, npc.id), text: `在${LOCATIONS[npc.position.location].name}再次遇见了你。` });
-      }
-    }
-  }
-
-  function npcDoGoal(state, npc, goal) {
-    Engine.runGoal(goal, { state, npc, faction: npc.faction && state.factions[npc.faction] });
-  }
-
   function registerGoalHandlers() {
     Engine.registerGoal('secureResources', ({ state, npc, faction }) => {
       if (!['bambooForest', 'riverbank'].includes(npc.position.location)) return false;
@@ -862,7 +826,7 @@
       p.cultivation.essence = Math.min(p.cultivation.essenceMax, p.cultivation.essence + 0.35 * p.cultivation.aptitude);
       if (p.needs.hunger > 85) p.cultivation.progress = Math.max(0, p.cultivation.progress - 0.2);
     }, 100);
-    Engine.registerSystem('hour', 'npcSimulation', ({ state }) => simulateNpcHour(state), 50);
+    Engine.registerSystem('hour', 'npcSimulation', ({ state }) => NpcAI.tick(state, { engine: Engine, locations: LOCATIONS, phase, hour, day, random, clamp, relation, remember, log, relValence }), 50);
     Engine.registerSystem('day', 'worldDailyTick', ({ state }) => dailyTick(state), 0);
   }
 
@@ -1123,5 +1087,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ZONE_BUILDER: ZoneBuilder, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });
