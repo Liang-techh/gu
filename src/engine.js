@@ -11,6 +11,7 @@
   const goalHandlers = new Map();
   const interactionHandlers = new Map();
   const eventHandlers = new Map();
+  const eventListeners = new Map();
   const systemHandlers = new Map();
   const directorRules = [];
 
@@ -55,6 +56,7 @@
     const event = { id: `ev${state.events.sequence}`, type, clock: state.clock, payload };
     state.events.pending.push(event);
     if (state.events.pending.length > 128) state.events.pending.shift();
+    for (const listener of [...(eventListeners.get(type) || []), ...(eventListeners.get('*') || [])]) listener.handler({ state, event });
     return event;
   }
 
@@ -96,6 +98,17 @@
     return handler ? handler(context) : false;
   }
 
+  function registerEventListener(type, id, handler) {
+    if (!type || !id || typeof handler !== 'function') throw new Error('事件监听器必须有 type、id 和函数');
+    const listeners = eventListeners.get(type) || [];
+    const next = { id, handler };
+    const index = listeners.findIndex(listener => listener.id === id);
+    if (index >= 0) listeners[index] = next;
+    else listeners.push(next);
+    eventListeners.set(type, listeners);
+    return handler;
+  }
+
   function registerSystem(phase, id, handler, priority = 0) {
     if (!phase || !id || typeof handler !== 'function') throw new Error('系统必须有 phase、id 和函数');
     const systems = systemHandlers.get(phase) || [];
@@ -131,10 +144,11 @@
       goals: [...goalHandlers.keys()],
       interactions: [...interactionHandlers.keys()],
       events: [...eventHandlers.keys()],
+      listeners: Object.fromEntries([...eventListeners.entries()].map(([type, listeners]) => [type, listeners.map(listener => listener.id)])),
       systems: Object.fromEntries([...systemHandlers.entries()].map(([phase, systems]) => [phase, systems.map(system => system.id)])),
       directorRules: directorRules.map(rule => rule.id)
     };
   }
 
-  return { COMPONENTS, has, query, queryWith, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerSystem, runSystems, registerDirectorRule, findDirectorEvent, registries };
+  return { COMPONENTS, has, query, queryWith, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerSystem, runSystems, registerDirectorRule, findDirectorEvent, registries };
 });

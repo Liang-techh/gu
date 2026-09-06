@@ -627,6 +627,26 @@
     });
   }
 
+  function registerEventListeners() {
+    Engine.registerEventListener('world.travel', 'zoneVisitAccounting', ({ state, event }) => {
+      const zone = state.zones[event.payload.to];
+      if (!zone) return;
+      zone.visits += 1;
+      zone.activity += 2;
+    });
+    Engine.registerEventListener('arena.match', 'arenaCrowdActivity', ({ state, event }) => {
+      const zone = state.zones.merchantCity;
+      if (zone) zone.activity += event.payload.result === 'win' ? 5 : 3;
+    });
+    Engine.registerEventListener('inheritance.round', 'inheritanceFrontierPressure', ({ state, event }) => {
+      const zone = state.zones.threeForkMountain;
+      if (zone) {
+        zone.activity += event.payload.result === 'success' ? 5 : 2;
+        zone.danger += event.payload.result === 'success' ? 1 : 0.5;
+      }
+    });
+  }
+
   function relValence(state, npcId) {
     const rel = relation(state, npcId, 'player');
     return clamp(rel.trust + rel.affinity - rel.fear, -100, 100);
@@ -773,8 +793,6 @@
       const target = command.location;
       if (!LOCATIONS[target] || !LOCATIONS[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
       const from = p.position.location; p.position.location = target;
-      state.zones[target].visits += 1;
-      state.zones[target].activity += 2;
       Engine.emit(state, 'world.travel', { actorId: 'player', from, to: target });
       remember(state, 'player', 'world', { kind: 'travel', text: `从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`, facts: { [target]: true } });
       log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);
@@ -968,6 +986,7 @@
   registerEventHandlers();
   registerGoalHandlers();
   registerInteractionHandlers();
+  registerEventListeners();
   registerSystemHandlers();
   return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ZONE_BUILDER: ZoneBuilder, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });
