@@ -349,6 +349,7 @@
     academy: { source: 'reference/novel/第1卷：魔性不改/第6章.txt', note: '空窍、元海、真元与方正构成修行起点和兄弟关系的原文依据。' },
     relic: { source: 'reference/novel/第1卷：魔性不改/第14章.txt', note: '酒虫、竹林、河滩和石缝构成可被行动触发的遗藏线索。' },
     market: { source: 'reference/novel/第1卷：魔性不改/第109章.txt', note: '商队提前进入青茅山，市场活动成为会改变资源和势力关系的区域事件。' },
+    marketDisaster: { source: 'reference/novel/第2卷：魔子出山/第97章.txt', note: '灾害改变拍卖供给、人口迁徙和势力议价，市场机会与生存损失同时出现。' },
     auction: { source: 'reference/novel/第1卷：魔性不改/第110章.txt', note: '贾富与拍卖会提供商队掌柜、外来资本和价格博弈的原文依据。' },
     wolf: { source: 'reference/novel/第1卷：魔性不改/第123章.txt', note: '狼潮下的三寨联盟与利益分配，把族群关系升级为区域生存危机。' },
     tournament: { source: 'reference/novel/第1卷：魔性不改/第180章.txt', note: '狼潮后各族通过三族大比武处理赔偿和资源分配。' },

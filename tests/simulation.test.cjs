@@ -402,6 +402,34 @@ test('wolf crisis exposes relief, scouting and hoarding as world actions', () =>
   assert.ok(state.consequences.records.some(item => item.kind === 'wolf_hoard'));
 });
 
+test('market disaster rewrites supply and exposes relief, arbitrage and verification', () => {
+  let state = open(S.newWorld({ seed: 'market-disaster' }), 'observe');
+  state.entities.player.position.location = 'village';
+  state.marketShock.active = true; state.marketShock.phase = 'shock'; state.marketShock.severity = 42; state.marketShock.priceShock = 20;
+  const supplyBefore = state.market.supply.food;
+  state = ok(state, { type: 'action', id: 'market_shock_action', mode: 'relief' });
+  assert.ok(state.market.supply.food > supplyBefore);
+  state = ok(state, { type: 'action', id: 'market_shock_action', mode: 'arbitrage' });
+  assert.ok(state.central.tracePressure > 0);
+  assert.ok(state.marketShock.priceShock > 20);
+  state.entities.player.cultivation.insight = 8;
+  state = ok(state, { type: 'action', id: 'market_shock_action', mode: 'verify' });
+  assert.ok(state.facts.marketDisasterVerified > 0);
+  assert.ok(state.events.recent.some(event => event.type === 'market.disaster_action'));
+});
+
+test('NPC knowledge keeps conflicting rumor alternatives until a stronger observation arrives', () => {
+  const npc = S.ENTITY.createEntity('knowledge-audit', { name: '知识审计者', location: 'village' });
+  S.KNOWLEDGE.record(npc, 'target', { location: 'village' }, { kind: 'rumor', confidence: 0.3, source: 'rumor:test' });
+  S.KNOWLEDGE.record(npc, 'target', { location: 'forest' }, { kind: 'rumor', confidence: 0.25, source: 'rumor:test-2' });
+  assert.equal(S.KNOWLEDGE.get(npc, 'target', 'location').value, 'village');
+  assert.ok(S.KNOWLEDGE.alternatives(npc, 'target', 'location').some(item => item.value === 'forest'));
+  S.KNOWLEDGE.record(npc, 'target', { location: 'riverbank' }, { kind: 'observation', confidence: 0.9, source: 'watcher' });
+  const fact = S.KNOWLEDGE.get(npc, 'target', 'location');
+  assert.equal(fact.value, 'riverbank');
+  assert.ok(fact.alternatives.some(item => item.value === 'village'));
+});
+
 test('late first-volume content uses delayed NPC spawning and director conditions', () => {
   let state = open(S.newWorld({ seed: 'late-volume-one' }), 'observe');
   assert.equal(state.entities.tieruonan, undefined);
@@ -984,7 +1012,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
   assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'effectTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
-  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'wolfCrisisTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
+  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'marketShockTick', 'wolfCrisisTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
 });
 
 test('action catalog derives available commands from world state instead of UI conditionals', () => {

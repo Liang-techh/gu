@@ -128,6 +128,7 @@
         combatLedger: { sequence: 0, exchanges: [], lastPairClock: {} },
         rebirth: { charges: 1, count: 0, scars: [], echoes: [] },
         wolfCrisis: { active: false, phase: 'distant', pressure: 0, supply: 54, casualties: 0, battles: 0, displacement: 0, relief: 0, lastTickDay: 0, alliance: { active: false, legitimacy: 0, obligations: {}, contributions: {} } },
+        marketShock: { active: false, phase: 'quiet', kind: 'storm', severity: 0, days: 0, supplyLoss: 0, priceShock: 0, displaced: 0, relief: 0, resolved: false, responses: {} },
         arena: { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 },
         inheritance: { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false, clues: [], clueConfidence: 0, qualification: 0, rivalProgress: {}, greed: 0, wrongTurns: 0, window: 100 },
         frontier: { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 },

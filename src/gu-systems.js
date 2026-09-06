@@ -77,6 +77,41 @@
       });
     }, 80);
 
+    engine.registerSystem('day', 'marketShockTick', ({ state }) => {
+      const shock = state.marketShock;
+      if (!shock?.active || shock.resolved) return;
+      shock.days += 1;
+      if (shock.phase === 'shock') {
+        shock.supplyLoss += 3;
+        shock.severity = clamp(shock.severity + 4 - shock.relief * 0.08, 0, 100);
+        shock.priceShock = clamp(shock.priceShock + 3 - shock.relief * 0.06, 0, 100);
+        state.market.supply.food = Math.max(0, state.market.supply.food - 2);
+        state.market.supply.water = Math.max(0, state.market.supply.water - 1);
+        for (const goodId of ['food', 'water', 'moonPetal']) state.market.prices[goodId] = Math.max(1, Math.round((state.market.prices[goodId] || 1) * (1 + shock.priceShock / 100)));
+        if (state.market.supply.food < 8 || state.market.supply.water < 8) {
+          shock.displaced += 1;
+          state.factions.caravans.tension += 1;
+          state.factions.guYue.tension += 1;
+          const displaced = engine.query(state, entity => entity.id.startsWith('ambient-') && entity.alive && ['village', 'caravanCamp'].includes(entity.position?.location))[0];
+          if (displaced) {
+            const from = displaced.position.location;
+            displaced.position.location = 'whiteBoneMountain';
+            remember(state, displaced.id, 'world', { kind: 'market-migration', valence: -1, text: `${displaced.identity.name}因灾害与价格冲击离开了${locations[from].name}。`, facts: { displacedByMarketShock: true, from, to: 'whiteBoneMountain' } });
+          }
+          consequence(state, { kind: 'market_displacement', actorId: 'world', factionId: 'caravans', source: 'marketShockTick', location: 'caravanCamp', reason: '灾害重写了商路供给，居民被迫迁移寻找食物与水。', data: { days: shock.days, food: state.market.supply.food, water: state.market.supply.water, displaced: shock.displaced }, tension: 1, pressure: 0.12 });
+        }
+        if (shock.days >= 5) shock.phase = 'recovery';
+      } else {
+        shock.severity = Math.max(0, shock.severity - 10 - shock.relief * 0.05);
+        shock.priceShock = Math.max(0, shock.priceShock - 8);
+        shock.relief = Math.max(0, shock.relief - 3);
+        if (shock.severity <= 4 && shock.priceShock <= 4) { shock.active = false; shock.resolved = true; shock.phase = 'resolved'; }
+      }
+      shock.relief = Math.max(0, shock.relief - 2);
+      state.facts.marketDisasterDays = shock.days;
+      engine.emit(state, 'market.disaster_tick', { day: day(state), phase: shock.phase, severity: shock.severity, priceShock: shock.priceShock, supplyLoss: shock.supplyLoss, displaced: shock.displaced });
+    }, 78);
+
     engine.registerSystem('day', 'wolfCrisisTick', ({ state }) => {
       const crisis = state.wolfCrisis;
       if (!crisis?.active || crisis.phase === 'aftermath' || crisis.phase === 'resolved') return;

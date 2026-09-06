@@ -72,12 +72,40 @@
       advance(state, mode === 'scout' ? 2 : 3, `wolf_${mode}`);
     }
 
+    function marketShockAction(state, command, p) {
+      const shock = state.marketShock;
+      if (!shock?.active || shock.resolved) throw new Error('当前没有开放的市场灾害窗口');
+      if (!['village', 'caravanCamp', 'whiteBoneMountain'].includes(p.position.location)) throw new Error('当前位置无法影响灾害商路');
+      const mode = command.mode || 'relief';
+      if (mode === 'relief') {
+        if ((p.inventory.stones || 0) >= 2) p.inventory.stones -= 2;
+        else if ((p.inventory.food || 0) >= 4) p.inventory.food -= 4;
+        else throw new Error('救济至少需要两枚元石或四份食物');
+        state.market.supply.food += 4; state.market.supply.water += 2; shock.relief += 10; shock.severity = Math.max(0, shock.severity - 8); shock.priceShock = Math.max(0, shock.priceShock - 4); state.factions.caravans.influence += 1;
+        remember(state, 'jiafu', 'player', { kind: 'market-relief', valence: 3, text: '你向灾害后的商路投放补给，让价格没有继续脱离普通人的承受范围。', facts: { marketShockAction: 'relief' } });
+        log(state, 'market_shock_relief', '你向灾害商路投放了补给，供给和价格压力暂时下降。', { severity: shock.severity, priceShock: shock.priceShock });
+      } else if (mode === 'arbitrage') {
+        p.inventory.stones += 3; shock.severity = Math.min(100, shock.severity + 6); shock.priceShock = Math.min(100, shock.priceShock + 8); state.central.tracePressure += 2; state.factions.caravans.tension += 3;
+        remember(state, 'jiafu', 'player', { kind: 'suspicion', valence: -2, text: '你在灾害造成的价差中套利，商队开始把你的名字和灾情价格一起记录。', facts: { marketShockAction: 'arbitrage', disasterTrace: true } });
+        log(state, 'market_shock_arbitrage', '你利用灾害价差赚取了元石，但商路的价格与追踪压力同时上升。', { severity: shock.severity, priceShock: shock.priceShock });
+      } else {
+        if (p.cultivation.insight < 3) throw new Error('核验灾情至少需要 3 点洞察');
+        p.cultivation.insight -= 3; shock.priceShock = Math.max(0, shock.priceShock - 6); state.facts.marketDisasterVerified = (state.facts.marketDisasterVerified || 0) + 1;
+        remember(state, 'player', 'world', { kind: 'observation', confidence: 0.94, text: '你核验了灾后的价格与供给，区分出真正短缺和被人利用的恐慌。', facts: { marketShockAction: 'verify', marketDisasterVerified: state.facts.marketDisasterVerified } });
+        log(state, 'market_shock_verify', '你核验了市场灾情，暂时看穿了恐慌价格背后的真实缺口。', { priceShock: shock.priceShock });
+      }
+      shock.severity = Math.max(0, Math.min(100, shock.severity)); shock.priceShock = Math.max(0, Math.min(100, shock.priceShock)); shock.relief = Math.max(0, shock.relief);
+      engine.emit(state, 'market.disaster_action', { actorId: p.id, mode, phase: shock.phase, severity: shock.severity, priceShock: shock.priceShock, supply: { food: state.market.supply.food, water: state.market.supply.water } });
+      advance(state, mode === 'verify' ? 2 : 3, `market_shock_${mode}`);
+    }
+
     engine.registerAction('wait', ({ state, command }) => {
       advance(state, Number(command.hours) || 2, 'wait');
       log(state, 'action', '你等待了一段时间，观察世界如何自行变化。');
     });
     engine.registerAction('spring_autumn_reset', ({ state, p }) => rebirth(state, p));
     engine.registerAction('wolf_action', ({ state, command, p }) => wolfAction(state, command, p));
+    engine.registerAction('market_shock_action', ({ state, command, p }) => marketShockAction(state, command, p));
     engine.registerAction('travel', ({ state, command, p }) => {
       const target = command.location;
       if (!locations[target] || !locations[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');

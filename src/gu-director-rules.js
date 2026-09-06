@@ -37,6 +37,9 @@
         { id: 'auction', priority: 35, type: 'market', title: '贾富的拍卖会', text: '贾富把一批外来蛊材摆上台面。价格只是表面，真正的较量是山寨成员是否愿意为稀缺资源彼此抬价。', source: sourceNotes.auction, when: state => state.flags.marketArrived && !state.flags.auctionHeld && day(state) >= 7 && ['village', 'caravanCamp'].includes(state.entities.player.position.location), choices: [
           { id: 'buy', label: '出价购买蛊材', hint: '消耗元石，换取稀缺资源和商队信用。' }, { id: 'sell', label: '出售手中资源', hint: '把当前资源压力转化为元石。' }, { id: 'observe', label: '观察竞价与人群', hint: '获得对贾富和山寨势力的情报。' }
         ] },
+        { id: 'marketDisaster', priority: 45, type: 'crisis', title: '灾害重写商路', text: '一场突如其来的灾害切断了部分商路。卖家急于求生，买家急于囤积，价格、人口和势力关系同时开始偏离原来的轨道。', source: sourceNotes.marketDisaster, when: state => state.flags.marketArrived && !state.marketShock.active && !state.marketShock.resolved && day(state) >= 10 && (state.factions.bai.tension >= 35 || state.factions.xiong.tension >= 35 || state.market.supply.food < 14) && ['village', 'caravanCamp', 'whiteBoneMountain'].includes(state.entities.player.position.location), choices: [
+          { id: 'prepare', label: '拿资源准备救济', hint: '降低灾害冲击，消耗元石或食物，提升势力合法性。' }, { id: 'exploit', label: '趁价格崩坏套利', hint: '获得短期收益，但留下交易痕迹和势力怀疑。' }, { id: 'warn', label: '把灾情交给势力处理', hint: '减少个人收益，换取商队与山寨的共同响应。' }
+        ] },
         { id: 'allianceCouncil', priority: 40, type: 'politics', title: '三寨联盟的利益分配', text: '狼群的阴影还在远方，古月、白家与熊家却已经开始争论：若要结盟，谁来出人，谁来让利，谁来承担最危险的防线？', source: sourceNotes.wolf, when: state => !state.flags.allianceCouncil && day(state) >= 8 && (state.factions.guYue.tension >= 35 || state.director.pressure >= 5) && ['village', 'ancestralHall'].includes(state.entities.player.position.location), choices: [
           { id: 'aid', label: '推动共同防线', hint: '改善三族关系，消耗古月的资源影响。' }, { id: 'hoard', label: '优先保住古月山寨', hint: '提高本族防御，却让联盟更难谈成。' }, { id: 'spy', label: '记录各族的底牌', hint: '获得情报和个人洞察，留下政治记忆。' }
         ] },

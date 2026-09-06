@@ -34,6 +34,8 @@ Projection / UI / 存档 / 日志
 
 狼潮与三寨联盟使用 `state.wolfCrisis` 作为持续危机账本：联盟合法性、各方贡献、补给、压力、战斗、伤亡和迁徙由日级 `wolfCrisisTick` 推进。`wolf_action` 提供救援、侦查和囤积三种互相牵制的行动；囤积会改善个人储备却恶化公共补给和势力张力，补给不足会把环境居民迁往商队营地并写入持久后果。
 
+市场灾害使用 `state.marketShock` 和 `marketShockTick`，而不是一条一次性灾难文本：供给损失、价格冲击、救济投入、套利痕迹、迁徙人数和恢复阶段都会持续结算。`market_shock_action` 将救济、套利、核验暴露为自由行动。`src/knowledge.js` 对同一事实保留 `alternatives`，强观察可以覆盖低置信度传闻但不会删除旧版本；`src/rumor.js` 按传播路径写入 `rumorConfidence / requiresVerification / rumorDistorted`，因此 NPC 不会直接读取世界真相。
+
 `scripts/check-content.cjs` 对内容包做只读结构检查：地点图必须闭合、人口表和势力引用必须存在、NPC 日程不能指向未知区域、委托/对话不能引用失效对象，所有原文来源路径必须存在。这样扩展小说世界时，内容错误会在运行前暴露，而不是等玩家走到断裂的地点或对话才出现。
 
 `scripts/audit-long-run.cjs` 以固定种子无头运行至第 365 日，检查实体位置、需求/身体数值、区域资源、事件队列/账本、历史快照和存档恢复的边界。这是世界模拟的稳定性门槛，不等同于剧情覆盖率或数值平衡证明。

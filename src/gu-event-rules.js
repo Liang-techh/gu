@@ -43,6 +43,33 @@
         log(state, 'choice', `你处理了贾富的拍卖会：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.auction });
         return true;
       });
+      engine.registerEvent('marketDisaster', ({ state, choice, event }) => {
+        const p = state.entities.player;
+        const shock = state.marketShock;
+        shock.active = true; shock.phase = 'shock'; shock.kind = 'storm'; shock.severity = 38; shock.days = 0; shock.resolved = false;
+        shock.supplyLoss += 8; shock.priceShock = 18; shock.responses[choice] = (shock.responses[choice] || 0) + 1;
+        state.market.supply.food = Math.max(0, state.market.supply.food - 6); state.market.supply.water = Math.max(0, state.market.supply.water - 4);
+        state.zones.village.resources.food = Math.max(0, state.zones.village.resources.food - 2); state.zones.caravanCamp.resources.food = Math.max(0, state.zones.caravanCamp.resources.food - 1);
+        if (choice === 'prepare') {
+          if ((p.inventory.stones || 0) >= 2) p.inventory.stones -= 2;
+          else p.inventory.food = Math.max(0, (p.inventory.food || 0) - 4);
+          shock.relief += 12; shock.severity -= 10; state.factions.guYue.influence += 2; state.factions.guYue.tension = Math.max(0, state.factions.guYue.tension - 2);
+          remember(state, 'guyuebo', 'player', { kind: 'disaster-relief', valence: 4, text: '你在商路断裂时先拿出资源准备救济，山寨把这笔支出记成了公共信用。', facts: { marketDisasterResponse: 'prepare' } });
+        }
+        if (choice === 'exploit') {
+          p.inventory.stones += 5; shock.severity += 8; shock.priceShock += 8; state.factions.caravans.tension += 5; state.central.tracePressure += 3;
+          remember(state, 'jiafu', 'player', { kind: 'suspicion', valence: -3, text: '灾害刚发生就有人在价格断层中套利，商队开始记录这笔交易。', facts: { marketDisasterResponse: 'exploit', disasterTrace: true } });
+        }
+        if (choice === 'warn') {
+          shock.relief += 6; shock.severity -= 4; state.factions.caravans.influence += 3; state.factions.caravans.tension = Math.max(0, state.factions.caravans.tension - 2); state.facts.marketDisasterIntel = true;
+          remember(state, 'player', 'world', { kind: 'disaster-warning', valence: 2, text: '你把灾情交给势力网络处理，失去一部分短期收益，却让更多人提前调整了路线。', facts: { marketDisasterResponse: 'warn', marketDisasterIntel: true } });
+        }
+        shock.severity = clamp(shock.severity, 0, 100); shock.priceShock = clamp(shock.priceShock, 0, 100); shock.relief = Math.max(0, shock.relief);
+        state.director.pressure = clamp(state.director.pressure + 1, 0, 10);
+        log(state, 'market_disaster', `商路灾害重写了供给与价格，你选择了${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.marketDisaster, severity: shock.severity, priceShock: shock.priceShock, relief: shock.relief });
+        engine.emit(state, 'market.disaster', { actorId: p.id, location: p.position.location, choice, severity: shock.severity, priceShock: shock.priceShock, supplyLoss: shock.supplyLoss });
+        return true;
+      });
       engine.registerEvent('allianceCouncil', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.allianceCouncil = true;

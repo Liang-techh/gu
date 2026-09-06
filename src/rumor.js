@@ -5,16 +5,16 @@
   'use strict';
 
   const RULES = {
-    'social.interaction': { kind: 'rumor-social', valence: 1, fact: 'heardInteraction', text: '你听说附近有人与{subject}发生了交涉。' },
-    'social.conversation': { kind: 'rumor-social', valence: 1, fact: 'heardConversation', text: '你听说{subject}最近与人交换了话语和立场。' },
-    'combat.started': { kind: 'rumor-conflict', valence: -2, fact: 'heardConflict', text: '你听说{subject}在{location}主动挑起了冲突。' },
-    'combat.damage': { kind: 'rumor-violence', valence: -3, fact: 'heardViolence', text: '你听说{subject}在{location}留下了伤势或伤痕。' },
-    'world.resource_gathered': { kind: 'rumor-resource', valence: 1, fact: 'heardResourceClaim', text: '你听说{subject}正在{location}争夺资源。' },
-    'auction.lot': { kind: 'rumor-market', valence: 1, fact: 'heardAuctionMove', text: '你听说{subject}在{location}改变了一笔交易的价格和关系。' },
-    'market.trade': { kind: 'rumor-market', valence: 1, fact: 'heardMarketTrade', text: '你听说{subject}在{location}完成了一笔交易。' },
-    'identity.revealed': { kind: 'rumor-social', valence: 1, fact: 'heardIdentityReveal', text: '你听说{subject}在{location}向某个对象透露了自己的身份。' },
-    'frontier.patrol': { kind: 'rumor-war', valence: -1, fact: 'heardWarReport', text: '你听说北原巡逻线又发生了变化。' },
-    'tower.floor': { kind: 'rumor-inheritance', valence: 1, fact: 'heardTowerAttempt', text: '你听说真阳楼的闯关者又改变了一层传承记录。' }
+    'social.interaction': { kind: 'rumor-social', valence: 1, confidence: 0.5, fact: 'heardInteraction', text: '你听说附近有人与{subject}发生了交涉。' },
+    'social.conversation': { kind: 'rumor-social', valence: 1, confidence: 0.48, fact: 'heardConversation', text: '你听说{subject}最近与人交换了话语和立场。' },
+    'combat.started': { kind: 'rumor-conflict', valence: -2, confidence: 0.58, fact: 'heardConflict', text: '你听说{subject}在{location}主动挑起了冲突。' },
+    'combat.damage': { kind: 'rumor-violence', valence: -3, confidence: 0.62, fact: 'heardViolence', text: '你听说{subject}在{location}留下了伤势或伤痕。' },
+    'world.resource_gathered': { kind: 'rumor-resource', valence: 1, confidence: 0.42, fact: 'heardResourceClaim', text: '你听说{subject}正在{location}争夺资源。' },
+    'auction.lot': { kind: 'rumor-market', valence: 1, confidence: 0.5, fact: 'heardAuctionMove', text: '你听说{subject}在{location}改变了一笔交易的价格和关系。' },
+    'market.trade': { kind: 'rumor-market', valence: 1, confidence: 0.36, fact: 'heardMarketTrade', text: '你听说{subject}在{location}完成了一笔交易。' },
+    'identity.revealed': { kind: 'rumor-social', valence: 1, confidence: 0.68, fact: 'heardIdentityReveal', text: '你听说{subject}在{location}向某个对象透露了自己的身份。' },
+    'frontier.patrol': { kind: 'rumor-war', valence: -1, confidence: 0.46, fact: 'heardWarReport', text: '你听说北原巡逻线又发生了变化。' },
+    'tower.floor': { kind: 'rumor-inheritance', valence: 1, confidence: 0.52, fact: 'heardTowerAttempt', text: '你听说真阳楼的闯关者又改变了一层传承记录。' }
   };
 
   function factionPath(state, from, target) {
@@ -61,6 +61,12 @@
     return payload.targetId || payload.actorId || payload.sourceId || 'world';
   }
 
+  function driftMarker(eventId, listenerId, pathLength = 0) {
+    const key = `${eventId}:${listenerId}:${pathLength}`;
+    const score = [...key].reduce((sum, char) => (sum * 33 + char.charCodeAt(0)) % 997, 17);
+    return pathLength > 1 || score % 100 < 28;
+  }
+
   function propagate(state, event, { locations, query, remember }) {
     const rule = RULES[event.type];
     if (!rule) return 0;
@@ -77,6 +83,8 @@
     if (payload.maskId) facts.observedMask = payload.maskId;
     if (payload.trace >= 10) facts.marketTrace = payload.trace;
     if (event.type === 'identity.revealed') facts.identityReveal = event.id;
+    facts.rumorConfidence = rule.confidence || 0.45;
+    facts.requiresVerification = (rule.confidence || 0.45) < 0.7;
     state.intel ||= { leads: [], cases: {} };
     const caseState = state.intel.cases[subjectId] ||= { pressure: 0, lastClock: state.clock, events: 0, factions: {} };
     caseState.pressure = Math.min(100, caseState.pressure + caseImpact(rule, event));
@@ -105,6 +113,7 @@
     const localAudience = new Set();
     const knownBy = [];
     for (const listener of query(state, entity => entity.alive && entity.position?.location === location && !excluded.has(entity.id))) {
+      const localFacts = { ...facts, rumorDistorted: driftMarker(event.id, listener.id) };
       remember(state, listener.id, subjectId, {
         kind: rule.kind,
         valence: rule.valence,
@@ -112,7 +121,7 @@
         confidence: rule.confidence,
         source: `rumor:${event.type}:local`,
         provenance: [event.id],
-        facts
+        facts: localFacts
       });
       localAudience.add(listener.id);
       knownBy.push({ entityId: listener.id, faction: listener.faction, path: [listener.faction || 'local'], confidence: rule.confidence || 0.45 });
@@ -127,7 +136,7 @@
         confidence: (rule.confidence || 0.45) * 0.72,
         source: `rumor:${event.type}:faction`,
         provenance: [event.id, `faction:${listener.faction}`],
-        facts: { ...facts, heardFactionNews: event.id }
+        facts: { ...facts, heardFactionNews: event.id, rumorDistorted: driftMarker(event.id, listener.id, 1) }
       });
       const factionCase = caseState.factions[listener.faction] ||= { pressure: 0, confidence: 0, reports: 0, lastClock: state.clock };
       factionCase.pressure = Math.min(100, factionCase.pressure + caseImpact(rule, event) * 0.72);
@@ -150,7 +159,7 @@
         source: `rumor:${event.type}:network`,
         provenance: [event.id, ...path.map(faction => `faction:${faction}`)],
         text: `你从势力关系网（${path.join('→')}）中听到：${text}`,
-        facts: { ...facts, heardFactionNews: event.id, rumorPath: path }
+        facts: { ...facts, heardFactionNews: event.id, rumorPath: path, rumorDistorted: driftMarker(event.id, listener.id, path.length) }
       });
       const factionCase = caseState.factions[listener.faction] ||= { pressure: 0, confidence: 0, reports: 0, lastClock: state.clock };
       factionCase.pressure = Math.min(100, factionCase.pressure + caseImpact(rule, event) * 0.45);

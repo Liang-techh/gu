@@ -34,14 +34,19 @@
     const certainty = Math.max(0, Math.min(1, Number(confidence ?? CONFIDENCE_BY_KIND[kind] ?? 0.6)));
     for (const [fact, value] of Object.entries(facts)) {
       const previous = knowledge.facts[subjectId][fact];
-      knowledge.facts[subjectId][fact] = {
-        value,
-        confidence: previous ? Math.max(previous.confidence, certainty) : certainty,
-        kind,
-        clock,
-        source,
-        provenance: Array.isArray(provenance) ? provenance.slice(-8) : []
-      };
+      const incoming = { value, confidence: certainty, kind, clock, source, provenance: Array.isArray(provenance) ? provenance.slice(-8) : [] };
+      if (!previous || typeof previous !== 'object' || !Object.prototype.hasOwnProperty.call(previous, 'confidence')) {
+        knowledge.facts[subjectId][fact] = incoming;
+        continue;
+      }
+      const sameValue = JSON.stringify(previous.value) === JSON.stringify(value);
+      const alternatives = Array.isArray(previous.alternatives) ? previous.alternatives.slice(-5) : [];
+      if (!sameValue) alternatives.push({ value: previous.value, confidence: previous.confidence, kind: previous.kind, clock: previous.clock, source: previous.source, provenance: previous.provenance || [] });
+      if (sameValue || certainty >= previous.confidence) {
+        knowledge.facts[subjectId][fact] = { ...incoming, confidence: Math.max(previous.confidence, certainty), alternatives };
+      } else {
+        knowledge.facts[subjectId][fact] = { ...previous, alternatives: [...alternatives, { value, confidence: certainty, kind, clock, source, provenance: incoming.provenance }].slice(-6) };
+      }
     }
     knowledge.sources.unshift({ subjectId, kind, clock, source, confidence: certainty, provenance: Array.isArray(provenance) ? provenance.slice(-8) : [] });
     knowledge.sources = knowledge.sources.slice(0, 64);
@@ -71,6 +76,10 @@
     return Number(ensure(entity).suspicion?.[subjectId]?.value || 0);
   }
 
+  function alternatives(entity, subjectId, fact) {
+    return [...(get(entity, subjectId, fact)?.alternatives || [])];
+  }
+
   function setMask(entity, maskId, patch = {}) {
     if (!entity || !maskId) return null;
     const knowledge = ensure(entity);
@@ -78,5 +87,5 @@
     return knowledge.masks[maskId];
   }
 
-  return { CONFIDENCE_BY_KIND, ensure, record, get, knows, raiseSuspicion, suspicion, setMask };
+  return { CONFIDENCE_BY_KIND, ensure, record, get, knows, alternatives, raiseSuspicion, suspicion, setMask };
 });
