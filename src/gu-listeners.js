@@ -76,8 +76,8 @@
     engine.registerEventListener('npc.local_contact', 'localContactEncounter', ({ state, event }) => {
       const npc = state.entities[event.payload.npcId];
       if (!npc) return;
-      state.encounters ||= { sequence: 0, recent: [], lastByNpc: {} };
-      state.encounters.lastByNpc ||= {};
+      state.encounters ||= { sequence: 0, recent: [], lastByNpc: {}, contactState: {} };
+      state.encounters.lastByNpc ||= {}; state.encounters.contactState ||= {};
       if (state.encounters.lastByNpc[npc.id] === state.clock) return;
       state.encounters.sequence = (Number(state.encounters.sequence) || 0) + 1;
       const encounter = {
@@ -94,6 +94,7 @@
       state.encounters.recent = state.encounters.recent.slice(0, 128);
       state.encounters.lastByNpc[npc.id] = state.clock;
       remember(state, 'player', npc.id, { kind: 'local-contact', valence: 1, text: `你在${locations[encounter.location]?.name || encounter.location}内与${npc.identity.name}近距离擦肩而过。`, facts: { lastLocalContact: state.clock, lastContactLocation: encounter.location, lastContactCell: encounter.cell } });
+      if (event.payload.reason === 'player_approach') remember(state, npc.id, 'player', { kind: 'local-contact', valence: 1, text: `你感觉到${state.entities.player.identity.name}主动走近了你。`, facts: { playerApproached: true, lastLocalContact: state.clock, lastContactLocation: encounter.location } });
       log(state, 'local_contact', `${npc.identity.name}进入了你的近距离遭遇范围。`, { npcId: npc.id, location: encounter.location, cell: encounter.cell, goal: encounter.goal });
       const zone = state.zones[encounter.location];
       if (zone) zone.activity += 1;

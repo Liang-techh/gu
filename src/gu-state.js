@@ -11,8 +11,8 @@
       const player = state.entities.player;
       social.ensure(state);
       state.social.recent = state.social.recent.slice(0, 128);
-      state.encounters ||= { sequence: 0, recent: [], lastByNpc: {} };
-      state.encounters.recent ||= []; state.encounters.lastByNpc ||= {};
+      state.encounters ||= { sequence: 0, recent: [], lastByNpc: {}, contactState: {} };
+      state.encounters.recent ||= []; state.encounters.lastByNpc ||= {}; state.encounters.contactState ||= {};
       state.encounters.sequence = Math.max(0, Number(state.encounters.sequence) || 0);
       state.encounters.recent = state.encounters.recent.slice(0, 128);
       const knownEntityIds = new Set([...Object.keys(state.entities || {}), ...Object.keys(state.entityCache || {})]);

@@ -189,6 +189,21 @@ test('local contact becomes a durable encounter and is consumed by social intera
   assert.equal(state.encounters.recent[0].status, 'engaged');
 });
 
+test('player approach triggers the same local contact event as NPC approach', () => {
+  let state = open(S.newWorld({ seed: 'player-approach' }), 'observe');
+  const npc = state.entities.fangzheng;
+  state.entities.player.position.location = 'academy';
+  state.entities.player.position.cell = { x: 3, y: 2 };
+  npc.position.location = 'academy';
+  npc.position.cell = { x: 3, y: 0 };
+  npc.agent = true;
+  state.entities.player.position.cell = { x: 3, y: 1 };
+  state = ok(state, { type: 'action', id: 'wait', hours: 1 });
+  assert.ok(state.events.recent.some(event => event.type === 'npc.local_contact' && event.payload.reason === 'player_approach'));
+  assert.equal(state.encounters.recent[0].npcId, 'fangzheng');
+  assert.equal(state.entities.fangzheng.memory.facts.player.playerApproached, true);
+});
+
 test('environment affordances expose composable observe, forage, relic search and scouting interactions', () => {
   let state = open(S.newWorld({ seed: 'affordances' }), 'observe');
   assert.deepEqual(S.AFFORDANCES.available(state, state.entities.player).map(item => item.id), ['observeZone']);

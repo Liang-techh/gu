@@ -164,12 +164,35 @@
     return clamp(rel.trust + rel.affinity - rel.fear, -100, 100);
   }
 
+  function scanLocalContacts(state) {
+    const player = state.entities?.player;
+    const locationId = player?.position?.location;
+    const location = LOCATIONS[locationId];
+    if (!player || !location || !LocalMap) return;
+    state.encounters ||= { sequence: 0, recent: [], lastByNpc: {}, contactState: {} };
+    state.encounters.contactState ||= {};
+    const playerCell = LocalMap.normalizeCell(locationId, player.position.cell, location, player.id);
+    for (const npc of Object.values(state.entities || {})) {
+      if (npc.id === player.id) continue;
+      if (!npc.alive || npc.position?.location !== locationId || !npc.position?.cell) {
+        state.encounters.contactState[npc.id] = false;
+        continue;
+      }
+      const npcCell = LocalMap.normalizeCell(locationId, npc.position.cell, location, npc.id);
+      const inContact = LocalMap.distance(playerCell, npcCell) <= 1 && LocalMap.visible(locationId, location, playerCell, npcCell, 1);
+      const wasInContact = !!state.encounters.contactState[npc.id];
+      if (inContact && !wasInContact) Engine.emit(state, 'npc.local_contact', { npcId: npc.id, actorId: player.id, targetId: player.id, location: locationId, cell: { ...npcCell }, goal: npc.goals?.active || 'idle', reason: 'player_approach' });
+      state.encounters.contactState[npc.id] = inContact;
+    }
+  }
+
   function advance(state, hours, cause = 'action') {
     for (let i = 0; i < hours; i++) {
       const oldDay = day(state);
       state.clock += 1;
       Engine.runSystems('hour', { state, cause });
       if (day(state) !== oldDay) Engine.runSystems('day', { state, cause });
+      scanLocalContacts(state);
     }
     directorTick(state);
     normalize(state);
