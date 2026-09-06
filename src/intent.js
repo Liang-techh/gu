@@ -52,6 +52,10 @@
     if (/稳定梦境|稳定边界|净化梦境/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_realm_action', mode: 'stabilize' }, label: '稳定梦境边界' };
     if (/破坏梦境|梦境节点|袭击梦境/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_realm_action', mode: 'sabotage' }, label: '破坏梦境争夺节点' };
     if (/梦境|入梦|梦道/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_dive' }, label: '探索梦境' };
+    if (/观察区域|查看环境|观察这里|看看周围|搜集环境信息/.test(q)) return { ok: true, command: { type: 'action', id: 'interact', affordanceId: 'observeZone' }, label: '观察区域' };
+    if (/搜索遗藏|寻找遗藏|找传承线索|搜寻痕迹/.test(q)) return { ok: true, command: { type: 'action', id: 'interact', affordanceId: 'searchRelic' }, label: '搜索遗藏痕迹' };
+    if (/侦查区域|侦查这里|巡查|探路|侦察/.test(q)) return { ok: true, command: { type: 'action', id: 'interact', affordanceId: 'scoutZone' }, label: '侦查区域' };
+    if (/采集资源|采摘资源|采集区域/.test(q)) return { ok: true, command: { type: 'action', id: 'interact', affordanceId: 'forage' }, label: '采集区域资源' };
     if (/听课|学习/.test(q)) return { ok: true, command: { type: 'action', id: 'study' }, label: '听课' };
     if (/采集|采摘|取水|调查|探索|观察/.test(q)) return { ok: true, command: { type: 'action', id: 'gather' }, label: '探索并采集' };
     if (/休息|睡觉/.test(q)) return { ok: true, command: { type: 'action', id: 'rest' }, label: '休息' };

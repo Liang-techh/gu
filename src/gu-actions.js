@@ -12,7 +12,7 @@
     requireSameLocation, beginConflict, ability, body, equipment,
     conversation, conversationDefs, day, affectFaction, identity, knowledge,
     contractRuntime, repeatableRuntime, pursuitRuntime, agencyRuntime, combatRuntime,
-    marketRuntime, rebirth, factionPacts
+    marketRuntime, rebirth, factionPacts, affordances
   }) {
     function performConversation(state, command, p) {
       const npc = requireSameLocation(state, command.target);
@@ -217,6 +217,13 @@
       advance(state, mode === 'stabilize' ? 3 : 4, `dream_realm_${mode}`);
     }
 
+    function runAffordance(state, command, p) {
+      const affordanceId = command.affordanceId;
+      const result = affordances?.execute(affordanceId, { state, command, p });
+      if (!result) throw new Error('当前地点没有可执行的环境交互');
+      return result;
+    }
+
     function coalitionAction(state, command, p) {
       const locationMembers = {
         village: ['guYue', 'bai', 'xiong'],
@@ -273,6 +280,7 @@
     engine.registerAction('blessed_land_action', ({ state, command, p }) => blessedLandAction(state, command, p));
     engine.registerAction('front_action', ({ state, command, p }) => frontAction(state, command, p));
     engine.registerAction('shadow_network_action', ({ state, command, p }) => shadowNetworkAction(state, command, p));
+    engine.registerAction('interact', ({ state, command, p }) => runAffordance(state, command, p));
     engine.registerAction('travel', ({ state, command, p }) => {
       const target = command.location;
       if (!locations[target] || !locations[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
@@ -303,42 +311,7 @@
       log(state, 'action', '你听完一堂关于真元与蛊虫的课，家老把你的表现记在心里。');
       advance(state, 2, 'study');
     });
-    engine.registerAction('gather', ({ state, p }) => {
-      const loc = p.position.location;
-      const zone = state.zones[loc];
-      if (!zone || !['bambooForest', 'riverbank', 'cliffCave'].includes(loc)) throw new Error('当前位置没有可采集的区域资源');
-      if (loc === 'riverbank') {
-        const amount = Math.min(3, zone.resources.water);
-        if (amount < 1) throw new Error('河滩的水源暂时不足');
-        zone.resources.water -= amount;
-        p.inventory.water += amount;
-      }
-      if (loc === 'bambooForest') {
-        const petals = Math.min(2, zone.resources.moonPetal);
-        if (petals < 1) throw new Error('竹林里的月兰花瓣已经被采得差不多了');
-        zone.resources.moonPetal -= petals;
-        zone.resources.food = Math.max(0, zone.resources.food - 1);
-        p.inventory.moonPetal += petals;
-        p.inventory.food = (p.inventory.food || 0) + 1;
-      }
-      if (loc === 'cliffCave') {
-        const fragment = Math.min(1, zone.resources.relicFragment);
-        if (fragment < 1) throw new Error('石缝里暂时没有新的遗藏碎片');
-        zone.resources.relicFragment -= fragment;
-        p.inventory.relicFragment = (p.inventory.relicFragment || 0) + fragment;
-        state.flags.relicDiscovered = true;
-      }
-      zone.activity += 12;
-      zone.visits += 1;
-      engine.emit(state, 'world.resource_gathered', { actorId: 'player', location: loc, resources: copy(p.inventory) });
-      if (random(state) < zone.danger / 260) {
-        damageEntity(state, 'player', 4 + zone.danger * 0.08, 'world', 'environment');
-        p.needs.safety -= 8;
-      }
-      p.cultivation.insight += random(state) < 0.35 ? 1 : 0;
-      log(state, 'action', `你在${locations[loc].name}进行采集，资源与线索都发生了变化。`);
-      advance(state, 2, 'gather');
-    });
+    engine.registerAction('gather', ({ state, command, p }) => runAffordance(state, { ...command, affordanceId: 'forage' }, p));
     engine.registerAction('rest', ({ state, p }) => {
       p.needs.energy += 42;
       p.needs.hunger += 4;

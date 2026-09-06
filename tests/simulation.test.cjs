@@ -61,6 +61,39 @@ test('zones have population tables, resources and regeneration independent of st
   assert.ok(next.zones.bambooForest.resources.moonPetal > 0);
 });
 
+test('environment affordances expose composable observe, forage, relic search and scouting interactions', () => {
+  let state = open(S.newWorld({ seed: 'affordances' }), 'observe');
+  assert.deepEqual(S.AFFORDANCES.available(state, state.entities.player).map(item => item.id), ['observeZone']);
+  assert.equal(S.interpret('观察区域', state).command.affordanceId, 'observeZone');
+  state = ok(state, { type: 'action', id: 'interact', affordanceId: 'observeZone' });
+  assert.ok(state.events.recent.some(event => event.type === 'zone.observed'));
+  assert.equal(state.facts.observationCount, 1);
+
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'bambooForest' });
+  const beforePetals = state.zones.bambooForest.resources.moonPetal;
+  assert.ok(S.AFFORDANCES.available(state, state.entities.player).some(item => item.id === 'forage'));
+  assert.equal(S.interpret('采集资源', state).command.affordanceId, 'forage');
+  state = ok(state, { type: 'action', id: 'interact', affordanceId: 'forage' });
+  assert.ok(state.zones.bambooForest.resources.moonPetal < beforePetals);
+  assert.ok(state.events.recent.some(event => event.type === 'world.resource_gathered'));
+  assert.ok(Object.values(state.entities).some(entity => entity.id !== 'player' && entity.memory?.episodes?.some(item => item.kind === 'rumor-resource')));
+
+  state = ok(state, { type: 'action', id: 'travel', location: 'riverbank' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'cliffCave' });
+  assert.ok(S.AFFORDANCES.available(state, state.entities.player).some(item => item.id === 'searchRelic'));
+  const searchResult = S.dispatch(state, { type: 'action', id: 'interact', affordanceId: 'searchRelic' });
+  assert.equal(searchResult.ok, true, searchResult.message);
+  state = searchResult.state;
+  assert.ok(state.events.recent.some(event => event.type === 'zone.relic_search'));
+  assert.ok(state.entities.player.memory.episodes.some(item => ['relic-clue', 'failed-search'].includes(item.kind)));
+  state = ok(state, { type: 'action', id: 'travel', location: 'riverbank' });
+  assert.ok(S.AFFORDANCES.available(state, state.entities.player).some(item => item.id === 'scoutZone'));
+  state = ok(state, { type: 'action', id: 'interact', affordanceId: 'scoutZone' });
+  assert.ok(state.events.recent.some(event => event.type === 'zone.scouted'));
+  assert.ok(state.facts['scouted:riverbank'] >= 1);
+});
+
 test('zone builder reconstructs content-driven zones without depending on the UI', () => {
   const zones = S.ZONE_BUILDER.buildZones(S.LOCATIONS);
   assert.equal(Object.keys(zones).length, Object.keys(S.LOCATIONS).length);
@@ -1163,7 +1196,8 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
-  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'dream_realm_action', 'coalition_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
+  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'interact', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'dream_realm_action', 'coalition_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
+  for (const id of ['observeZone', 'forage', 'searchRelic', 'scoutZone']) assert.ok(snap.engine.registries.interactions.includes(id), `${id} should be interaction-registered`);
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
