@@ -100,6 +100,28 @@ test('director emits a situation from world conditions and does not bypass dispa
   assert.equal(resolved.entities.player.memory.facts.world.relicLead, true);
 });
 
+test('market, alliance and wolf crisis are persistent world events', () => {
+  let state = open(S.newWorld({ seed: 'world-events' }), 'observe');
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  const choices = { marketArrival: 'listen', auction: 'observe', allianceCouncil: 'aid', wolfTide: 'mobilize' };
+  const seen = new Set();
+  for (let i = 0; i < 40; i++) {
+    if (state.events.active) {
+      const eventId = state.events.active.id;
+      if (choices[eventId]) { seen.add(eventId); state = ok(state, { type: 'resolve_event', choice: choices[eventId] }); }
+      else state = ok(state, { type: 'resolve_event', choice: state.events.active.choices[0].id });
+    } else state = ok(state, { type: 'action', id: 'wait', hours: 12 });
+  }
+  assert.ok(seen.has('marketArrival'));
+  assert.ok(seen.has('auction'));
+  assert.ok(seen.has('allianceCouncil'));
+  assert.ok(seen.has('wolfTide'));
+  assert.equal(state.flags.marketArrived, true);
+  assert.equal(state.flags.allianceCouncil, true);
+  assert.equal(state.flags.wolfTide, true);
+  assert.ok(state.director.thread.includes('wolfTide'));
+});
+
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
   let state = open(S.newWorld({ seed: 'intent' }), 'observe');
   const parsed = S.interpret('去竹林', state);

@@ -7,7 +7,10 @@ const root = path.resolve(__dirname, '..');
 const checks = [
   ['opening', ['古月方源', '青茅山', '古月山寨', '学堂']],
   ['academy', ['空窍', '元海', '古月方正', '青铜真元']],
-  ['relic', ['酒虫', '竹林', '河滩', '石缝']]
+  ['relic', ['酒虫', '竹林', '河滩', '石缝']],
+  ['market', ['商队', '青茅山', '提前到来']],
+  ['auction', ['贾富', '拍卖会']],
+  ['wolf', ['狼潮', '三寨联盟', '古月山寨']]
 ];
 const failures = [];
 let total = 0;

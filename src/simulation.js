@@ -105,13 +105,44 @@
       cultivation: { rank: 1, stage: 2, aptitude: 0.55 },
       schedule: { morning: 'caravanCamp', afternoon: 'village', evening: 'caravanCamp', night: 'caravanCamp' },
       goals: ['trade', 'collectRumors']
+    },
+    guyuebo: {
+      name: '古月博', role: '古月族长', faction: 'guYue', location: 'ancestralHall',
+      personality: { ambition: 84, caution: 86, loyalty: 94, greed: 28, curiosity: 61 },
+      cultivation: { rank: 4, stage: 2, aptitude: 0.82 },
+      schedule: { morning: 'ancestralHall', afternoon: 'ancestralHall', evening: 'village', night: 'ancestralHall' },
+      goals: ['maintainOrder', 'protectClan', 'prepareAlliance']
+    },
+    chilian: {
+      name: '古月赤练', role: '古月家老', faction: 'guYue', location: 'ancestralHall',
+      personality: { ambition: 78, caution: 74, loyalty: 82, greed: 48, curiosity: 44 },
+      cultivation: { rank: 4, stage: 1, aptitude: 0.76 },
+      schedule: { morning: 'academy', afternoon: 'ancestralHall', evening: 'ancestralHall', night: 'village' },
+      goals: ['maintainOrder', 'winRivalry', 'protectClan']
+    },
+    jiafu: {
+      name: '贾富', role: '商队掌柜', faction: 'caravans', location: 'caravanCamp',
+      personality: { ambition: 88, caution: 68, loyalty: 22, greed: 92, curiosity: 76 },
+      cultivation: { rank: 2, stage: 1, aptitude: 0.58 },
+      schedule: { morning: 'caravanCamp', afternoon: 'village', evening: 'caravanCamp', night: 'caravanCamp' },
+      goals: ['trade', 'collectRumors', 'auction']
+    },
+    bainingbing: {
+      name: '白凝冰', role: '白家天才', faction: 'bai', location: 'riverbank',
+      personality: { ambition: 94, caution: 52, loyalty: 18, greed: 34, curiosity: 66 },
+      cultivation: { rank: 3, stage: 2, aptitude: 0.97 },
+      schedule: { morning: 'riverbank', afternoon: 'bambooForest', evening: 'riverbank', night: 'riverbank' },
+      goals: ['proveWorth', 'winRivalry', 'prepareAlliance']
     }
   };
 
   const SOURCE_NOTES = {
     opening: { source: 'reference/novel/第1卷：魔性不改/第7章.txt', note: '方源、青茅山、古月山寨与学堂构成青茅山开局的社会空间。' },
     academy: { source: 'reference/novel/第1卷：魔性不改/第6章.txt', note: '空窍、元海、真元与方正构成修行起点和兄弟关系的原文依据。' },
-    relic: { source: 'reference/novel/第1卷：魔性不改/第14章.txt', note: '酒虫、竹林、河滩和石缝构成可被行动触发的遗藏线索。' }
+    relic: { source: 'reference/novel/第1卷：魔性不改/第14章.txt', note: '酒虫、竹林、河滩和石缝构成可被行动触发的遗藏线索。' },
+    market: { source: 'reference/novel/第1卷：魔性不改/第109章.txt', note: '商队提前进入青茅山，市场活动成为会改变资源和势力关系的区域事件。' },
+    auction: { source: 'reference/novel/第1卷：魔性不改/第110章.txt', note: '贾富与拍卖会提供商队掌柜、外来资本和价格博弈的原文依据。' },
+    wolf: { source: 'reference/novel/第1卷：魔性不改/第123章.txt', note: '狼潮下的三寨联盟与利益分配，把族群关系升级为区域生存危机。' }
   };
 
   function relation(state, a, b) {
@@ -217,7 +248,7 @@
       factions: {},
       relationships: {},
       facts: {},
-      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false },
+      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false },
       events: { active: null, pending: [], history: [] },
       combat: null,
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
@@ -271,18 +302,36 @@
         { id: 'follow', label: '沿着痕迹跟下去', hint: '打开花酒遗藏的调查线。' },
         { id: 'report', label: '把消息交给家老', hint: '获得家族信用，但线索不再只属于你。' },
         { id: 'ignore', label: '记在心里，先做自己的事', hint: '保留秘密，等待更有利的时机。' }
-      ], source: SOURCE_NOTES.relic };
+        ], source: SOURCE_NOTES.relic };
     } else if (day(state) >= 3 && guYue.tension >= 32 && p.position.location === 'academy') {
       candidate = { id: 'academyRivalry', type: 'social', title: '学堂里的较量', text: '漠北和赤城在草人前争夺一次演示机会，方正被推到了两人之间。', choices: [
         { id: 'mediate', label: '替方正把争执压下去', hint: '方正会记住你的帮助。' },
         { id: 'join', label: '加入竞争，证明自己的月刃', hint: '提高个人名望，也增加敌意。' },
         { id: 'watch', label: '旁观并记下每个人的弱点', hint: '获得知识，关系保持不变。' }
-      ], source: SOURCE_NOTES.academy };
-    } else if (day(state) >= 6 && state.director.pressure >= 5) {
-      candidate = { id: 'caravanRumor', type: 'market', title: '商队带来的北方消息', text: '江牙带着一批新货进入山寨。白家寨和熊家寨的边界冲突，已经影响了货价。', choices: [
-        { id: 'trade', label: '用元石换取资源和消息', hint: '扩大行动半径。' },
-        { id: 'listen', label: '只听消息，不暴露立场', hint: '获得势力情报。' },
-        { id: 'scheme', label: '让商队替你散布一个传闻', hint: '改变 NPC 记忆和势力压力。' }
+        ], source: SOURCE_NOTES.academy };
+    } else if (!state.flags.marketArrived && day(state) >= 5 && ['village', 'caravanCamp'].includes(p.position.location)) {
+      candidate = { id: 'marketArrival', type: 'market', title: '商队提前进入青茅山', text: '商队的旗帜穿过雨幕，贾富和江牙把外界的货物、消息与价格一起带进山寨。', source: SOURCE_NOTES.market, choices: [
+        { id: 'trade', label: '用元石换取资源', hint: '得到水、花瓣和商路信用。' },
+        { id: 'listen', label: '只听消息不表态', hint: '获得白家、熊家和北方商路的情报。' },
+        { id: 'scheme', label: '让商队替你散布传闻', hint: '增加市场活动，也会提高势力紧张度。' }
+      ] };
+    } else if (state.flags.marketArrived && !state.flags.auctionHeld && day(state) >= 7 && ['village', 'caravanCamp'].includes(p.position.location)) {
+      candidate = { id: 'auction', type: 'market', title: '贾富的拍卖会', text: '贾富把一批外来蛊材摆上台面。价格只是表面，真正的较量是山寨成员是否愿意为稀缺资源彼此抬价。', source: SOURCE_NOTES.auction, choices: [
+        { id: 'buy', label: '出价购买蛊材', hint: '消耗元石，换取稀缺资源和商队信用。' },
+        { id: 'sell', label: '出售手中资源', hint: '把当前资源压力转化为元石。' },
+        { id: 'observe', label: '观察竞价与人群', hint: '获得对贾富和山寨势力的情报。' }
+      ] };
+    } else if (!state.flags.allianceCouncil && day(state) >= 8 && (guYue.tension >= 35 || d.pressure >= 5) && ['village', 'ancestralHall'].includes(p.position.location)) {
+      candidate = { id: 'allianceCouncil', type: 'politics', title: '三寨联盟的利益分配', text: '狼群的阴影还在远方，古月、白家与熊家却已经开始争论：若要结盟，谁来出人，谁来让利，谁来承担最危险的防线？', source: SOURCE_NOTES.wolf, choices: [
+        { id: 'aid', label: '推动共同防线', hint: '改善三族关系，消耗古月的资源影响。' },
+        { id: 'hoard', label: '优先保住古月山寨', hint: '提高本族防御，却让联盟更难谈成。' },
+        { id: 'spy', label: '记录各族的底牌', hint: '获得情报和个人洞察，留下政治记忆。' }
+      ] };
+    } else if (!state.flags.wolfTide && day(state) >= 12 && ['village', 'bambooForest', 'riverbank'].includes(p.position.location) && (d.pressure >= 4 || guYue.tension >= 42)) {
+      candidate = { id: 'wolfTide', type: 'crisis', title: '狼潮正在逼近', text: '山林里的猎物突然减少，远处传来群狼试探性的嚎叫。狼潮还没有攻入山寨，但资源、巡逻和每个家族的判断已经开始改变。', source: SOURCE_NOTES.wolf, choices: [
+        { id: 'mobilize', label: '加入巡逻与布防', hint: '降低当前区域危险，提升古月影响。' },
+        { id: 'hunt', label: '趁混乱深入山林', hint: '获得资源和线索，但承担更高伤害风险。' },
+        { id: 'secure', label: '囤积资源等待变化', hint: '提高个人储备，让野外区域更危险。' }
       ] };
     }
     if (candidate) {
@@ -336,11 +385,38 @@
       if (choice === 'join') { relation(state, 'player', 'mobei').fear += 8; relation(state, 'player', 'chicheng').fear += 8; p.cultivation.progress += 8; }
       if (choice === 'watch') { p.cultivation.insight += 5; remember(state, 'player', 'mobei', { kind: 'secret', valence: 2, text: '漠北在公开竞争时会先看家老的脸色。' }); }
       log(state, 'choice', `你处理了学堂较量：${event.choices.find(c => c.id === choice).label}。`);
-    } else if (event.id === 'caravanRumor') {
-      if (choice === 'trade') { p.inventory.water += 2; p.inventory.moonPetal += 2; p.inventory.stones = Math.max(0, p.inventory.stones - 2); relation(state, 'player', 'caravans').trust += 6; }
-      if (choice === 'listen') { p.cultivation.insight += 7; remember(state, 'player', 'world', { kind: 'rumor', valence: 1, text: '白家寨和熊家寨的边界冲突正在推高货价。' }); }
-      if (choice === 'scheme') { state.factions.caravans.tension += 8; state.factions.bai.tension += 3; state.factions.xiong.tension += 3; state.director.pressure += 2; }
-      log(state, 'choice', `你处理了商队消息：${event.choices.find(c => c.id === choice).label}。`);
+    } else if (event.id === 'marketArrival') {
+      state.flags.marketArrived = true;
+      state.facts.marketActivity = (state.facts.marketActivity || 0) + 3;
+      state.zones.village.resources.food += 2;
+      state.zones.caravanCamp.resources.food += 2;
+      if (choice === 'trade') { p.inventory.water += 2; p.inventory.moonPetal += 2; p.inventory.stones = Math.max(0, p.inventory.stones - 2); relation(state, 'player', 'caravans').trust += 6; state.factions.caravans.influence += 3; }
+      if (choice === 'listen') { p.cultivation.insight += 7; remember(state, 'player', 'world', { kind: 'rumor', valence: 1, text: '白家寨和熊家寨的边界冲突正在推高货价。', facts: { marketRumor: true } }); }
+      if (choice === 'scheme') { state.factions.caravans.tension += 8; state.factions.bai.tension += 3; state.factions.xiong.tension += 3; state.director.pressure += 2; remember(state, 'jiafu', 'player', { kind: 'rumor', valence: -2, text: '这个人会利用商路影响山寨里的判断。' }); }
+      log(state, 'choice', `你处理了商队进入：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.market });
+    } else if (event.id === 'auction') {
+      state.flags.auctionHeld = true;
+      state.facts.marketActivity = (state.facts.marketActivity || 0) + 2;
+      if (choice === 'buy') { if ((p.inventory.stones || 0) < 2) { p.cultivation.insight += 2; } else { p.inventory.stones -= 2; p.inventory.moonPetal += 3; relation(state, 'player', 'jiafu').trust += 5; } }
+      if (choice === 'sell') { p.inventory.stones += Math.min(4, p.inventory.moonPetal || 0); p.inventory.moonPetal = Math.max(0, (p.inventory.moonPetal || 0) - 4); relation(state, 'player', 'jiafu').debt += 1; }
+      if (choice === 'observe') { p.cultivation.insight += 6; remember(state, 'player', 'jiafu', { kind: 'market', valence: 2, text: '贾富会先用低价聚拢人气，再让稀缺资源成为势力之间的筹码。', facts: { auctionObserved: true } }); }
+      log(state, 'choice', `你处理了贾富的拍卖会：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.auction });
+    } else if (event.id === 'allianceCouncil') {
+      state.flags.allianceCouncil = true;
+      if (choice === 'aid') { state.factions.guYue.influence -= 4; state.factions.guYue.tension -= 4; state.factions.bai.tension -= 5; state.factions.xiong.tension -= 5; state.factions.guYue.relations.bai += 8; state.factions.guYue.relations.xiong += 8; remember(state, 'guyuebo', 'player', { kind: 'politics', valence: 6, text: '你在三寨利益分配前支持共同防线。' }); }
+      if (choice === 'hoard') { state.factions.guYue.influence += 4; state.factions.guYue.tension += 5; state.factions.bai.tension += 4; state.factions.xiong.tension += 4; state.director.pressure += 1; remember(state, 'guyuebo', 'player', { kind: 'politics', valence: 1, text: '你首先考虑古月山寨的存续。' }); }
+      if (choice === 'spy') { p.cultivation.insight += 8; remember(state, 'player', 'world', { kind: 'secret', valence: 3, text: '三寨联盟真正困难的不是是否结盟，而是谁承担最危险的防线。', facts: { allianceIntel: true } }); }
+      log(state, 'choice', `你处理了三寨议事：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.wolf });
+    } else if (event.id === 'wolfTide') {
+      state.flags.wolfTide = true;
+      state.director.pressure = clamp(state.director.pressure + 2, 0, 10);
+      for (const locationId of ['bambooForest', 'riverbank', 'cliffCave']) state.zones[locationId].danger += 12;
+      state.zones.village.resources.food = Math.max(0, state.zones.village.resources.food - 2);
+      state.factions.guYue.tension += 6;
+      if (choice === 'mobilize') { state.zones.village.danger = Math.max(0, state.zones.village.danger - 8); state.factions.guYue.influence += 5; state.factions.guYue.tension -= 3; remember(state, 'guyuebo', 'player', { kind: 'crisis', valence: 8, text: '你在狼潮逼近前参与了巡逻与布防。' }); }
+      if (choice === 'hunt') { p.inventory.food = (p.inventory.food || 0) + 2; p.needs.safety -= 12; p.cultivation.insight += 3; remember(state, 'player', 'bainingbing', { kind: 'crisis', valence: 2, text: '你在狼潮逼近时选择深入山林。' }); }
+      if (choice === 'secure') { p.inventory.water += 3; p.inventory.food = (p.inventory.food || 0) + 3; state.zones.bambooForest.danger += 8; state.director.pressure += 1; }
+      log(state, 'choice', `你面对狼潮逼近作出决定：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.wolf });
     }
     advance(state, 1, event.id);
   }
