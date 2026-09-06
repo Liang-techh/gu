@@ -28,6 +28,7 @@
       body: { maxHealth, health: maxHealth, wounds: [], limbs: { head: 100, torso: 100, leftArm: 100, rightArm: 100, leftLeg: 100, rightLeg: 100 } },
       abilities: { gu: [], skills: [] },
       inventory: {},
+      equipment: { slots: {}, history: [] },
       memory: { facts: {}, episodes: [] },
       knowledge: { facts: {}, masks: {}, suspicion: {}, sources: [] },
       conditions: { active: [] },

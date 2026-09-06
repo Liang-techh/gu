@@ -132,6 +132,12 @@
     springAutumn: { name: '春秋蝉', rank: 6, kind: 'immortal', food: 'unknown', power: 99 }
   };
 
+  const EQUIPMENT_DEFS = {
+    moonlight: { id: 'moonlight', label: '月光蛊', slot: 'rightArm', guId: 'moonlight', requiredLimbs: ['rightArm'], minLimbIntegrity: 20, modifiers: { perception: 1 } },
+    wineWorm: { id: 'wineWorm', label: '酒虫', slot: 'essence', guId: 'wineWorm', requiredLimbs: [], modifiers: { refinement: 1 } },
+    springAutumn: { id: 'springAutumn', label: '春秋蝉', slot: 'core', guId: 'springAutumn', requiredLimbs: [], modifiers: { destiny: 1 } }
+  };
+
   const NPC_SEEDS = {
     fangyuan: {
       name: '古月方源', role: '重生者', faction: 'guYue', location: 'bambooForest',
@@ -434,5 +440,5 @@
     ] }
   ];
 
-  return { CONTENT_VERSION: 6, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
+  return { CONTENT_VERSION: 6, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, EQUIPMENT_DEFS, NPC_SEEDS, SOURCE_NOTES };
 });

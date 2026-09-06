@@ -8,7 +8,7 @@
 
 `XRL.World.GameObject` 直接持有 `Brain`、`Body`、`Inventory`、`ActivatedAbilities`、`Statistics`、`PartRack` 和 `EffectRack` 等可替换部件，并通过 `HasPart`/同类查询访问能力。实体的物理、行为、装备、效果和统计可以独立增删。
 
-蛊真人项目对应到：`engine.js` 的 component registry、`entity.js` 的组件化实体，以及 `brain`、`body`、`effects` 组件。`src/effect.js` 已落地独立的 EffectRack 风格效果实例、叠加和生命周期；下一步的蛊虫、装备覆盖和身份面具都应继续保持可组合，而不是为每种 NPC 建立专用类。
+蛊真人项目对应到：`engine.js` 的 component registry、`entity.js` 的组件化实体，以及 `brain`、`body`、`equipment`、`effects` 组件。`src/equipment.js` 已落地装备槽与蛊虫装载的组合边界，`src/effect.js` 已落地独立的 EffectRack 风格效果实例、叠加和生命周期；后续的装备覆盖、蛊虫副作用和身份面具都应继续保持可组合，而不是为每种 NPC 建立专用类。
 
 ### 2. Part 同时拥有生命周期和事件订阅
 

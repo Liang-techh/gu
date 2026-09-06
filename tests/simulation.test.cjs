@@ -683,6 +683,20 @@ test('body component constraints can disable a gu ability without deleting the g
   assert.equal(player.inventory.gu.moonlight.refined, true);
 });
 
+test('equipment component mounts refined gu and respects body slot constraints', () => {
+  let state = open(S.newWorld({ seed: 'equipment' }), 'observe');
+  const player = state.entities.player;
+  player.inventory.gu = { moonlight: { refined: true, progress: 100 } };
+  player.abilities.gu = ['moonlight'];
+  state = ok(state, { type: 'action', id: 'equip_gu', guId: 'moonlight' });
+  assert.equal(state.entities.player.equipment.slots.rightArm.itemId, 'moonlight');
+  assert.equal(S.EQUIPMENT.modifiers(state.entities.player, S.EQUIPMENT_DEFS).perception, 1);
+  state.entities.player.body.limbs.rightArm = 10;
+  assert.equal(S.EQUIPMENT.canUse(state.entities.player, 'moonlight', S.EQUIPMENT_DEFS, S.BODY), false);
+  state = ok(state, { type: 'action', id: 'unequip_gu', guId: 'moonlight' });
+  assert.equal(state.entities.player.equipment.slots.rightArm, undefined);
+});
+
 test('runtime conditions affect NPC intent and expire through the hourly system', () => {
   let state = open(S.newWorld({ seed: 'conditions' }), 'observe');
   state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'threaten' });
@@ -789,6 +803,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(S.ENGINE.COMPONENTS.includes('conditions'));
   assert.ok(S.ENGINE.COMPONENTS.includes('knowledge'));
   assert.ok(S.ENGINE.COMPONENTS.includes('effects'));
+  assert.ok(S.ENGINE.COMPONENTS.includes('equipment'));
   assert.ok(S.ENGINE.COMPONENTS.includes('brain'));
   assert.equal(typeof S.ENTITY.createEntity, 'function');
   assert.equal(typeof S.NPC_AI.selectGoal, 'function');
@@ -796,6 +811,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.ABILITY.activate, 'function');
   assert.equal(typeof S.CONDITION.apply, 'function');
   assert.equal(typeof S.EFFECTS.apply, 'function');
+  assert.equal(typeof S.EQUIPMENT.equip, 'function');
   assert.equal(typeof S.KNOWLEDGE.raiseSuspicion, 'function');
   assert.equal(typeof S.CONTRACTS.accept, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.arenaMatch, 'function');

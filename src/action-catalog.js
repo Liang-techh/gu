@@ -42,6 +42,13 @@
       kind: definition.kind,
       command: definition.command(context)
     }));
+    for (const [guId, item] of Object.entries(state.entities?.player?.inventory?.gu || {})) {
+      if (!item?.refined) continue;
+      const worn = Object.values(state.entities.player.equipment?.slots || {}).some(slot => slot.itemId === guId);
+      actions.push(worn
+        ? { id: `unequip_gu:${guId}`, label: `卸下${guId}`, kind: 'choice', command: { type: 'action', id: 'unequip_gu', guId } }
+        : { id: `equip_gu:${guId}`, label: `装备${guId}`, kind: 'choice', command: { type: 'action', id: 'equip_gu', guId } });
+    }
     for (const location of locations?.[here]?.neighbors || []) actions.push({
       id: `travel:${location}`,
       label: `去${locations[location].name}`,
