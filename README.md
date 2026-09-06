@@ -13,8 +13,10 @@
 - `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
 - 事件历史、导演事件和统一 `dispatch` 结算入口；
 - NPC 日程、目标选择、移动、饥饿/精力和同场遭遇记忆；
+- NPC 目标会实际改变资源、秘密事实、商路活动和势力压力；
 - 人物关系中的信任、畏惧、人情和持久事实；
 - 古月、白家、熊家、商队、魔道游修等动态势力；
+- 身体组件、随机部位伤害、伤口、死亡与连续冲突；
 - 自由意图解析：自然语言只生成 command，不能直接改状态；
 - 本地 JSON 存档与确定性恢复；
 - 基于小说原文的青茅山开局：开窍大典、方源、方正、学堂、竹林、月光蛊、酒虫与遗藏线索。
@@ -44,8 +46,8 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       8/8 passing
-npm run check:canon  77/77 term/source checks
+npm test       11/11 passing
+npm run check:canon  12/12 term/source checks
 ```
 
 当前是可运行的青茅山垂直切片，不声称已经完成 Qud 级别的格点物理、身体部位、液体/温度、完整历史生成和全卷内容。后续系统会继续以可测试的组件/事件模块逐层加入。

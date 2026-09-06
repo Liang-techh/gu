@@ -57,6 +57,24 @@ test('NPCs run schedules while the player waits instead of freezing the world', 
   assert.ok(state.log.some(entry => entry.type === 'npc_move') || state.entities.fangyuan.position.location !== start);
 });
 
+test('NPC goals produce world-side consequences, not only text', () => {
+  let state = open(S.newWorld({ seed: 'npc-goals' }), 'observe');
+  const before = state.facts.marketActivity || 0;
+  state = ok(state, { type: 'action', id: 'wait', hours: 12 });
+  assert.ok((state.facts.marketActivity || 0) > before || state.log.some(entry => entry.type === 'npc_goal_action'));
+  assert.ok(state.log.some(entry => entry.type === 'npc_goal_action'));
+});
+
+test('faction network records both player-facing attitude and inter-faction tension', () => {
+  let state = open(S.newWorld({ seed: 'factions' }), 'observe');
+  const before = state.factions.guYue.attitude;
+  state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'help' });
+  assert.ok(state.factions.guYue.attitude > before);
+  assert.equal(typeof state.factions.guYue.relations.bai, 'number');
+  state = ok(state, { type: 'action', id: 'wait', hours: 24 });
+  assert.ok(typeof state.factions.caravans.relations.guYue === 'number');
+});
+
 test('director emits a situation from world conditions and does not bypass dispatch', () => {
   let state = open(S.newWorld({ seed: 'director' }), 'observe');
   state = ok(state, { type: 'action', id: 'travel', location: 'village' });
@@ -86,6 +104,18 @@ test('save validation preserves components, memories, relationships and determin
   const restored = S.validate(JSON.stringify(state));
   assert.deepEqual(restored, state);
   assert.equal(S.snapshot(restored).player.name, '古月族人');
+});
+
+test('entity conflict uses body components, combat events and NPC memory', () => {
+  let state = open(S.newWorld({ seed: 'conflict' }), 'observe');
+  state = ok(state, { type: 'action', id: 'challenge', target: 'fangzheng' });
+  assert.equal(state.combat.defender, 'fangzheng');
+  assert.equal(S.dispatch(state, { type: 'action', id: 'rest' }).ok, false);
+  const before = state.entities.fangzheng.body.health;
+  state = ok(state, { type: 'combat', id: 'attack' });
+  assert.ok(state.entities.fangzheng.body.health < before);
+  assert.ok(state.entities.fangzheng.body.wounds.length > 0);
+  assert.ok(state.entities.fangzheng.memory.episodes.some(item => item.kind === 'injury'));
 });
 
 test('invalid actions are rejected without mutating the original state', () => {

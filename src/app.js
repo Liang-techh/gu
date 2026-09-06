@@ -38,7 +38,7 @@
     const p = s.entities.player;
     const people = Object.values(s.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === p.position.location);
     if (!people.length) return '<div class="empty">这里暂时没有熟人，只有风、雨和你的判断。</div>';
-    return people.map(e => { const r = s.relationships[[e.id, 'player'].sort().join('::')] || {}; const latest = e.memory.episodes[0]; return `<article class="person-card"><div><strong>${esc(e.identity.name)}</strong><span>${esc(e.identity.role)}</span></div><p>目标：${esc(e.goals.active || '观望')} · 信任 ${Math.round(r.trust || 0)} · 畏惧 ${Math.round(r.fear || 0)}</p>${latest ? `<small>记忆：${esc(latest.text)}</small>` : ''}<div class="inline-actions">${button('交谈', { type: 'action', id: 'talk', target: e.id, mode: 'listen' })}${button('帮助', { type: 'action', id: 'talk', target: e.id, mode: 'help' })}${button('施压', { type: 'action', id: 'talk', target: e.id, mode: 'threaten' })}</div></article>`; }).join('');
+    return people.map(e => { const r = s.relationships[[e.id, 'player'].sort().join('::')] || {}; const latest = e.memory.episodes[0]; return `<article class="person-card"><div><strong>${esc(e.identity.name)}</strong><span>${esc(e.identity.role)}</span></div><p>目标：${esc(e.goals.active || '观望')} · 信任 ${Math.round(r.trust || 0)} · 畏惧 ${Math.round(r.fear || 0)}</p>${latest ? `<small>记忆：${esc(latest.text)}</small>` : ''}<div class="inline-actions">${button('交谈', { type: 'action', id: 'talk', target: e.id, mode: 'listen' })}${button('帮助', { type: 'action', id: 'talk', target: e.id, mode: 'help' })}${button('施压', { type: 'action', id: 'talk', target: e.id, mode: 'threaten' })}${button('挑战', { type: 'action', id: 'challenge', target: e.id }, false, 'danger')}</div></article>`; }).join('');
   }
 
   function render() {
@@ -48,6 +48,7 @@
     app.innerHTML = `<div class="shell">
       <header class="topbar"><div><div class="kicker">青茅山 · 持续世界</div><h1>${esc(p.name)}</h1><p>${esc(timeText(state))} · ${esc(locName(here))}</p></div><div class="top-actions"><button id="save-game">保存</button><button id="new-world">新世界</button></div></header>
       ${eventPanel(state)}
+      ${combatPanel(state)}
       <section class="dashboard">
         <div class="main-column">
           <article class="scene"><div class="scene-label">当前场景</div><h2>${esc(locName(here))}</h2><p>${esc(sceneText(here))}</p><div class="meter-row"><span>生命</span><b>${Math.round(p.vitality)}%</b><i><em style="width:${p.vitality}%"></em></i></div><div class="meter-row"><span>真元</span><b>${Math.round(p.essence)} / ${p.essenceMax}</b><i><em style="width:${(p.essence / p.essenceMax) * 100}%"></em></i></div><div class="meter-row"><span>修为</span><b>${Math.round(p.progress)}%</b><i><em style="width:${p.progress}%"></em></i></div></article>
@@ -67,6 +68,12 @@
 
   function sceneText(id) {
     const texts = { academy: '雨水敲在学堂檐角。家老在观察谁更像一块值得下注的玉，少年们也在互相寻找破绽。', village: '吊楼的灯火沿山腰铺开。这里有家族秩序，也有交易、传闻和无法被写进族谱的秘密。', ancestralHall: '香火和权力在同一座祠堂里升起。每一句话都会被不同的人解释成不同的立场。', bambooForest: '竹叶洗过雨，气味比记忆更诚实。这里的机缘不会主动等人，但也不会因为主线没有安排就消失。', riverbank: '山溪把脚印和酒香带向更深处。水面平静，水下的因果并不平静。', cliffCave: '石缝里残留着不属于今夜的痕迹。你看到的每一件东西，都可能成为别人的记忆。', caravanCamp: '商队暂时停在寨外，货物、消息和立场一起流动。' }; return texts[id] || '世界在自行运转。';
+  }
+  function combatPanel(s) {
+    const c = s.combat;
+    if (!c) return '';
+    const target = s.entities[c.defender];
+    return `<section class="director-event combat-event"><div class="event-tag">冲突 · 第 ${c.round} 回合</div><h2>你与${esc(target?.identity.name || '未知目标')}正在交锋</h2><p>伤势会写入双方身体组件和记忆。其他行动暂时不可用。</p><div class="choice-grid">${button('攻击', { type: 'combat', id: 'attack' }, false, 'choice')}${button('催动月光蛊', { type: 'combat', id: 'gu' }, false, 'choice')}${button('防守', { type: 'combat', id: 'guard' }, false, 'choice')}${button('脱身', { type: 'combat', id: 'flee' }, false, 'choice')}</div><small>你的身体：${Math.round(s.entities.player.body.health)} / ${Math.round(s.entities.player.body.maxHealth)} · 对方：${Math.round(target?.body.health || 0)} / ${Math.round(target?.body.maxHealth || 0)}</small></section>`;
   }
   function itemName(id) { return ({ water: '清水', moonPetal: '月兰花瓣', wine: '酒', stones: '元石', food: '食物', relicFragment: '遗藏碎片' }[id] || id); }
   function actionButtons(s) {

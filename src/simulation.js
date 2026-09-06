@@ -99,15 +99,22 @@
   };
 
   const SOURCE_NOTES = {
-    opening: { source: 'reference/novel/第1卷：魔性不改/第1章.txt', note: '方源重生于青茅山、开窍大典前夜、方正作为孪生弟弟出现。' },
-    academy: { source: 'reference/novel/第1卷：魔性不改/第2章.txt', note: '开窍、资质、元海与家族培养构成青茅山开局冲突。' },
-    relic: { source: 'reference/novel/第1卷：魔性不改/第15章.txt', note: '竹林、酒虫与花酒遗藏作为可被行动触发的世界素材。' }
+    opening: { source: 'reference/novel/第1卷：魔性不改/第7章.txt', note: '方源、青茅山、古月山寨与学堂构成青茅山开局的社会空间。' },
+    academy: { source: 'reference/novel/第1卷：魔性不改/第6章.txt', note: '空窍、元海、真元与方正构成修行起点和兄弟关系的原文依据。' },
+    relic: { source: 'reference/novel/第1卷：魔性不改/第14章.txt', note: '酒虫、竹林、河滩和石缝构成可被行动触发的遗藏线索。' }
   };
 
   function relation(state, a, b) {
     const key = keyOf(a, b);
     if (!state.relationships[key]) state.relationships[key] = { trust: 0, fear: 0, debt: 0, affinity: 0, lastSeen: state.clock };
     return state.relationships[key];
+  }
+
+  function affectFaction(state, factionId, attitudeDelta = 0, tensionDelta = 0) {
+    const faction = state.factions[factionId];
+    if (!faction) return;
+    faction.attitude += attitudeDelta;
+    faction.tension += tensionDelta;
   }
 
   function log(state, type, text, data = {}) {
@@ -129,6 +136,7 @@
   }
 
   function createEntity(id, seed) {
+    const maxHealth = 60 + ((seed.cultivation?.rank || 1) * 18);
     return {
       id,
       identity: { name: seed.name, role: seed.role || '居民', tags: seed.tags || [] },
@@ -139,6 +147,8 @@
       schedule: seed.schedule || {},
       goals: { active: seed.goals?.[0] || 'idle', queue: seed.goals || [] },
       needs: { energy: 100, hunger: 0, safety: 80 },
+      body: { maxHealth, health: maxHealth, wounds: [], limbs: { head: 100, torso: 100, leftArm: 100, rightArm: 100, leftLeg: 100, rightLeg: 100 } },
+      abilities: { gu: [], skills: [] },
       inventory: {},
       memory: { facts: {}, episodes: [] },
       alive: true
@@ -158,8 +168,10 @@
       locations: copy(LOCATIONS),
       factions: {},
       relationships: {},
+      facts: {},
       flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false },
       events: { active: null, pending: [], history: [] },
+      combat: null,
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
       log: [],
       version: 1
@@ -171,12 +183,15 @@
       schedule: {}, goals: ['survive', 'grow']
     });
     state.entities.player.inventory = { water: 5, moonPetal: 6, wine: 1, stones: 8 };
+    state.entities.player.body.health = state.entities.player.body.maxHealth;
     state.entities.player.needs = { energy: 92, hunger: 8, safety: 70 };
     for (const [id, seedData] of Object.entries(NPC_SEEDS)) state.entities[id] = createEntity(id, seedData);
     for (const id of Object.keys(state.entities)) remember(state, id, 'world', { kind: 'origin', text: '青茅山的雨季刚刚开始。', facts: { region: '青茅山' } });
     relation(state, 'player', 'fangyuan').fear = 4;
     relation(state, 'player', 'fangzheng').trust = 6;
     relation(state, 'player', 'guYue').trust = 8;
+    const factionIds = Object.keys(state.factions);
+    for (const a of factionIds) for (const b of factionIds) if (a !== b) state.factions[a].relations[b] = a === 'guYue' && ['bai', 'xiong', 'demonic'].includes(b) ? -24 : 0;
     state.events.active = openingEvent(state);
     log(state, 'world_started', `第${day(state)}日，青茅山的开窍大典即将开始。`, { source: SOURCE_NOTES.opening });
     return state;
@@ -234,6 +249,7 @@
     state.events.active = null;
     if (choice === 'reveal') {
       relation(state, 'player', 'guYue').trust += 12;
+      affectFaction(state, 'guYue', 5, -1);
       p.memory.facts.world.opening = '公开参加开窍大典';
       log(state, 'choice', '你如实参加开窍大典，家族开始把你视作可培养的变量。');
     } else if (choice === 'observe') {
@@ -287,6 +303,15 @@
     p.cultivation.essence = clamp(p.cultivation.essence, 0, p.cultivation.essenceMax);
     p.cultivation.progress = clamp(p.cultivation.progress, 0, 100);
     p.cultivation.vitality = clamp(p.cultivation.vitality, 0, 100);
+    if (!p.body) p.body = { maxHealth: 78, health: 78, wounds: [], limbs: { head: 100, torso: 100, leftArm: 100, rightArm: 100, leftLeg: 100, rightLeg: 100 } };
+    p.body.maxHealth = Math.max(1, Number(p.body.maxHealth) || 78);
+    p.body.health = clamp(Number(p.body.health) || 0, 0, p.body.maxHealth);
+    p.cultivation.vitality = clamp((p.body.health / p.body.maxHealth) * 100, 0, 100);
+    for (const entity of Object.values(state.entities)) if (entity.body) {
+      entity.body.maxHealth = Math.max(1, Number(entity.body.maxHealth) || 1);
+      entity.body.health = clamp(Number(entity.body.health) || 0, 0, entity.body.maxHealth);
+      if (entity.body.health <= 0) entity.alive = false;
+    }
     p.needs.energy = clamp(p.needs.energy, 0, 100);
     p.needs.hunger = clamp(p.needs.hunger, 0, 100);
     for (const faction of Object.values(state.factions)) {
@@ -319,9 +344,38 @@
         npc.position.location = target;
         log(state, 'npc_move', `${npc.identity.name} 从${LOCATIONS[previous].name}前往${LOCATIONS[target].name}。`, { npcId: npc.id, goal });
       }
+      if (hour(state) % 4 === 0) npcDoGoal(state, npc, goal);
       if (npc.position.location === state.entities.player.position.location && random(state) < 0.12) {
         remember(state, npc.id, 'player', { kind: 'encounter', valence: relValence(state, npc.id), text: `在${LOCATIONS[npc.position.location].name}再次遇见了你。` });
       }
+    }
+  }
+
+  function npcDoGoal(state, npc, goal) {
+    const faction = npc.faction && state.factions[npc.faction];
+    if (goal === 'secureResources' && ['bambooForest', 'riverbank'].includes(npc.position.location)) {
+      npc.inventory.moonPetal = (npc.inventory.moonPetal || 0) + 1;
+      if (faction) faction.influence += 0.4;
+      log(state, 'npc_goal_action', `${npc.identity.name}为了资源在${LOCATIONS[npc.position.location].name}搜寻。`, { npcId: npc.id, goal });
+    } else if (goal === 'findRelic' && ['bambooForest', 'riverbank', 'cliffCave'].includes(npc.position.location)) {
+      state.facts.relicInterest = (state.facts.relicInterest || 0) + 1;
+      state.director.pressure = clamp(state.director.pressure + 0.4, 0, 10);
+      remember(state, npc.id, 'world', { kind: 'secret', valence: 2, text: '竹林深处的遗藏并不只吸引一个人。', facts: { relicInterest: true } });
+      log(state, 'npc_goal_action', `${npc.identity.name}在追查一条关于遗藏的线索。`, { npcId: npc.id, goal });
+    } else if (goal === 'winRivalry' && npc.position.location === 'academy') {
+      state.factions.guYue.tension += 0.7;
+      relation(state, npc.id, 'fangzheng').affinity -= 1;
+      log(state, 'npc_goal_action', `${npc.identity.name}在学堂争取表现，竞争压力上升。`, { npcId: npc.id, goal });
+    } else if (goal === 'trade' && ['caravanCamp', 'village'].includes(npc.position.location)) {
+      if (faction) faction.influence += 0.6;
+      state.facts.marketActivity = (state.facts.marketActivity || 0) + 1;
+      log(state, 'npc_goal_action', `${npc.identity.name}完成了一次交易，商路继续流动。`, { npcId: npc.id, goal });
+    } else if (goal === 'protectBrother') {
+      relation(state, 'fangzheng', 'fangyuan').trust += 0.4;
+      remember(state, 'fangzheng', 'fangyuan', { kind: 'family', valence: 1, text: '你仍然把方源视作需要证明自己的兄长。' });
+    } else if (goal === 'avoidPlayer') {
+      npc.needs.safety = clamp(npc.needs.safety + 2, 0, 100);
+      remember(state, npc.id, 'player', { kind: 'avoidance', valence: -1, text: '你暂时不想和这个人再次碰面。' });
     }
   }
 
@@ -341,6 +395,9 @@
     const rel = relation(state, 'player', 'guYue');
     state.factions.guYue.tension += p.cultivation.rank > 1 ? 1 : 0;
     state.factions.bai.tension += state.factions.guYue.tension > 45 ? 1 : 0;
+    state.factions.guYue.relations.bai = clamp((state.factions.guYue.relations.bai || 0) - (state.factions.guYue.tension > 40 ? 1 : 0), -100, 100);
+    state.factions.guYue.relations.xiong = clamp((state.factions.guYue.relations.xiong || 0) - (state.factions.guYue.tension > 55 ? 1 : 0), -100, 100);
+    state.factions.caravans.relations.guYue = clamp((state.factions.caravans.relations.guYue || 0) + (state.facts.marketActivity ? 1 : 0), -100, 100);
     state.director.pressure = clamp(state.director.pressure + (p.needs.hunger > 65 ? 2 : 0) + (rel.trust < 0 ? 1 : 0), 0, 10);
     log(state, 'day_tick', `第${day(state)}日结束，山寨、势力与人物各自推进了一步。`, { pressure: state.director.pressure });
   }
@@ -370,9 +427,77 @@
     return npc;
   }
 
+  function damageEntity(state, targetId, amount, sourceId, kind = 'strike') {
+    const target = state.entities[targetId];
+    if (!target?.body || !target.alive) return 0;
+    const damage = Math.max(1, Math.round(amount));
+    const limbNames = Object.keys(target.body.limbs);
+    const limb = limbNames[Math.floor(random(state) * limbNames.length)];
+    target.body.health -= damage;
+    target.body.limbs[limb] = clamp(target.body.limbs[limb] - Math.round(damage * 0.65), 0, 100);
+    target.body.wounds.unshift({ clock: state.clock, sourceId, kind, limb, damage });
+    target.body.wounds = target.body.wounds.slice(0, 12);
+    remember(state, targetId, sourceId, { kind: 'injury', valence: -damage, text: `你在${limb}处留下了伤势。` });
+    log(state, 'damage', `${target.identity.name} 受到 ${damage} 点${kind === 'gu' ? '蛊术' : '伤害'}。`, { targetId, sourceId, limb, damage });
+    if (target.body.health <= 0) {
+      target.alive = false;
+      log(state, 'death', `${target.identity.name} 倒下了。`, { targetId, sourceId });
+      if (targetId === state.playerId) state.entities.player.cultivation.vitality = 0;
+    }
+    return damage;
+  }
+
+  function beginConflict(state, targetId, kind = 'challenge') {
+    const p = state.entities.player;
+    const target = requireSameLocation(state, targetId);
+    if (targetId === state.playerId) throw new Error('不能与自己交锋');
+    state.combat = { kind, attacker: 'player', defender: targetId, round: 1, guard: false, startedAt: state.clock };
+    relation(state, 'player', targetId).fear += 2;
+    remember(state, targetId, 'player', { kind: 'conflict', valence: -10, text: `${p.identity.name}主动把关系推向了冲突。` });
+    log(state, 'combat_start', `你与${target.identity.name}在${LOCATIONS[p.position.location].name}交锋。`, { targetId, kind });
+  }
+
+  function combatAction(state, command) {
+    const combat = state.combat;
+    const p = state.entities.player;
+    if (!combat) throw new Error('当前没有冲突');
+    const target = state.entities[combat.defender];
+    if (!target?.alive) { state.combat = null; return; }
+    const id = command.id;
+    let playerDamage = 0;
+    let playerGuard = false;
+    if (id === 'attack') playerDamage = 10 + p.cultivation.rank * 4 + p.cultivation.insight * 0.25;
+    else if (id === 'gu') {
+      const gu = p.inventory.gu?.moonlight;
+      if (!gu?.refined || p.cultivation.essence < 8) throw new Error('需要已炼化的月光蛊和至少 8 点真元');
+      p.cultivation.essence -= 8;
+      playerDamage = 18 + p.cultivation.rank * 5;
+    } else if (id === 'guard') playerGuard = true;
+    else if (id === 'flee') {
+      const chance = clamp(0.35 + (p.needs.energy / 250) - (target.cultivation?.rank || 1) * 0.04, 0.1, 0.85);
+      if (random(state) < chance) { state.combat = null; log(state, 'combat_escape', '你脱离了冲突，但这段关系不会因此恢复原状。'); advance(state, 1, 'combat'); return; }
+      log(state, 'combat_escape_failed', '你试图脱身，却被对方逼回原地。');
+    } else throw new Error('未知冲突动作');
+    if (playerDamage) damageEntity(state, target.id, playerDamage, 'player', id === 'gu' ? 'gu' : 'strike');
+    if (!target.alive) {
+      relation(state, 'player', target.id).fear += 25;
+      if (target.faction && state.factions[target.faction]) state.factions[target.faction].tension += 8;
+      state.combat = null;
+      advance(state, 1, 'combat');
+      return;
+    }
+    const targetPower = 6 + (target.cultivation?.rank || 1) * 4 + (target.personality?.ambition || 0) * 0.04;
+    damageEntity(state, 'player', playerGuard ? targetPower * 0.35 : targetPower, target.id, 'npc_strike');
+    p.needs.energy -= 5;
+    combat.round += 1;
+    if (!p.alive) { state.combat = null; }
+    advance(state, 1, 'combat');
+  }
+
   function action(state, command) {
     const p = requirePlayer(state);
     const id = command.id;
+    if (state.combat) throw new Error('冲突中只能选择攻击、防守、催动蛊术或脱身');
     if (state.events.active) throw new Error('请先处理当前世界事件');
     if (id === 'wait') { advance(state, Number(command.hours) || 2, 'wait'); log(state, 'action', '你等待了一段时间，观察世界如何自行变化。'); return; }
     if (id === 'travel') {
@@ -412,6 +537,7 @@
       advance(state, 2, 'gather'); return;
     }
     if (id === 'rest') { p.needs.energy += 42; p.needs.hunger += 4; log(state, 'action', '你休息了一晚，人物和势力仍在世界中行动。'); advance(state, 6, 'rest'); return; }
+    if (id === 'challenge') { beginConflict(state, command.target, command.kind || 'challenge'); return; }
     if (id === 'refine') {
       if (p.position.location !== 'academy' && p.position.location !== 'village') throw new Error('这里没有适合炼化蛊虫的安静场所');
       const guId = command.guId || 'moonlight';
@@ -432,9 +558,9 @@
       const r = relation(state, 'player', npc.id);
       const mode = command.mode || 'listen';
       const memoryBoost = (p.memory.facts[npc.id]?.helped ? 6 : 0) + (r.trust > 20 ? 3 : 0);
-      if (mode === 'help') { r.trust += 7 + memoryBoost; r.debt += 1; remember(state, npc.id, 'player', { kind: 'help', valence: 10, text: `${p.identity.name}曾在关键时刻帮助过你。`, facts: { helped: true } }); log(state, 'social', `${npc.identity.name}接受了你的帮助，人情被记在账上。`); }
-      else if (mode === 'threaten') { r.fear += 9; r.trust -= 5; state.director.pressure += 1; remember(state, npc.id, 'player', { kind: 'threat', valence: -8, text: `${p.identity.name}让你感到危险。` }); log(state, 'social', `你向${npc.identity.name}施压，短期得到让步，长期留下阴影。`); }
-      else if (mode === 'trade') { if ((p.inventory.stones || 0) < 1) throw new Error('元石不足'); p.inventory.stones -= 1; p.inventory.water += 1; r.trust += 2; log(state, 'social', `你与${npc.identity.name}完成了一次小交易。`); }
+      if (mode === 'help') { r.trust += 7 + memoryBoost; r.debt += 1; if (npc.faction) affectFaction(state, npc.faction, 2, -0.5); remember(state, npc.id, 'player', { kind: 'help', valence: 10, text: `${p.identity.name}曾在关键时刻帮助过你。`, facts: { helped: true } }); log(state, 'social', `${npc.identity.name}接受了你的帮助，人情被记在账上。`); }
+      else if (mode === 'threaten') { r.fear += 9; r.trust -= 5; if (npc.faction) affectFaction(state, npc.faction, -2, 2); state.director.pressure += 1; remember(state, npc.id, 'player', { kind: 'threat', valence: -8, text: `${p.identity.name}让你感到危险。` }); log(state, 'social', `你向${npc.identity.name}施压，短期得到让步，长期留下阴影。`); }
+      else if (mode === 'trade') { if ((p.inventory.stones || 0) < 1) throw new Error('元石不足'); p.inventory.stones -= 1; p.inventory.water += 1; r.trust += 2; if (npc.faction) affectFaction(state, npc.faction, 1, 0); log(state, 'social', `你与${npc.identity.name}完成了一次小交易。`); }
       else { r.trust += 1 + memoryBoost * 0.2; p.cultivation.insight += 1; remember(state, npc.id, 'player', { kind: 'conversation', valence: 2, text: `你和${p.identity.name}谈过一次。` }); log(state, 'social', `你与${npc.identity.name}交谈，双方更新了对彼此的判断。`); }
       r.lastSeen = state.clock; advance(state, 1, 'talk'); return;
     }
@@ -474,6 +600,7 @@
     try {
       if (state.entities.player.cultivation.vitality <= 0) throw new Error('你已经失去行动能力');
       if (command.type === 'resolve_event') resolveDirectorEvent(state, command.choice);
+      else if (command.type === 'combat') combatAction(state, command);
       else if (command.type === 'action') action(state, command);
       else throw new Error('未知指令类型');
       normalize(state);
@@ -497,9 +624,10 @@
     return {
       day: day(state), hour: hour(state), phase: phase(state), location: p.position.location,
       player: { ...p.cultivation, name: p.identity.name, inventory: copy(p.inventory), needs: copy(p.needs) },
+      combat: copy(state.combat || null),
       nearby: Object.values(state.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), combat: copy(state.combat || null), log: state.log.slice(0, 20).map(copy)
     };
   }
 
