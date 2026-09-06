@@ -77,6 +77,38 @@
       });
     }, 80);
 
+    engine.registerSystem('day', 'wolfCrisisTick', ({ state }) => {
+      const crisis = state.wolfCrisis;
+      if (!crisis?.active || crisis.phase === 'aftermath' || crisis.phase === 'resolved') return;
+      const assault = crisis.phase === 'assault';
+      const marketRelief = state.facts.marketActivity ? 0.6 : 0;
+      const legitimacyRelief = (crisis.alliance?.legitimacy || 0) * 0.025;
+      crisis.lastTickDay = day(state);
+      crisis.supply = clamp(crisis.supply - (assault ? 4 : 1.5) + marketRelief + legitimacyRelief, 0, 100);
+      crisis.pressure = clamp(crisis.pressure + (assault ? 5 : 1.5) - (crisis.relief > 0 ? 1.5 : 0), 0, 100);
+      crisis.relief = Math.max(0, crisis.relief - 2);
+      if (assault) {
+        crisis.battles += 1;
+        for (const locationId of ['bambooForest', 'riverbank', 'cliffCave']) state.zones[locationId].danger = clamp(state.zones[locationId].danger + 2, 0, 100);
+      }
+      if (crisis.supply < 25 || crisis.pressure > 72) {
+        crisis.casualties += 1;
+        crisis.displacement += 1;
+        state.factions.guYue.tension += 1.5;
+        state.factions.bai.tension += 1;
+        state.factions.xiong.tension += 1;
+        const displaced = engine.query(state, entity => entity.id.startsWith('ambient-') && entity.alive && ['village', 'bambooForest', 'riverbank'].includes(entity.position?.location))[0];
+        if (displaced) {
+          const from = displaced.position.location;
+          displaced.position.location = 'caravanCamp';
+          remember(state, displaced.id, 'world', { kind: 'migration', valence: -2, text: `${displaced.identity.name}因狼潮与粮道压力离开了${locations[from].name}。`, facts: { displacedByWolfTide: true, from, to: 'caravanCamp' } });
+        }
+        consequence(state, { kind: 'wolf_displacement', actorId: 'world', factionId: 'guYue', source: 'wolfCrisisTick', location: 'village', reason: '狼潮与补给压力迫使居民迁离安全边缘。', data: { supply: crisis.supply, pressure: crisis.pressure, casualties: crisis.casualties, displacement: crisis.displacement }, tension: 1, pressure: 0.15 });
+      }
+      if (crisis.pressure > 88) state.director.pressure = clamp(state.director.pressure + 0.5, 0, 10);
+      engine.emit(state, 'wolf.crisis_tick', { phase: crisis.phase, day: day(state), supply: crisis.supply, pressure: crisis.pressure, casualties: crisis.casualties, displacement: crisis.displacement });
+    }, 75);
+
     engine.registerSystem('day', 'clanPressureTick', ({ state }) => {
       const player = state.entities.player;
       const rel = relation(state, 'player', 'guYue');

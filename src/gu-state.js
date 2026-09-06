@@ -29,6 +29,10 @@
       state.rebirth.count = Math.max(0, Number(state.rebirth.count) || 0);
       state.rebirth.scars ||= []; state.rebirth.echoes ||= [];
       state.rebirth.scars = state.rebirth.scars.slice(-8); state.rebirth.echoes = state.rebirth.echoes.slice(-16);
+      state.wolfCrisis ||= { active: false, phase: 'distant', pressure: 0, supply: 54, casualties: 0, battles: 0, displacement: 0, relief: 0, lastTickDay: 0, alliance: { active: false, legitimacy: 0, obligations: {}, contributions: {} } };
+      state.wolfCrisis.phase ||= 'distant'; state.wolfCrisis.alliance ||= { active: false, legitimacy: 0, obligations: {}, contributions: {} };
+      state.wolfCrisis.alliance.obligations ||= {}; state.wolfCrisis.alliance.contributions ||= {};
+      state.wolfCrisis.active = !!state.wolfCrisis.active; state.wolfCrisis.pressure = clamp(Number(state.wolfCrisis.pressure) || 0, 0, 100); state.wolfCrisis.supply = clamp(Number(state.wolfCrisis.supply) || 0, 0, 100); state.wolfCrisis.casualties = Math.max(0, Number(state.wolfCrisis.casualties) || 0); state.wolfCrisis.battles = Math.max(0, Number(state.wolfCrisis.battles) || 0); state.wolfCrisis.displacement = Math.max(0, Number(state.wolfCrisis.displacement) || 0); state.wolfCrisis.relief = Math.max(0, Number(state.wolfCrisis.relief) || 0); state.wolfCrisis.lastTickDay = Math.max(0, Number(state.wolfCrisis.lastTickDay) || 0); state.wolfCrisis.alliance.legitimacy = clamp(Number(state.wolfCrisis.alliance.legitimacy) || 0, -100, 100);
       state.contracts ||= { available: [], active: {}, completed: [] };
       state.contracts.available ||= []; state.contracts.active ||= {}; state.contracts.completed ||= [];
       state.arena ||= { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 };

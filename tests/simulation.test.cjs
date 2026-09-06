@@ -380,7 +380,26 @@ test('market, alliance and wolf crisis are persistent world events', () => {
   assert.equal(state.flags.marketArrived, true);
   assert.equal(state.flags.allianceCouncil, true);
   assert.equal(state.flags.wolfTide, true);
+  assert.ok(['assault', 'aftermath'].includes(state.wolfCrisis.phase));
+  assert.ok(state.wolfCrisis.alliance.legitimacy > 0);
   assert.ok(state.director.thread.includes('wolfTide'));
+});
+
+test('wolf crisis exposes relief, scouting and hoarding as world actions', () => {
+  let state = open(S.newWorld({ seed: 'wolf-actions' }), 'observe');
+  state.entities.player.position.location = 'village';
+  state.wolfCrisis.active = true;
+  state.wolfCrisis.phase = 'assault';
+  const supplyBeforeRelief = state.wolfCrisis.supply;
+  state = ok(state, { type: 'action', id: 'wolf_action', mode: 'scout' });
+  assert.ok(state.facts.wolfIntel > 0);
+  state = ok(state, { type: 'action', id: 'wolf_action', mode: 'relief' });
+  assert.ok(state.wolfCrisis.supply > supplyBeforeRelief);
+  assert.ok(state.events.recent.some(event => event.type === 'wolf.action'));
+  const pressureBeforeHoard = state.wolfCrisis.pressure;
+  state = ok(state, { type: 'action', id: 'wolf_action', mode: 'hoard' });
+  assert.ok(state.wolfCrisis.pressure > pressureBeforeHoard);
+  assert.ok(state.consequences.records.some(item => item.kind === 'wolf_hoard'));
 });
 
 test('late first-volume content uses delayed NPC spawning and director conditions', () => {
@@ -965,7 +984,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
   assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'effectTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
-  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
+  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'wolfCrisisTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
 });
 
 test('action catalog derives available commands from world state instead of UI conditionals', () => {

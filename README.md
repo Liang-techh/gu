@@ -42,6 +42,7 @@
 - 世界状态提供器 [src/gu-state.js](<D:\Caves of Qud\gu-rpg\src\gu-state.js>)：蛊真人专属的存档默认值、组件修复、数值边界和区域状态归一化从 kernel 移出，换内容包时只替换状态 schema provider；
 - 高代价命运逆转：春秋蝉式行动只在濒死绝境开放，消耗有限次数、丢失当前资源、改变世界随机轨迹并留下身体裂痕，同时只携带低置信度的未来回声；
 - 规则型传承运行时：三王传承保存侦查线索、可信度、资格、竞争者进度、开放窗口、贪取捷径和错误路线，侦查与推进共用 Action/Event/History 管线；
+- 持续狼潮危机：三寨联盟、补给、压力、合法性、战斗、伤亡和迁徙进入日级系统；玩家可救援、侦查或囤积，世界会在玩家不操作时继续结算；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：30 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；
 - 小说事件结算包 [src/gu-event-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-event-rules.js>)：导演选择后的旗标、资源、关系、记忆、势力和战争后果通过统一事件注册表结算，模拟内核不再承载卷章事件处理器；

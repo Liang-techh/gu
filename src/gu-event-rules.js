@@ -46,26 +46,29 @@
       engine.registerEvent('allianceCouncil', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.allianceCouncil = true;
+        state.wolfCrisis.active = true; state.wolfCrisis.phase = 'mobilizing'; state.wolfCrisis.alliance.active = true; state.wolfCrisis.alliance.obligations.guYue = (state.wolfCrisis.alliance.obligations.guYue || 0) + 2;
         if (choice === 'aid') { state.factions.guYue.influence -= 4; state.factions.guYue.tension -= 4; state.factions.bai.tension -= 5; state.factions.xiong.tension -= 5; state.factions.guYue.relations.bai += 8; state.factions.guYue.relations.xiong += 8; remember(state, 'guyuebo', 'player', { kind: 'politics', valence: 6, text: '你在三寨利益分配前支持共同防线。' }); }
-        if (choice === 'hoard') { state.factions.guYue.influence += 4; state.factions.guYue.tension += 5; state.factions.bai.tension += 4; state.factions.xiong.tension += 4; state.director.pressure += 1; remember(state, 'guyuebo', 'player', { kind: 'politics', valence: 1, text: '你首先考虑古月山寨的存续。' }); }
-        if (choice === 'spy') { p.cultivation.insight += 8; remember(state, 'player', 'world', { kind: 'secret', valence: 3, text: '三寨联盟真正困难的不是是否结盟，而是谁承担最危险的防线。', facts: { allianceIntel: true } }); }
+        if (choice === 'aid') { state.wolfCrisis.supply += 8; state.wolfCrisis.relief += 4; state.wolfCrisis.alliance.legitimacy += 8; state.wolfCrisis.alliance.contributions.guYue = (state.wolfCrisis.alliance.contributions.guYue || 0) + 4; }
+        if (choice === 'hoard') { state.factions.guYue.influence += 4; state.factions.guYue.tension += 5; state.factions.bai.tension += 4; state.factions.xiong.tension += 4; state.director.pressure += 1; state.wolfCrisis.supply -= 3; state.wolfCrisis.alliance.legitimacy -= 5; remember(state, 'guyuebo', 'player', { kind: 'politics', valence: 1, text: '你首先考虑古月山寨的存续。' }); }
+        if (choice === 'spy') { p.cultivation.insight += 8; state.wolfCrisis.alliance.legitimacy -= 1; state.wolfCrisis.alliance.contributions.player = (state.wolfCrisis.alliance.contributions.player || 0) + 1; remember(state, 'player', 'world', { kind: 'secret', valence: 3, text: '三寨联盟真正困难的不是是否结盟，而是谁承担最危险的防线。', facts: { allianceIntel: true } }); }
         log(state, 'choice', `你处理了三寨议事：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.wolf });
         return true;
       });
       engine.registerEvent('wolfTide', ({ state, choice, event }) => {
         const p = state.entities.player;
-        state.flags.wolfTide = true; state.director.pressure = clamp(state.director.pressure + 2, 0, 10);
+        state.flags.wolfTide = true; state.wolfCrisis.active = true; state.wolfCrisis.phase = 'assault'; state.wolfCrisis.pressure = Math.max(28, state.wolfCrisis.pressure); state.wolfCrisis.battles += 1; state.director.pressure = clamp(state.director.pressure + 2, 0, 10);
         for (const locationId of ['bambooForest', 'riverbank', 'cliffCave']) state.zones[locationId].danger += 12;
         state.zones.village.resources.food = Math.max(0, state.zones.village.resources.food - 2); state.factions.guYue.tension += 6;
-        if (choice === 'mobilize') { state.zones.village.danger = Math.max(0, state.zones.village.danger - 8); state.factions.guYue.influence += 5; state.factions.guYue.tension -= 3; remember(state, 'guyuebo', 'player', { kind: 'crisis', valence: 8, text: '你在狼潮逼近前参与了巡逻与布防。' }); }
-        if (choice === 'hunt') { p.inventory.food = (p.inventory.food || 0) + 2; p.needs.safety -= 12; p.cultivation.insight += 3; remember(state, 'bainingbing', 'player', { kind: 'crisis', valence: 2, text: '你在狼潮逼近时选择深入山林。' }); }
-        if (choice === 'secure') { p.inventory.water += 3; p.inventory.food = (p.inventory.food || 0) + 3; state.zones.bambooForest.danger += 8; state.director.pressure += 1; }
+        if (choice === 'mobilize') { state.zones.village.danger = Math.max(0, state.zones.village.danger - 8); state.factions.guYue.influence += 5; state.factions.guYue.tension -= 3; state.wolfCrisis.relief += 12; state.wolfCrisis.supply += 10; state.wolfCrisis.alliance.legitimacy += 4; state.wolfCrisis.alliance.contributions.guYue = (state.wolfCrisis.alliance.contributions.guYue || 0) + 6; remember(state, 'guyuebo', 'player', { kind: 'crisis', valence: 8, text: '你在狼潮逼近前参与了巡逻与布防。' }); }
+        if (choice === 'hunt') { p.inventory.food = (p.inventory.food || 0) + 2; p.needs.safety -= 12; p.cultivation.insight += 3; state.wolfCrisis.supply -= 4; state.wolfCrisis.pressure += 5; remember(state, 'bainingbing', 'player', { kind: 'crisis', valence: 2, text: '你在狼潮逼近时选择深入山林。' }); }
+        if (choice === 'secure') { p.inventory.water += 3; p.inventory.food = (p.inventory.food || 0) + 3; state.zones.bambooForest.danger += 8; state.wolfCrisis.supply += 6; state.wolfCrisis.relief += 4; state.director.pressure += 1; }
         log(state, 'choice', `你面对狼潮逼近作出决定：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.wolf });
         return true;
       });
       engine.registerEvent('threeClanTournament', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.tournamentAnnounced = true;
+        state.wolfCrisis.phase = 'aftermath'; state.wolfCrisis.active = true; state.wolfCrisis.alliance.legitimacy += choice === 'sponsor' ? 4 : 1;
         state.facts.tournament = { announcedDay: day(state), format: 'three-clan' };
         state.factions.guYue.tension += 3; state.factions.bai.tension += 2; state.factions.xiong.tension += 2;
         if (choice === 'enter') { p.needs.energy -= 12; p.cultivation.progress += 10; relation(state, 'player', 'xiong').fear += 4; remember(state, 'player', 'world', { kind: 'competition', valence: 3, text: '你把三族赔偿问题变成了自己的公开竞争。', facts: { enteredTournament: true } }); }

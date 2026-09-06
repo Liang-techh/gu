@@ -43,11 +43,41 @@
       advance(state, 1, 'identity_mask');
     }
 
+    function wolfAction(state, command, p) {
+      const crisis = state.wolfCrisis;
+      if (!crisis?.active || ['aftermath', 'resolved'].includes(crisis.phase)) throw new Error('当前没有需要介入的狼潮危机');
+      if (!['village', 'bambooForest', 'riverbank', 'cliffCave'].includes(p.position.location)) throw new Error('当前位置无法影响狼潮战线');
+      const mode = command.mode || 'relief';
+      if (mode === 'relief') {
+        if ((p.inventory.stones || 0) >= 1) p.inventory.stones -= 1;
+        else if ((p.inventory.food || 0) >= 3) p.inventory.food -= 3;
+        else throw new Error('救援至少需要一枚元石或三份食物');
+        crisis.supply += 8; crisis.relief += 10; crisis.pressure = Math.max(0, crisis.pressure - 4); crisis.alliance.legitimacy += 3;
+        state.factions.guYue.influence += 1; state.factions.guYue.tension = Math.max(0, state.factions.guYue.tension - 1);
+        remember(state, 'guyuebo', 'player', { kind: 'crisis-relief', valence: 5, text: '你把手里的资源送进狼潮防线，救援因此变成了山寨账本上的事实。', facts: { wolfRelief: true } });
+        log(state, 'wolf_relief', '你向狼潮防线投入了一份真实补给，暂时压低了伤亡压力。', { supply: crisis.supply, pressure: crisis.pressure });
+      } else if (mode === 'scout') {
+        p.needs.energy -= 6; p.needs.safety -= 3; p.cultivation.insight += 3; crisis.pressure = Math.max(0, crisis.pressure - 2);
+        state.facts.wolfIntel = (state.facts.wolfIntel || 0) + 1;
+        remember(state, 'player', 'world', { kind: 'crisis-scout', valence: 2, text: '你沿着狼潮边缘侦查，确认了下一处压力会从哪里撕开防线。', facts: { wolfIntel: state.facts.wolfIntel } });
+        log(state, 'wolf_scout', '你侦查了狼潮边缘，获得了一条可以改变布防的情报。', { pressure: crisis.pressure });
+      } else {
+        crisis.supply = Math.max(0, crisis.supply - 3); crisis.pressure = Math.min(100, crisis.pressure + 4); p.inventory.food = (p.inventory.food || 0) + 2; p.needs.safety -= 8;
+        state.factions.guYue.tension += 2; state.director.pressure = Math.min(10, state.director.pressure + 0.5);
+        consequence(state, { kind: 'wolf_hoard', actorId: p.id, factionId: 'guYue', source: 'wolfAction', location: p.position.location, reason: '你把公共危机转成了个人储备，防线因此少了一份补给。', data: { supply: crisis.supply, pressure: crisis.pressure }, tension: 2, pressure: 0.2 });
+        log(state, 'wolf_hoard', '你趁狼潮混乱囤下了个人资源，但公共防线因此更脆弱。', { supply: crisis.supply, pressure: crisis.pressure });
+      }
+      crisis.supply = Math.max(0, Math.min(100, crisis.supply)); crisis.pressure = Math.max(0, Math.min(100, crisis.pressure)); crisis.alliance.legitimacy = Math.max(-100, Math.min(100, crisis.alliance.legitimacy));
+      engine.emit(state, 'wolf.action', { actorId: p.id, mode, phase: crisis.phase, supply: crisis.supply, pressure: crisis.pressure, legitimacy: crisis.alliance.legitimacy });
+      advance(state, mode === 'scout' ? 2 : 3, `wolf_${mode}`);
+    }
+
     engine.registerAction('wait', ({ state, command }) => {
       advance(state, Number(command.hours) || 2, 'wait');
       log(state, 'action', '你等待了一段时间，观察世界如何自行变化。');
     });
     engine.registerAction('spring_autumn_reset', ({ state, p }) => rebirth(state, p));
+    engine.registerAction('wolf_action', ({ state, command, p }) => wolfAction(state, command, p));
     engine.registerAction('travel', ({ state, command, p }) => {
       const target = command.location;
       if (!locations[target] || !locations[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
