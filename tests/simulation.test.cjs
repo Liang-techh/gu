@@ -864,6 +864,33 @@ test('volume six content models the eternal war as a late-world state machine', 
   assert.ok(state.history.events.some(event => event.data?.source?.source?.endsWith('第300章.txt')));
 });
 
+test('dream battlefield persists contested ownership, NPC claims and resource consequences', () => {
+  let state = open(S.newWorld({ seed: 'dream-contest' }), 'observe');
+  state.entities.player.position.location = 'dreamRealms';
+  state.eternalWar.twoHeavens = true;
+  state.eternalWar.dream = true;
+  state.dreamRealm.active = true;
+  state.dreamRealm.resources = 40;
+  const dreamNpc = S.ENTITY.createEntity('dream-scholar', { name: '梦境记录者', faction: 'dreamPathForces', location: 'dreamRealms', goals: ['study'] });
+  state.entities[dreamNpc.id] = dreamNpc;
+  const claimBeforeNpc = state.dreamRealm.claims.dreamPathForces;
+  S.ENGINE.runGoal('study', { state, npc: dreamNpc, faction: state.factions.dreamPathForces });
+  assert.ok(state.dreamRealm.claims.dreamPathForces > claimBeforeNpc);
+  assert.ok(state.events.recent.some(event => event.type === 'npc.dream_study'));
+  assert.equal(S.interpret('建立梦境锚点', state).command.mode, 'stake');
+  let actions = S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS });
+  assert.ok(actions.some(action => action.id === 'dream_realm_action:stake'));
+  const centralClaimBefore = state.dreamRealm.claims.centralSects;
+  state = ok(state, { type: 'action', id: 'dream_realm_action', mode: 'stake' });
+  assert.ok(state.dreamRealm.claims.centralSects > centralClaimBefore);
+  state = ok(state, { type: 'action', id: 'wait', hours: 96 });
+  assert.ok(state.dreamRealm.lastTickDay >= 4);
+  assert.ok(state.dreamRealm.operations.some(operation => operation.kind === 'claim_operation'));
+  assert.ok(state.events.recent.some(event => event.type === 'dream-realm.tick'));
+  state = ok(state, { type: 'action', id: 'dream_realm_action', mode: 'sabotage' });
+  assert.ok(state.consequences.records.some(record => record.kind === 'dream_realm_sabotage'));
+});
+
 test('save validation preserves components, memories, relationships and deterministic RNG', () => {
   let state = open(S.newWorld({ seed: 'save' }), 'observe');
   state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'listen' });
@@ -1099,12 +1126,12 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
-  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
+  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'dream_realm_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
   assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'effectTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
-  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'marketShockTick', 'blessedLandTick', 'wolfCrisisTick', 'shadowNetworkTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
+  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'marketShockTick', 'blessedLandTick', 'wolfCrisisTick', 'shadowNetworkTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'dreamRealmTick', 'eternalWarTick', 'worldDaySummary']);
 });
 
 test('action catalog derives available commands from world state instead of UI conditionals', () => {

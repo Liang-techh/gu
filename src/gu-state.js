@@ -85,6 +85,10 @@
       state.eternalWar.dives = Math.max(0, Number(state.eternalWar.dives) || 0);
       state.eternalWar.successes = Math.max(0, Number(state.eternalWar.successes) || 0);
       state.eternalWar.failures = Math.max(0, Number(state.eternalWar.failures) || 0);
+      state.dreamRealm ||= { active: false, control: 46, pressure: 18, resources: 26, contamination: 12, lastTickDay: 0, sequence: 0, claims: { dreamPathForces: 42, centralSects: 32, twoHeavensForces: 26 }, operations: [] };
+      state.dreamRealm.claims ||= { dreamPathForces: 42, centralSects: 32, twoHeavensForces: 26 }; state.dreamRealm.operations ||= []; state.dreamRealm.operations = state.dreamRealm.operations.slice(-128);
+      state.dreamRealm.active = !!state.dreamRealm.active; state.dreamRealm.control = clamp(Number(state.dreamRealm.control) || 0, 0, 100); state.dreamRealm.pressure = clamp(Number(state.dreamRealm.pressure) || 0, 0, 100); state.dreamRealm.resources = clamp(Number(state.dreamRealm.resources) || 0, 0, 200); state.dreamRealm.contamination = clamp(Number(state.dreamRealm.contamination) || 0, 0, 100); state.dreamRealm.lastTickDay = Math.max(0, Number(state.dreamRealm.lastTickDay) || 0); state.dreamRealm.sequence = Math.max(0, Number(state.dreamRealm.sequence) || 0);
+      for (const id of ['dreamPathForces', 'centralSects', 'twoHeavensForces']) state.dreamRealm.claims[id] = clamp(Number(state.dreamRealm.claims[id]) || 0, 0, 100);
       for (const entity of engine.queryWith(state, 'cultivation')) {
         condition.ensure(entity);
         const cultivation = entity.cultivation;

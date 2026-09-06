@@ -187,11 +187,13 @@
       state.eternalWar.dives += 1;
       if (success) {
         state.eternalWar.successes += 1; state.eternalWar.dreamPressure = clamp(pressure + 4, 0, 100);
+        if (state.dreamRealm?.active) { state.dreamRealm.claims.centralSects = Math.min(100, state.dreamRealm.claims.centralSects + 2); state.dreamRealm.control = Math.max(state.dreamRealm.control, state.dreamRealm.claims.centralSects); state.dreamRealm.resources = Math.max(0, state.dreamRealm.resources - 1); state.dreamRealm.pressure = clamp(state.dreamRealm.pressure + 2, 0, 100); }
         p.cultivation.insight += 5; p.cultivation.progress += 6; state.facts.dreamDepth = (state.facts.dreamDepth || 0) + 1;
         remember(state, 'player', 'world', { kind: 'dream', valence: 3, text: '你从梦境深处带回了一段不属于现实的认知。', facts: { dreamDepth: state.facts.dreamDepth } });
         log(state, 'dream_dive', `你在梦境战场中取得一次突破，梦境深度达到 ${state.facts.dreamDepth}。`, { result: 'success', depth: state.facts.dreamDepth, pressure: state.eternalWar.dreamPressure });
       } else {
         state.eternalWar.failures += 1; state.eternalWar.dreamPressure = clamp(pressure + 10, 0, 100);
+        if (state.dreamRealm?.active) { state.dreamRealm.contamination = clamp(state.dreamRealm.contamination + 6, 0, 100); state.dreamRealm.pressure = clamp(state.dreamRealm.pressure + 7, 0, 100); state.dreamRealm.claims.dreamPathForces = Math.min(100, state.dreamRealm.claims.dreamPathForces + 1); }
         damageEntity(state, 'player', 4 + pressure * 0.05, 'dreamRealms', 'dream_backlash'); p.needs.energy -= 10;
         const reason = '梦境反噬把你从深层认知中强行拖回现实。';
         consequence(state, { kind: 'failure', actorId: p.id, factionId: 'dreamPathForces', source: 'dream_dive', location: p.position.location, reason, data: { pressure: state.eternalWar.dreamPressure }, tension: 1, pressure: 0.25 });

@@ -43,6 +43,10 @@
       const mode = /抬价|抬高|加价/.test(q) ? 'raise' : /抵押|借元石|借钱/.test(q) ? 'mortgage' : /核验|验证|查证/.test(q) ? 'verify' : /观察|看看/.test(q) ? 'observe' : /情报|传闻/.test(q) ? 'rumor' : 'bid';
       return { ok: true, command: { type: 'action', id: 'auction_lot', mode }, label: `处理一笔拍卖会${mode === 'bid' ? '竞拍' : mode === 'observe' ? '行情观察' : mode === 'rumor' ? '情报交易' : mode === 'raise' ? '抬价' : mode === 'mortgage' ? '信用借贷' : '情报核验'}` };
     }
+    if (/梦境.*锚点|建立锚点|占据梦境/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_realm_action', mode: 'stake' }, label: '建立梦境锚点' };
+    if (/收割梦道|收割梦境|梦境资源/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_realm_action', mode: 'harvest' }, label: '收割梦道资源' };
+    if (/稳定梦境|稳定边界|净化梦境/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_realm_action', mode: 'stabilize' }, label: '稳定梦境边界' };
+    if (/破坏梦境|梦境节点|袭击梦境/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_realm_action', mode: 'sabotage' }, label: '破坏梦境争夺节点' };
     if (/梦境|入梦|梦道/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_dive' }, label: '探索梦境' };
     if (/听课|学习/.test(q)) return { ok: true, command: { type: 'action', id: 'study' }, label: '听课' };
     if (/采集|采摘|取水|调查|探索|观察/.test(q)) return { ok: true, command: { type: 'action', id: 'gather' }, label: '探索并采集' };

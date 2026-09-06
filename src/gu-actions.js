@@ -189,6 +189,34 @@
       advance(state, mode === 'conceal' ? 2 : 3, `shadow_network_${mode}`);
     }
 
+    function dreamRealmAction(state, command, p) {
+      const realm = state.dreamRealm;
+      if (!realm?.active || p.position.location !== 'dreamRealms') throw new Error('梦境战场当前没有可争夺的稳定窗口');
+      const mode = command.mode || 'stake';
+      if (mode === 'stake') {
+        if ((p.inventory.stones || 0) < 2) throw new Error('建立梦境据点至少需要两枚元石');
+        p.inventory.stones -= 2; realm.claims.centralSects += 7; realm.pressure += 5; realm.contamination += 2; realm.resources = Math.max(0, realm.resources - 3);
+        remember(state, 'player', 'world', { kind: 'dream-claim', valence: 2, text: '你在梦境中留下可重复进入的认知锚点，中洲势力因此获得一处新的争夺支点。', facts: { dreamAction: mode, claim: realm.claims.centralSects } });
+        log(state, 'dream_realm_stake', '你在梦境战场建立了认知锚点，控制权上升但梦境开始反噬现实。', { control: realm.control, pressure: realm.pressure });
+      } else if (mode === 'harvest') {
+        if (realm.resources < 6) throw new Error('梦境资源暂时不足以收割');
+        realm.resources -= 6; p.inventory.stones += 4; p.cultivation.insight += 3; realm.pressure += 8; realm.contamination += 5; realm.claims.dreamPathForces += 3;
+        log(state, 'dream_realm_harvest', '你收割了一部分梦道资源，获得元石与洞察，却让梦境污染继续扩散。', { resources: realm.resources, contamination: realm.contamination });
+      } else if (mode === 'stabilize') {
+        if (p.cultivation.insight < 3) throw new Error('稳定梦境至少需要三点洞察');
+        p.cultivation.insight -= 3; realm.pressure = Math.max(0, realm.pressure - 12); realm.contamination = Math.max(0, realm.contamination - 10); realm.resources += 3; realm.claims.centralSects += 2;
+        log(state, 'dream_realm_stabilize', '你用洞察稳定梦境边界，暂时阻止污染侵入现实。', { pressure: realm.pressure, contamination: realm.contamination });
+      } else if (mode === 'sabotage') {
+        const target = ['dreamPathForces', 'twoHeavensForces'].sort((a, b) => realm.claims[b] - realm.claims[a])[0];
+        realm.claims[target] = Math.max(0, realm.claims[target] - 9); realm.pressure += 10; realm.contamination += 7; p.cultivation.insight += 2; state.factions[target].tension += 4;
+        consequence(state, { kind: 'dream_realm_sabotage', actorId: p.id, factionId: target, source: 'dreamRealmAction', location: p.position.location, reason: '你破坏了梦境战场的一处争夺节点，暂时削弱对手，却让梦境边界更加不稳定。', data: { target, pressure: realm.pressure, contamination: realm.contamination }, tension: 2, pressure: 0.35 });
+        log(state, 'dream_realm_sabotage', '你破坏了梦境战场的一处争夺节点，敌对势力会记住这次干预。', { target, pressure: realm.pressure });
+      } else throw new Error('未知的梦境战场行动');
+      realm.pressure = Math.max(0, Math.min(100, realm.pressure)); realm.contamination = Math.max(0, Math.min(100, realm.contamination)); realm.resources = Math.max(0, Math.min(200, realm.resources)); for (const id of Object.keys(realm.claims)) realm.claims[id] = Math.max(0, Math.min(100, realm.claims[id]));
+      engine.emit(state, 'dream-realm.action', { actorId: p.id, mode, control: realm.control, pressure: realm.pressure, resources: realm.resources, contamination: realm.contamination, claims: { ...realm.claims } });
+      advance(state, mode === 'stabilize' ? 3 : 4, `dream_realm_${mode}`);
+    }
+
     engine.registerAction('wait', ({ state, command }) => {
       advance(state, Number(command.hours) || 2, 'wait');
       log(state, 'action', '你等待了一段时间，观察世界如何自行变化。');
@@ -338,6 +366,7 @@
     engine.registerAction('pursuit_agent', ({ state, command, p }) => pursuitRuntime.contactAction(state, p, command));
     engine.registerAction('commission_agent', ({ state, command, p }) => agencyRuntime.recruit(state, p, command));
     engine.registerAction('dream_dive', ({ state, p }) => repeatableRuntime.dreamDive(state, p));
+    engine.registerAction('dream_realm_action', ({ state, command, p }) => dreamRealmAction(state, command, p));
     engine.registerAction('conversation', ({ state, command, p }) => performConversation(state, command, p));
     engine.registerActionHook('after', '*', 'actionMetrics', ({ state, command }) => {
       state.facts.actionCounts ||= {};

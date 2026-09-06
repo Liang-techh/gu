@@ -342,8 +342,9 @@
       engine.registerEvent('dreamRealmSurge', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.dreamSurgeOpened = true; state.eternalWar.dream = true;
+        state.dreamRealm.active = true; state.dreamRealm.lastTickDay = day(state); state.dreamRealm.pressure = Math.max(state.dreamRealm.pressure, state.eternalWar.dreamPressure + 8); state.dreamRealm.contamination += choice === 'harvest' ? 8 : 3;
         if (choice === 'enter') { p.cultivation.insight += 16; state.eternalWar.dreamPressure += 10; state.facts.dreamDepth = (state.facts.dreamDepth || 0) + 1; }
-        if (choice === 'harvest') { p.inventory.stones += 5; state.eternalWar.dreamPressure += 14; state.factions.dreamPathForces.influence += 6; }
+        if (choice === 'harvest') { p.inventory.stones += 5; state.eternalWar.dreamPressure += 14; state.dreamRealm.resources = Math.max(0, state.dreamRealm.resources - 5); state.dreamRealm.claims.dreamPathForces += 4; state.factions.dreamPathForces.influence += 6; }
         if (choice === 'avoid') { state.eternalWar.dreamPressure = Math.max(0, state.eternalWar.dreamPressure - 5); state.director.pressure += 1; }
         log(state, 'choice', `你处理了梦境战场潮汐：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.twoHeavens });
         return true;

@@ -51,7 +51,11 @@
     { id: 'auction_lot:raise', label: '拍卖：抬价试探', kind: 'choice', when: ({ here, state }) => here === 'immortalAuction' && state.central?.auctionActive, command: () => ({ type: 'action', id: 'auction_lot', mode: 'raise' }) },
     { id: 'auction_lot:mortgage', label: '拍卖：抵押借元石', kind: 'choice', when: ({ here, state }) => here === 'immortalAuction' && state.central?.auctionActive, command: () => ({ type: 'action', id: 'auction_lot', mode: 'mortgage' }) },
     { id: 'auction_lot:verify', label: '拍卖：核验情报', kind: 'choice', when: ({ here, state }) => here === 'immortalAuction' && state.central?.auctionActive, command: () => ({ type: 'action', id: 'auction_lot', mode: 'verify' }) },
-    { id: 'dream_dive', label: '探索梦境', kind: 'choice', when: ({ here, state }) => here === 'dreamRealms' && state.eternalWar?.dream, command: ({ state }) => ({ type: 'action', id: 'dream_dive', label: `探索梦境（深度 ${state.facts?.dreamDepth || 0}）` }) }
+    { id: 'dream_dive', label: '探索梦境', kind: 'choice', when: ({ here, state }) => here === 'dreamRealms' && state.eternalWar?.dream, command: ({ state }) => ({ type: 'action', id: 'dream_dive', label: `探索梦境（深度 ${state.facts?.dreamDepth || 0}）` }) },
+    { id: 'dream_realm_action:stake', label: '建立梦境锚点', kind: 'choice', when: ({ here, state }) => here === 'dreamRealms' && state.dreamRealm?.active, command: () => ({ type: 'action', id: 'dream_realm_action', mode: 'stake' }) },
+    { id: 'dream_realm_action:harvest', label: '收割梦道资源', kind: 'choice', when: ({ here, state }) => here === 'dreamRealms' && state.dreamRealm?.active, command: () => ({ type: 'action', id: 'dream_realm_action', mode: 'harvest' }) },
+    { id: 'dream_realm_action:stabilize', label: '稳定梦境边界', kind: 'choice', when: ({ here, state }) => here === 'dreamRealms' && state.dreamRealm?.active, command: () => ({ type: 'action', id: 'dream_realm_action', mode: 'stabilize' }) },
+    { id: 'dream_realm_action:sabotage', label: '破坏梦境争夺节点', kind: 'choice', when: ({ here, state }) => here === 'dreamRealms' && state.dreamRealm?.active, command: () => ({ type: 'action', id: 'dream_realm_action', mode: 'sabotage' }) }
   ]);
 
   function list(state, { locations } = {}) {

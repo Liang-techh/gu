@@ -5,7 +5,7 @@
   'use strict';
 
   const DEFAULT_GOALS = {
-    study: ({ npc }) => { npc.cultivation.insight += 0.4; npc.cultivation.progress += 0.3; },
+    study: ({ state, npc, engine, remember }) => { npc.cultivation.insight += 0.4; npc.cultivation.progress += 0.3; const realm = state.dreamRealm; if (realm?.active && npc.position.location === 'dreamRealms' && realm.claims[npc.faction]) { realm.claims[npc.faction] = Math.min(100, realm.claims[npc.faction] + 0.8); realm.pressure = Math.min(100, realm.pressure + 0.25); remember(state, npc.id, 'world', { kind: 'dream-study', valence: 0.5, text: `${npc.identity.name}在梦境中整理认知，争夺一小块解释权。`, facts: { dreamStudy: true, faction: npc.faction } }); engine.emit(state, 'npc.dream_study', { npcId: npc.id, faction: npc.faction, claims: { ...realm.claims }, pressure: realm.pressure }); } },
     proveWorth: ({ npc, faction }) => { npc.cultivation.progress += 0.5; if (faction) faction.influence += 0.2; },
     observe: ({ state, npc }) => { npc.cultivation.insight += 0.2; state.facts.observationCount = (state.facts.observationCount || 0) + 1; },
     hideKnowledge: ({ state, npc, remember }) => { state.facts.hiddenKnowledge = (state.facts.hiddenKnowledge || 0) + 1; remember(state, npc.id, 'world', { kind: 'secret', valence: 0, text: `${npc.identity.name}把关键知识留在心里，没有立刻公开。` }); },

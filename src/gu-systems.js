@@ -264,6 +264,36 @@
       }
     }, 50);
 
+    engine.registerSystem('day', 'dreamRealmTick', ({ state }) => {
+      const realm = state.dreamRealm;
+      if (!realm?.active || !state.eternalWar?.dream) return;
+      const claimIds = ['dreamPathForces', 'centralSects', 'twoHeavensForces'];
+      realm.lastTickDay = day(state);
+      for (const id of claimIds) {
+        const faction = state.factions[id];
+        realm.claims[id] = Math.max(1, realm.claims[id] + (faction?.influence || 0) * 0.001 - (faction?.tension || 0) * 0.0005);
+      }
+      const total = claimIds.reduce((sum, id) => sum + realm.claims[id], 0);
+      for (const id of claimIds) realm.claims[id] = clamp((realm.claims[id] / total) * 100, 0, 100);
+      const owner = claimIds.sort((a, b) => realm.claims[b] - realm.claims[a])[0];
+      realm.control = realm.claims[owner];
+      realm.pressure = clamp(realm.pressure + state.eternalWar.dreamPressure * 0.018 + realm.contamination * 0.012 + (realm.claims.dreamPathForces < 36 ? 0.4 : 0) - (realm.control > 65 ? 0.25 : 0), 0, 100);
+      realm.resources = clamp(realm.resources + (realm.control > 60 ? 1.2 : 0.4) - realm.pressure * 0.018 - (realm.contamination > 70 ? 1.2 : 0), 0, 200);
+      realm.contamination = clamp(realm.contamination + (realm.pressure > 62 ? 0.6 : -0.2) + (owner === 'twoHeavensForces' ? 0.2 : 0), 0, 100);
+      if (realm.claims.centralSects > 42 && state.factions.centralSects) state.factions.centralSects.tension += 0.2;
+      if (realm.claims.twoHeavensForces > 42 && state.factions.twoHeavensForces) state.factions.twoHeavensForces.tension += 0.25;
+      if (day(state) % 4 === 0) {
+        realm.sequence += 1; realm.resources = Math.max(0, realm.resources - 1); realm.pressure = clamp(realm.pressure + 1.2, 0, 100);
+        const agent = engine.query(state, entity => entity.alive && entity.position?.location === 'dreamRealms' && entity.faction === owner)[0];
+        const operation = { id: `dream-${realm.sequence}`, kind: 'claim_operation', day: day(state), owner, control: realm.control, pressure: realm.pressure, resources: realm.resources, contamination: realm.contamination, agentId: agent?.id || null };
+        realm.operations.push(operation); realm.operations = realm.operations.slice(-128);
+        if (agent) remember(state, agent.id, 'world', { kind: 'dream-claim', valence: owner === 'dreamPathForces' ? 1 : -1, text: `${agent.identity.name}参与了梦境战场的控制权争夺。`, facts: { dreamOperationId: operation.id, owner, control: realm.control } });
+        engine.emit(state, 'dream-realm.operation', operation);
+      }
+      if (realm.pressure > 82) { state.director.pressure = clamp(state.director.pressure + 0.35, 0, 10); state.factions.dreamPathForces.tension += 0.4; }
+      engine.emit(state, 'dream-realm.tick', { day: day(state), owner, control: realm.control, pressure: realm.pressure, resources: realm.resources, contamination: realm.contamination, claims: { ...realm.claims } });
+    }, 42);
+
     engine.registerSystem('day', 'eternalWarTick', ({ state }) => {
       if (!state.eternalWar?.twoHeavens) return;
       state.eternalWar.cosmicHeat = clamp(state.eternalWar.cosmicHeat + 0.3, 0, 100);
