@@ -26,6 +26,7 @@
 - 独立行动目录 [src/action-catalog.js](<D:\Caves of Qud\gu-rpg\src\action-catalog.js>)：可用 command 根据当前世界状态生成，UI、自由意图解析和未来 AI 代理共享同一行动入口；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：29 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；
+- 小说事件结算包 [src/gu-event-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-event-rules.js>)：导演选择后的旗标、资源、关系、记忆、势力和战争后果通过统一事件注册表结算，模拟内核不再承载卷章事件处理器；
 - 导演运行时支持候选评分、规则冷却和有限导演历史，多个同时满足条件的世界事件可以按当前状态竞争，而不是永远按注册顺序触发；
 - 独立意图解析 [src/intent.js](<D:\Caves of Qud\gu-rpg\src\intent.js>)：从完整内容地图生成地点意图，覆盖狐仙福地、中洲、仙鹤门和拍卖会等后续区域；
 - 内容包已覆盖第一卷青茅山后段、第二卷白骨山—商家城—三叉山—天梯山、第三卷北原草原—黑家军营—王庭福地—八十八角真阳楼、第四卷狐仙福地—中洲—仙鹤门—仙蛊拍卖会、第五卷首批五域战争区域链，以及第六卷首批两天终局区域链；
