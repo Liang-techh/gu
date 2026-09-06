@@ -14,6 +14,8 @@ function open(state, choice = 'observe') {
 
 test('world starts from novel-derived opening but resolves through an event contract', () => {
   const state = S.newWorld({ name: '测试者', aptitude: '乙等', seed: 'rain' });
+  assert.equal(state.content.id, 'gu-qingmao-v1');
+  assert.equal(S.CONTENT_INDEX.volumes[0].id, 'volume-1');
   assert.equal(state.events.active.id, 'openingRite');
   assert.equal(state.entities.fangyuan.identity.name, '古月方源');
   const next = open(state, 'reveal');

@@ -11,6 +11,7 @@
 - 确定性世界时钟与小时级推进；
 - 玩家/NPC 共用的组件式实体模型；
 - 独立运行时内核：组件查询、领域事件流、GoalHandler 注册表和 Conversation/Interaction 注册表；
+- 独立内容包 [src/content.js](<D:\Caves of Qud\gu-rpg\src\content.js>)：地点、人口表、势力、人物、蛊虫和章节来源可按内容版本扩展；
 - `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
 - 事件历史、导演事件和统一 `dispatch` 结算入口；
 - NPC 日程、目标选择、移动、饥饿/精力和同场遭遇记忆；
@@ -37,7 +38,7 @@ python -m http.server 4173
 
 ## 代码边界
 
-`src/simulation.js` 是唯一规则核心：时间、行动、NPC、记忆、势力、导演和存档验证都在这里。`src/app.js` 只负责把状态投影成 UI，并把按钮/文本转换为 command。以后接入模型时，模型只能提出意图或叙述草稿，不能绕过 simulation kernel。
+`src/engine.js` 是可扩展运行时内核，`src/content.js` 是内容包，`src/simulation.js` 组合二者形成当前世界规则。`src/app.js` 只负责把状态投影成 UI，并把按钮/文本转换为 command。以后接入模型时，模型只能提出意图或叙述草稿，不能绕过 simulation kernel。
 
 `reference/novel/` 是内容依据；新增角色、地点、蛊虫或事件前先从原文核对。游戏化数值和新系统会明确标为改编规则。
 

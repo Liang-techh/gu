@@ -22,6 +22,8 @@ Projection / UI / 存档 / 日志
 
 `entities[id]` 是统一实体表。玩家和 NPC 都使用相同的组件形状。`src/engine.js` 提供类似 Qud `Parts` 的组件查询、类似 `Events` 的领域事件流，以及可注册的 GoalHandler 和 InteractionHandler；`simulation.js` 只是当前世界规则的一个实现，而不是把扩展点锁死在 UI 或剧情文本里。
 
+世界内容位于独立的 `src/content.js` 内容包，并带有 `CONTENT_INDEX` 与版本号。地点、人口表、势力、人物、蛊虫和原文来源因此可以逐包替换或增加；存档记录内容包 ID，避免规则版本和世界素材无声漂移。
+
 玩家和 NPC 都使用相同的组件形状：
 
 - `identity`：名字、角色、标签。
