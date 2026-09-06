@@ -47,6 +47,10 @@
     const entries = Object.entries(entities || {}).filter(([id]) => id !== 'player');
     const target = entries.find(([, entity]) => q.includes(entity.identity.name.replace('古月', '').toLowerCase()));
     if (target && /帮助|帮忙/.test(q)) return { ok: true, command: { type: 'action', id: 'talk', target: target[0], mode: 'help' }, label: `帮助${target[1].identity.name}` };
+    if (target && /委托|派人|打探|调查|侦查|代为交易|游说/.test(q)) {
+      const kind = /侦查/.test(q) ? 'scout' : /交易/.test(q) ? 'trade' : /游说/.test(q) ? 'influence' : 'rumor';
+      return { ok: true, command: { type: 'action', id: 'commission_agent', mode: 'recruit', target: target[0], kind }, label: `委托${target[1].identity.name}${kind === 'scout' ? '侦查' : kind === 'trade' ? '交易' : kind === 'influence' ? '游说' : '打探情报'}` };
+    }
     if (target && /威胁|逼问|施压/.test(q)) return { ok: true, command: { type: 'action', id: 'talk', target: target[0], mode: 'threaten' }, label: `向${target[1].identity.name}施压` };
     if (target && /说|聊|问|谈/.test(q)) return { ok: true, command: { type: 'action', id: 'talk', target: target[0], mode: 'listen' }, label: `与${target[1].identity.name}交谈` };
     if (/等待|等一会/.test(q)) return { ok: true, command: { type: 'action', id: 'wait', hours: 2 }, label: '等待两小时' };

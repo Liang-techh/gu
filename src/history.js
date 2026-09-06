@@ -5,7 +5,7 @@
   'use strict';
 
   const HISTORY_SCHEMA = 1;
-  const SIGNIFICANT_TYPES = new Set(['world_started', 'director_event', 'choice', 'day_tick', 'npc_goal_action', 'damage', 'death', 'faction', 'travel', 'combat_start', 'ability_used', 'arena_match', 'inheritance_round', 'contract', 'conversation', 'frontier_patrol', 'tower_floor', 'auction_lot', 'identity_mask', 'dream_dive']);
+  const SIGNIFICANT_TYPES = new Set(['world_started', 'director_event', 'choice', 'day_tick', 'npc_goal_action', 'damage', 'death', 'faction', 'travel', 'combat_start', 'ability_used', 'arena_match', 'inheritance_round', 'contract', 'conversation', 'frontier_patrol', 'tower_floor', 'auction_lot', 'identity_mask', 'pursuit_created', 'pursuit_contact', 'pursuit_action', 'agency_commission', 'agency_result', 'dream_dive']);
 
   function create(seed, content) {
     return {

@@ -48,6 +48,8 @@
       kind: 'travel',
       command: { type: 'action', id: 'travel', location }
     });
+    const nearbyAgents = Object.values(state.entities || {}).filter(entity => entity.id !== 'player' && entity.alive && !entity.agent && entity.position?.location === here && Object.values(state.agency?.commissions || {}).filter(item => item.status === 'active' && item.agentId === entity.id).length < 2).slice(0, 4);
+    for (const npc of nearbyAgents) actions.push({ id: `commission_agent:${npc.id}`, label: `委托${npc.identity.name}打探`, kind: 'choice', command: { type: 'action', id: 'commission_agent', mode: 'recruit', target: npc.id, kind: 'rumor' } });
     return actions;
   }
 

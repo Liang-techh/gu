@@ -472,6 +472,21 @@ test('pursuit teams are world agents that can be bribed at contact', () => {
   assert.ok(state.events.recent.some(event => event.type === 'pursuit.action'));
 });
 
+test('agency commissions let the player outsource information work to an NPC', () => {
+  let state = open(S.newWorld({ seed: 'agency' }), 'observe');
+  state.entities.fangzheng.schedule = { morning: 'academy', afternoon: 'academy', evening: 'academy', night: 'academy' };
+  assert.equal(S.interpret('委托方正打探情报', state).command.id, 'commission_agent');
+  const beforeStones = state.entities.player.inventory.stones;
+  state = ok(state, { type: 'action', id: 'commission_agent', mode: 'recruit', target: 'fangzheng', kind: 'rumor' });
+  const commission = Object.values(state.agency.commissions)[0];
+  assert.equal(commission.status, 'active');
+  assert.equal(state.entities.player.inventory.stones, beforeStones - 2);
+  state = ok(state, { type: 'action', id: 'wait', hours: 5 });
+  const completed = state.agency.commissions[commission.id];
+  assert.notEqual(completed.status, 'active');
+  assert.ok(state.history.events.some(event => event.type === 'agency_result'));
+});
+
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
   let state = open(S.newWorld({ seed: 'intent' }), 'observe');
   const parsed = S.interpret('去竹林', state);
@@ -612,7 +627,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
-  assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation']);
+  assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
   assert.deepEqual(snap.engine.registries.systems.day, ['worldDailyTick']);
 });
 
