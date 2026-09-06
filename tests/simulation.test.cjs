@@ -292,3 +292,23 @@ test('domain event sequence stays unique after the bounded stream rotates', () =
   assert.equal(state.events.pending.at(-1).id, 'ev180');
   assert.equal(new Set(state.events.pending.map(event => event.id)).size, 128);
 });
+
+test('long-running world remains finite, recoverable and structurally valid', () => {
+  let state = open(S.newWorld({ seed: 'long-run' }), 'observe');
+  for (let i = 0; S.day(state) < 90 && i < 300; i++) {
+    if (state.events.active) state = ok(state, { type: 'resolve_event', choice: state.events.active.choices[0].id });
+    else state = ok(state, { type: 'action', id: 'wait', hours: 12 });
+  }
+  for (const entity of Object.values(state.entities)) {
+    assert.ok(S.LOCATIONS[entity.position.location], `${entity.id} has an invalid location`);
+    assert.ok(Number.isFinite(entity.needs.energy) && Number.isFinite(entity.needs.hunger), `${entity.id} has invalid needs`);
+    assert.ok(Number.isFinite(entity.body.health), `${entity.id} has invalid health`);
+  }
+  for (const zone of Object.values(state.zones)) {
+    assert.ok(Number.isFinite(zone.danger) && Number.isFinite(zone.activity), `${zone.id} has invalid zone metrics`);
+    for (const value of Object.values(zone.resources)) assert.ok(Number.isFinite(value), `${zone.id} has invalid resource`);
+  }
+  assert.equal(state.history.snapshots.length, 64);
+  assert.ok(state.history.facts.daysObserved >= 90);
+  assert.doesNotThrow(() => S.validate(JSON.stringify(state)));
+});
