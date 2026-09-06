@@ -140,6 +140,20 @@ test('NPCs run schedules while the player waits instead of freezing the world', 
   assert.ok(state.log.some(entry => entry.type === 'npc_move') || state.entities.fangyuan.position.location !== start);
 });
 
+test('NPC brains persist perception, scored decisions and a hierarchical next-step plan', () => {
+  let state = open(S.newWorld({ seed: 'brain-pipeline' }), 'observe');
+  state = ok(state, { type: 'action', id: 'wait', hours: 4 });
+  const npc = state.entities.fangzheng;
+  assert.ok(npc.brain);
+  assert.ok(npc.brain.perceptions.length >= 1);
+  assert.ok(npc.brain.lastDecision?.goal);
+  assert.ok(Array.isArray(npc.brain.lastDecision.scores));
+  assert.ok(npc.brain.decisions.length >= 1);
+  assert.ok(npc.brain.stack.length >= 1);
+  assert.ok(npc.brain.plan.length >= 1);
+  assert.equal(typeof S.BRAIN.perceive, 'function');
+});
+
 test('NPC navigation follows a multi-zone route instead of requiring direct adjacency', () => {
   const state = S.newWorld({ seed: 'pathfinding' });
   assert.deepEqual(S.ENGINE.findPath(state.locations, 'bambooForest', 'academy'), ['bambooForest', 'village', 'academy']);
@@ -612,6 +626,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(S.ENGINE.COMPONENTS.includes('memory'));
   assert.ok(S.ENGINE.COMPONENTS.includes('conditions'));
   assert.ok(S.ENGINE.COMPONENTS.includes('knowledge'));
+  assert.ok(S.ENGINE.COMPONENTS.includes('brain'));
   assert.equal(typeof S.ENTITY.createEntity, 'function');
   assert.equal(typeof S.NPC_AI.selectGoal, 'function');
   assert.equal(typeof S.DEFAULT_GOALS.register, 'function');
