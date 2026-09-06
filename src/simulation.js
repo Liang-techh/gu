@@ -102,6 +102,8 @@
     if (location.tags.includes('resource')) { resources.moonPetal = 10; resources.food = 4; }
     if (location.tags.includes('relic')) resources.relicFragment = 3;
     if (location.tags.includes('market')) { resources.water = 5; resources.food = 5; }
+    if (location.tags.includes('route')) { resources.water = 4; resources.food = 3; }
+    if (location.tags.includes('inheritance')) resources.relicFragment = 6;
     return { id: locationId, danger: location.tags.includes('wild') ? 22 : 4, resources, population: 0, activity: 0, discoveries: [], visits: 0, weather: '雨' };
   }
 
@@ -150,7 +152,7 @@
       factions: {},
       relationships: {},
       facts: {},
-      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false },
+      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false },
       events: { active: null, pending: [], history: [], sequence: 0 },
       combat: null,
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
@@ -250,6 +252,26 @@
       { id: 'cooperate', label: '主动提供线索', hint: '换取调查者信任，但你的行动会被纳入他们的案卷。' },
       { id: 'evade', label: '隐藏自己的痕迹', hint: '保留行动自由，却让正道巡查提高警惕。' },
       { id: 'bargain', label: '用情报交换条件', hint: '把真相变成一笔政治交易。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'merchantCityArrival', priority: 80, when: state => !state.flags.merchantCityOpened && day(state) >= 30 && ['whiteBoneMountain', 'merchantCity'].includes(state.entities.player.position.location), build: () => ({ id: 'merchantCityArrival', type: 'journey', title: '商家城的大门', text: '离开青茅山的熟人秩序后，城门、演武场、商铺和少主派系组成了另一种生存规则。你可以把商家城当作庇护，也可以把它当作更大的猎场。', source: SOURCE_NOTES.merchantCity, choices: [
+      { id: 'enter', label: '进入商家城', hint: '开启城市交易、演武和外姓蛊师系统。' },
+      { id: 'survey', label: '先在城外观察', hint: '获得城市势力情报，延缓与商家绑定。' },
+      { id: 'avoid', label: '继续向三叉山赶路', hint: '错过城市资源，但更早接近三王传承。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'merchantArena', priority: 90, when: state => state.flags.merchantCityOpened && !state.flags.arenaTrial && day(state) >= 32 && state.entities.player.position.location === 'merchantCity', build: () => ({ id: 'merchantArena', type: 'social', title: '商家城演武场', text: '演武场把蛊师的修为、蛊虫和名声公开标价。每一场胜负都会改变你在商家城的关系网络。', source: SOURCE_NOTES.merchantCity, choices: [
+      { id: 'fight', label: '接受演武挑战', hint: '提升名望和商家影响，但会积累伤势。' },
+      { id: 'recruit', label: '观察并结交强者', hint: '打开商心慈、魏央和外姓蛊师的关系线。' },
+      { id: 'trade', label: '用资源换取情报', hint: '牺牲一部分储备，获得三叉山传承的消息。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'threeKingsInheritance', priority: 100, when: state => state.flags.arenaTrial && !state.flags.threeKingsAwakened && day(state) >= 40 && state.entities.player.position.location === 'threeForkMountain', build: () => ({ id: 'threeKingsInheritance', type: 'inheritance', title: '三王传承开启', text: '三叉山的三道光柱重新贯入云霄。正道、魔道和商家城的队伍同时进入山中，传承不是静态宝箱，而是会周期性开放、提高难度并改变争夺者关系的区域规则。', source: SOURCE_NOTES.threeKings, choices: [
+      { id: 'enter', label: '进入传承关卡', hint: '消耗精力和资源，获取传承进度。' },
+      { id: 'scout', label: '先侦查其他队伍', hint: '获得敌对队伍记忆，降低第一次进入的风险。' },
+      { id: 'ambush', label: '埋伏离开传承的蛊师', hint: '可能获得蛊虫，但会迅速恶化正魔关系。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'heavenClimbTransmission', priority: 110, when: state => state.flags.threeKingsAwakened && !state.flags.heavenClimbRumor && day(state) >= 46 && state.entities.player.position.location === 'heavenClimbMountain', build: () => ({ id: 'heavenClimbTransmission', type: 'sect', title: '天梯山的狐仙传承', text: '远方门派的消息传到山中：天梯山出现了狐仙福地传承，各大门派不愿让蛊仙亲自下场，于是把争夺交给门下弟子。', source: SOURCE_NOTES.heavenClimb, choices: [
+      { id: 'follow', label: '追踪门派队伍', hint: '打开更高层级的门派竞争。' },
+      { id: 'sell', label: '把消息卖给商家城', hint: '获得资源与商家关系，但会让传承竞争者增加。' },
+      { id: 'ignore', label: '留在三叉山积累实力', hint: '暂时避开门派冲突，保留行动自由。' }
     ] }) });
   }
 
@@ -367,6 +389,48 @@
       if (choice === 'evade') { relation(state, 'player', 'tiexueleng').fear += 5; state.factions.iron.tension += 4; state.director.pressure += 2; remember(state, 'tieruonan', 'player', { kind: 'suspicion', valence: -4, text: '这个人避开了关键问题，行动轨迹值得重新调查。' }); }
       if (choice === 'bargain') { p.cultivation.insight += 6; relation(state, 'player', 'tiexueleng').debt += 1; state.factions.iron.attitude += 2; p.memory.facts.world.investigationLeverage = true; }
       log(state, 'choice', `你处理了铁家父女的调查：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.investigation });
+      return true;
+    });
+    Engine.registerEvent('merchantCityArrival', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      if (choice !== 'avoid') {
+        state.flags.merchantCityOpened = true;
+        activateSeed(state, 'shangxinci'); activateSeed(state, 'weiyang');
+        state.facts.merchantCity = { enteredDay: day(state), status: choice === 'enter' ? 'inside' : 'surveyed' };
+        state.factions.shang.influence += choice === 'enter' ? 4 : 1;
+        if (choice === 'survey') { p.cultivation.insight += 6; remember(state, 'player', 'shangxinci', { kind: 'city', valence: 2, text: '你先观察商家城的关系网络，没有急着接受保护。' }); }
+        if (choice === 'enter') { relation(state, 'player', 'shangxinci').trust += 3; p.inventory.stones += 2; }
+      } else { state.director.pressure += 1; p.cultivation.insight += 2; state.facts.threeForkLead = true; }
+      log(state, 'choice', `你处理了进入商家城的选择：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.merchantCity });
+      return true;
+    });
+    Engine.registerEvent('merchantArena', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.arenaTrial = true; state.facts.arena = { firstTrialDay: day(state) };
+      if (choice === 'fight') { p.needs.energy -= 15; p.cultivation.progress += 12; state.factions.shang.influence += 3; remember(state, 'weiyang', 'player', { kind: 'arena', valence: 4, text: '你愿意用公开胜负证明自己的价值。' }); }
+      if (choice === 'recruit') { p.cultivation.insight += 7; relation(state, 'player', 'weiyang').trust += 8; relation(state, 'player', 'shangxinci').trust += 5; }
+      if (choice === 'trade') { p.inventory.stones = Math.max(0, p.inventory.stones - 2); p.inventory.water += 3; state.facts.threeKingsRumor = true; }
+      log(state, 'choice', `你处理了商家城演武场：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.merchantCity });
+      return true;
+    });
+    Engine.registerEvent('threeKingsInheritance', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.threeKingsAwakened = true;
+      state.facts.threeKings = { firstEntryDay: day(state), attempts: 1 };
+      state.zones.threeForkMountain.activity += 18; state.zones.threeForkMountain.danger += 14;
+      if (choice === 'enter') { p.needs.energy -= 18; p.cultivation.progress += 18; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + 1; remember(state, 'player', 'world', { kind: 'inheritance', valence: 4, text: '你进入三王传承，发现传承本身也在筛选和消耗进入者。', facts: { enteredThreeKings: true } }); }
+      if (choice === 'scout') { p.cultivation.insight += 10; state.facts.threeKingsIntel = true; }
+      if (choice === 'ambush') { state.factions.shang.tension += 5; state.factions.iron.tension += 4; state.director.pressure += 2; remember(state, 'player', 'world', { kind: 'ambush', valence: -4, text: '你把传承出口当成了新的资源节点。' }); }
+      log(state, 'choice', `你处理了三王传承开启：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.threeKings });
+      return true;
+    });
+    Engine.registerEvent('heavenClimbTransmission', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.heavenClimbRumor = true; state.facts.heavenClimb = { heardDay: day(state), choice };
+      if (choice === 'follow') { p.cultivation.insight += 12; state.director.pressure += 2; remember(state, 'player', 'world', { kind: 'sect', valence: 3, text: '天梯山的传承争夺已经超出家族和商队的尺度。', facts: { sectLead: true } }); }
+      if (choice === 'sell') { p.inventory.stones += 5; state.factions.shang.influence += 5; state.factions.shang.tension += 3; }
+      if (choice === 'ignore') { p.cultivation.progress += 8; state.facts.sectLead = 'withheld'; }
+      log(state, 'choice', `你处理了天梯山传承消息：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.heavenClimb });
       return true;
     });
   }
@@ -770,7 +834,7 @@
   function interpret(text, state) {
     const q = String(text || '').replace(/[，。！？、,.!?\s]/g, '').toLowerCase();
     if (!q) return { ok: false, message: '输入一个行动，例如“去竹林”“观察”“修炼”“和方正说话”。' };
-    const place = [['academy', ['学堂']], ['village', ['山寨']], ['bambooForest', ['竹林']], ['riverbank', ['河滩', '山溪']], ['cliffCave', ['石缝', '遗藏']], ['caravanCamp', ['商队', '营地']]];
+    const place = [['academy', ['学堂']], ['village', ['山寨']], ['bambooForest', ['竹林']], ['riverbank', ['河滩', '山溪']], ['cliffCave', ['石缝', '遗藏']], ['caravanCamp', ['商队', '营地']], ['whiteBoneMountain', ['白骨山']], ['merchantCity', ['商家城']], ['threeForkMountain', ['三叉山', '传承']], ['heavenClimbMountain', ['天梯山', '狐仙福地']]];
     for (const [id, names] of place) if (names.some(name => q.includes(name)) && /去|走|前往|进入|回/.test(q)) return { ok: true, command: { type: 'action', id: 'travel', location: id }, label: `前往${LOCATIONS[id].name}` };
     if (/修炼|温养|打坐/.test(q)) return { ok: true, command: { type: 'action', id: 'cultivate' }, label: '温养空窍' };
     if (/听课|学习/.test(q)) return { ok: true, command: { type: 'action', id: 'study' }, label: '听课' };

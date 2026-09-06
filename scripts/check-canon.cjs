@@ -12,7 +12,11 @@ const checks = [
   ['auction', ['贾富', '拍卖会']],
   ['wolf', ['狼潮', '三寨联盟', '古月山寨']],
   ['tournament', ['三族大比武', '索赔', '熊家寨']],
-  ['investigation', ['铁血冷', '铁若男', '青茅山']]
+  ['investigation', ['铁血冷', '铁若男', '青茅山']],
+  ['whiteBone', ['白骨山']],
+  ['merchantCity', ['商家城', '铁若男']],
+  ['threeKings', ['三王传承', '三叉山']],
+  ['heavenClimb', ['天梯山', '狐仙福地']]
 ];
 const failures = [];
 let total = 0;

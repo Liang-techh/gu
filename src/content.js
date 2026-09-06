@@ -13,7 +13,11 @@
     bambooForest: { name: '竹林', type: 'wilderness', neighbors: ['village', 'riverbank'], tags: ['wild', 'resource'], population: 'forest' },
     riverbank: { name: '山溪河滩', type: 'wilderness', neighbors: ['bambooForest', 'cliffCave'], tags: ['wild', 'water'], population: 'river' },
     cliffCave: { name: '瀑布石缝', type: 'ruin', neighbors: ['riverbank'], tags: ['hidden', 'relic'], population: 'ruin' },
-    caravanCamp: { name: '商队营地', type: 'market', neighbors: ['village'], tags: ['market', 'rumor'], population: 'caravan' }
+    caravanCamp: { name: '商队营地', type: 'market', neighbors: ['village', 'whiteBoneMountain'], tags: ['market', 'rumor'], population: 'caravan' },
+    whiteBoneMountain: { name: '白骨山道', type: 'wilderness', neighbors: ['caravanCamp', 'merchantCity'], tags: ['wild', 'route', 'resource'], population: 'road' },
+    merchantCity: { name: '商家城', type: 'metropolis', neighbors: ['whiteBoneMountain', 'threeForkMountain'], tags: ['safe', 'market', 'politics'], population: 'city' },
+    threeForkMountain: { name: '三叉山', type: 'wilderness', neighbors: ['merchantCity', 'heavenClimbMountain'], tags: ['wild', 'inheritance', 'danger'], population: 'inheritance' },
+    heavenClimbMountain: { name: '天梯山', type: 'sacred', neighbors: ['threeForkMountain'], tags: ['sacred', 'inheritance', 'danger'], population: 'heavenClimb' }
   };
 
   const POPULATION_TABLES = {
@@ -23,7 +27,11 @@
     forest: [{ role: '山兽', faction: null, goals: ['forage', 'avoidPlayer'], weight: 5 }, { role: '采药人', faction: 'guYue', goals: ['secureResources', 'returnHome'], weight: 2 }],
     river: [{ role: '山兽', faction: null, goals: ['drink', 'forage'], weight: 4 }, { role: '采集者', faction: 'guYue', goals: ['secureResources', 'returnHome'], weight: 2 }],
     ruin: [{ role: '遗藏窥探者', faction: 'demonic', goals: ['findRelic', 'avoidPlayer'], weight: 2 }],
-    caravan: [{ role: '商旅', faction: 'caravans', goals: ['trade', 'collectRumors'], weight: 5 }, { role: '护卫', faction: 'caravans', goals: ['guard', 'patrol'], weight: 3 }]
+    caravan: [{ role: '商旅', faction: 'caravans', goals: ['trade', 'collectRumors'], weight: 5 }, { role: '护卫', faction: 'caravans', goals: ['guard', 'patrol'], weight: 3 }],
+    road: [{ role: '赶路蛊师', faction: 'caravans', goals: ['travel', 'secureResources'], weight: 4 }, { role: '山匪', faction: 'demonic', goals: ['ambush', 'avoidPlayer'], weight: 1 }],
+    city: [{ role: '商家城居民', faction: 'shang', goals: ['trade', 'collectRumors'], weight: 6 }, { role: '演武场蛊师', faction: 'shang', goals: ['winRivalry', 'gainRecognition'], weight: 4 }],
+    inheritance: [{ role: '传承探索者', faction: null, goals: ['findRelic', 'survive'], weight: 6 }, { role: '正道小组', faction: 'shang', goals: ['patrol', 'secureResources'], weight: 3 }],
+    heavenClimb: [{ role: '传承争夺者', faction: 'iron', goals: ['findRelic', 'avoidPlayer'], weight: 4 }, { role: '门派弟子', faction: 'shang', goals: ['proveWorth', 'patrol'], weight: 3 }]
   };
 
   const FACTION_SEEDS = {
@@ -32,7 +40,8 @@
     xiong: { name: '熊家寨', color: '#b98668', influence: 38, tension: 22, attitude: -6 },
     caravans: { name: '商队与散修', color: '#a6b77c', influence: 32, tension: 12, attitude: 4 },
     demonic: { name: '魔道游修', color: '#8d6b9f', influence: 20, tension: 35, attitude: -16 },
-    iron: { name: '铁家与正道巡查', color: '#8f9aa6', influence: 24, tension: 8, attitude: 2 }
+    iron: { name: '铁家与正道巡查', color: '#8f9aa6', influence: 24, tension: 8, attitude: 2 },
+    shang: { name: '商家城', color: '#d4a85a', influence: 72, tension: 16, attitude: 8 }
   };
 
   const GU_SEEDS = {
@@ -119,6 +128,27 @@
       schedule: { morning: 'village', afternoon: 'ancestralHall', evening: 'village', night: 'village' },
       goals: ['investigate', 'proveWorth', 'protectFather']
     },
+    shangxinci: {
+      name: '商心慈', role: '商家少主', faction: 'shang', location: 'merchantCity', fromDay: 30,
+      personality: { ambition: 58, caution: 64, loyalty: 88, greed: 18, curiosity: 76 },
+      cultivation: { rank: 2, stage: 0, aptitude: 0.42 },
+      schedule: { morning: 'merchantCity', afternoon: 'merchantCity', evening: 'merchantCity', night: 'merchantCity' },
+      goals: ['recruit', 'maintainOrder', 'trade']
+    },
+    weiyang: {
+      name: '魏央', role: '商家外姓家老', faction: 'shang', location: 'merchantCity', fromDay: 30,
+      personality: { ambition: 72, caution: 82, loyalty: 76, greed: 26, curiosity: 68 },
+      cultivation: { rank: 4, stage: 1, aptitude: 0.78 },
+      schedule: { morning: 'merchantCity', afternoon: 'merchantCity', evening: 'merchantCity', night: 'merchantCity' },
+      goals: ['train', 'protectClan', 'maintainOrder']
+    },
+    shangyanfei: {
+      name: '商燕飞', role: '商家族长', faction: 'shang', location: 'merchantCity', fromDay: 34,
+      personality: { ambition: 86, caution: 88, loyalty: 82, greed: 38, curiosity: 62 },
+      cultivation: { rank: 5, stage: 2, aptitude: 0.86 },
+      schedule: { morning: 'merchantCity', afternoon: 'merchantCity', evening: 'merchantCity', night: 'merchantCity' },
+      goals: ['maintainOrder', 'prepareAlliance', 'collectRumors']
+    },
     tiexueleng: {
       name: '铁血冷', role: '神捕', faction: 'iron', location: 'village', fromDay: 22,
       personality: { ambition: 64, caution: 94, loyalty: 78, greed: 8, curiosity: 98 },
@@ -136,18 +166,27 @@
     auction: { source: 'reference/novel/第1卷：魔性不改/第110章.txt', note: '贾富与拍卖会提供商队掌柜、外来资本和价格博弈的原文依据。' },
     wolf: { source: 'reference/novel/第1卷：魔性不改/第123章.txt', note: '狼潮下的三寨联盟与利益分配，把族群关系升级为区域生存危机。' },
     tournament: { source: 'reference/novel/第1卷：魔性不改/第180章.txt', note: '狼潮后各族通过三族大比武处理赔偿和资源分配。' },
-    investigation: { source: 'reference/novel/第1卷：魔性不改/第182章.txt', note: '铁血冷与铁若男进入青茅山，将案件调查、正道秩序和家族猜疑带入同一场景。' }
+    investigation: { source: 'reference/novel/第1卷：魔性不改/第182章.txt', note: '铁血冷与铁若男进入青茅山，将案件调查、正道秩序和家族猜疑带入同一场景。' },
+    whiteBone: { source: 'reference/novel/第2卷：魔子出山/第10章.txt', note: '白骨山是青茅山之后的旅途节点，路途、资源和风险从山寨秩序中脱离出来。' },
+    merchantCity: { source: 'reference/novel/第2卷：魔子出山/第102章.txt', note: '商家城以演武场、城规、贵宾身份和家族权力构成新的城市型社会模拟空间。' },
+    threeKings: { source: 'reference/novel/第2卷：魔子出山/第124章.txt', note: '三叉山的三王传承把正魔两道、资源争夺和周期性开放机制连接起来。' },
+    heavenClimb: { source: 'reference/novel/第2卷：魔子出山/第136章.txt', note: '天梯山与狐仙福地传承将门派竞争和更高层级的区域事件引入世界。' }
   };
 
   const CONTENT_INDEX = {
-    id: 'gu-qingmao-v1',
-    title: '蛊真人 · 青茅山模拟内容包',
+    id: 'gu-southern-border-v2',
+    title: '蛊真人 · 南疆 simulation-first 内容包',
     volumes: [{ id: 'volume-1', title: '第1卷：魔性不改', arcs: [
       { id: 'opening', chapters: ['第6章.txt', '第7章.txt', '第14章.txt'], sourceKeys: ['opening', 'academy', 'relic'] },
       { id: 'market-and-wolf', chapters: ['第109章.txt', '第110章.txt', '第112章.txt', '第123章.txt'], sourceKeys: ['market', 'auction', 'wolf'] },
       { id: 'after-wolf', chapters: ['第178章.txt', '第180章.txt', '第182章.txt'], sourceKeys: ['tournament', 'investigation'] }
-    ] }]
+    ] },
+    { id: 'volume-2', title: '第2卷：魔子出山', arcs: [
+      { id: 'journey-to-city', chapters: ['第10章.txt', '第102章.txt'], sourceKeys: ['whiteBone', 'merchantCity'] },
+      { id: 'inheritance-frontier', chapters: ['第124章.txt', '第136章.txt'], sourceKeys: ['threeKings', 'heavenClimb'] }
+    ] }
+  ]
   };
 
-  return { CONTENT_VERSION: 1, CONTENT_INDEX, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
+  return { CONTENT_VERSION: 2, CONTENT_INDEX, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
 });

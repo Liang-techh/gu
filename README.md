@@ -12,6 +12,7 @@
 - 玩家/NPC 共用的组件式实体模型；
 - 独立运行时内核：组件查询、领域事件流、GoalHandler 注册表和 Conversation/Interaction 注册表；
 - 独立内容包 [src/content.js](<D:\Caves of Qud\gu-rpg\src\content.js>)：地点、人口表、势力、人物、蛊虫和章节来源可按内容版本扩展；
+- 内容包已覆盖第一卷青茅山后段，以及第二卷白骨山—商家城—三叉山—天梯山的首批区域链；
 - `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
 - 事件历史、导演事件和统一 `dispatch` 结算入口；
 - NPC 日程、目标选择、移动、饥饿/精力和同场遭遇记忆；
@@ -53,8 +54,8 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       18/18 passing
-npm run check:canon  26/26 term/source checks
+npm test       19/19 passing
+npm run check:canon  33/33 term/source checks
 ```
 
 当前是可运行的青茅山垂直切片，不声称已经完成 Qud 级别的格点物理、身体部位、液体/温度、完整历史生成和全卷内容。后续系统会继续以可测试的组件/事件模块逐层加入。
