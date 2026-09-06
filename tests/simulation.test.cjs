@@ -909,6 +909,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   state = ok(state, { type: 'action', id: 'travel', location: 'village' });
   const snap = S.snapshot(state);
   assert.ok(snap.engine.registries.components.brain.lifecycle.includes('ensure'));
+  for (const id of ['identity', 'position', 'faction', 'personality', 'cultivation', 'schedule', 'goals', 'needs', 'abilities', 'inventory', 'memory', 'knowledge', 'conditions', 'body', 'equipment', 'effects', 'brain', 'agent', 'alive']) assert.ok(snap.engine.registries.components[id].lifecycle.includes('ensure'), `${id} should be a lifecycle component`);
   assert.ok(snap.eventStream.length > before);
   assert.ok(snap.eventStream.some(event => event.type === 'world.travel'));
   assert.ok(snap.engine.registries.goals.includes('secureResources'));

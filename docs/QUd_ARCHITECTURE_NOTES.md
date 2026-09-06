@@ -14,7 +14,7 @@
 
 `XRL.World.IPart` 的公开契约包含 `Attach`、`Initialize`、`AddedAfterCreation`、`Remove`、`ObjectLoaded`、`Save/Load`、`DeepCopy`，并支持 `RegisterEvent` / `UnregisterEvent`。这说明部件不仅是数据字段，也是可以在实体生命周期中注册行为的运行时模块。
 
-当前项目的 `attach/detach/patchComponent` 已提供数据层入口，`registerEventListener` 提供全局事件入口。本轮先把 NPC 的 `brain` 做成独立模块；后续应为组件增加 `onAttach/onDetach/onEvent/serialize` 生命周期，令蛊虫、伤势、身份和装备可以自注册规则。
+当前项目的 `attach/detach/patchComponent` 已提供数据层入口，`registerEventListener` 提供全局事件入口。`src/gu-components.js` 已将身份、位置、势力、修为、需求、日程、目标、能力、库存、记忆、知识、状态、身体、装备、效果、Brain 和代理人全部注册为可初始化、序列化或反序列化的组件；蛊虫、伤势、身份和装备可以继续在这个 Part 边界上增加自注册事件规则。
 
 ### 3. 事件是参数化领域消息，不是字符串日志
 

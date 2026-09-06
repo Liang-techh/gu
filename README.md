@@ -31,6 +31,7 @@
 - 共享动态市场 [src/market.js](<D:\Caves of Qud\gu-rpg\src\market.js>)：NPC 自主交易、玩家委托交易和未来的玩家交易共用报价、供需、元石结算与交易事件；普通交易会进入区域活动和低风险传闻，但不会被误判成追杀证据；
 - 统一社会交互运行时 [src/social.js](<D:\Caves of Qud\gu-rpg\src\social.js>)：玩家和 NPC-NPC 的帮助、施压、交易、交谈与调停共用关系、记忆、状态效果、事件 provenance 和势力后果；普通自治交谈采用局部记忆，威胁/调停才升级到全局传闻网络；
 - 统一 Combat runtime [src/combat.js](<D:\Caves of Qud\gu-rpg\src\combat.js>)：玩家战斗回合、环境伤害、离线冲突和活跃 NPC 伏击共用身体部位、伤势、Effect、死亡、记忆和战斗事件结算；攻击、蛊术、防守和脱身也都通过 Action Registry；
+- 统一组件包 [src/gu-components.js](<D:\Caves of Qud\gu-rpg\src\gu-components.js>)：身份、位置、势力、修为、需求、日程、目标、能力、库存、记忆、知识、状态、身体、装备、效果、Brain 和代理人均注册生命周期/序列化定义，不再只有裸 JSON 字段；
 - 独立行动目录 [src/action-catalog.js](<D:\Caves of Qud\gu-rpg\src\action-catalog.js>)：可用 command 根据当前世界状态生成，UI、自由意图解析和未来 AI 代理共享同一行动入口；
 - 基础行动全部进入 Action Registry：等待、旅行、修炼、学习、采集、休息、炼蛊、装备、交谈、挑战和势力影响不再由主模拟器的 ID 条件链直接分叉；
 - 内容系统包 [src/gu-systems.js](<D:\Caves of Qud\gu-rpg\src\gu-systems.js>)：小时级需求/状态/AI 与日级市场、区域、家族压力、战争和历史快照都通过可排序 System Registry 注册，世界推进不再藏在单一 daily tick 函数里；
