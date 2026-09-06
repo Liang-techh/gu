@@ -83,7 +83,7 @@
   }
 
   function remember(state, ownerId, subjectId, memory) {
-    const owner = state.entities[ownerId];
+    const owner = state.entities[ownerId] || state.entityCache?.[ownerId];
     if (!owner) return;
     owner.memory ||= { facts: {}, episodes: [] };
     owner.memory.facts[subjectId] ||= {};
@@ -546,7 +546,7 @@
       for (const episode of npc.memory.episodes) episode.valence *= 0.985;
     }
     const p = state.entities.player;
-    ZoneRuntime.dailyTick(state, { playerLocation: p.position.location, random });
+    ZoneRuntime.dailyTick(state, { playerLocation: p.position.location, random, engine: Engine, market: marketRuntime, consequence: Consequence.record, remember, log, damageEntity });
     const rel = relation(state, 'player', 'guYue');
     state.factions.guYue.tension += p.cultivation.rank > 1 ? 1 : 0;
     state.factions.bai.tension += state.factions.guYue.tension > 45 ? 1 : 0;
@@ -626,7 +626,7 @@
   }
 
   function damageEntity(state, targetId, amount, sourceId, kind = 'strike') {
-    const target = state.entities[targetId];
+    const target = state.entities[targetId] || state.entityCache?.[targetId];
     if (!target?.body || !target.alive) return 0;
     const result = Body.applyDamage(target, { amount, sourceId, kind, roll: () => random(state), clock: state.clock });
     const { damage, limb } = result;
@@ -703,7 +703,7 @@
       const target = command.location;
       if (!LOCATIONS[target] || !LOCATIONS[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
       const from = p.position.location; p.position.location = target;
-      ZoneRuntime.transition(state, from, target, { engine: Engine, clock: state.clock });
+      ZoneRuntime.transition(state, from, target, { engine: Engine, clock: state.clock, market: marketRuntime, consequence: Consequence.record, remember, log, damageEntity });
       Engine.emit(state, 'world.travel', { actorId: 'player', from, to: target });
       remember(state, 'player', 'world', { kind: 'travel', text: `从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`, facts: { [target]: true } });
       log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);

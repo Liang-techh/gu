@@ -41,7 +41,7 @@
       faction.consequences.unshift(item.id);
       faction.consequences = faction.consequences.slice(0, 32);
     }
-    const actor = actorId && state.entities?.[actorId];
+    const actor = actorId && (state.entities?.[actorId] || state.entityCache?.[actorId]);
     if (actor) {
       actor.memory ||= { facts: {}, episodes: [] };
       actor.memory.facts ||= {};

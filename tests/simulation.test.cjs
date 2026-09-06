@@ -96,6 +96,41 @@ test('suspended zones advance cached residents through deterministic migration s
   assert.ok(state.zones.bambooForest.runtime.offline.lastSummary.residentMoves >= 1);
 });
 
+test('offline residents execute economy goals and leave market provenance', () => {
+  const state = S.newWorld({ seed: 'offline-economy' });
+  const id = Object.keys(state.entityCache).find(item => item.startsWith('ambient-caravanCamp-'));
+  assert.ok(id);
+  const resident = state.entityCache[id];
+  resident.goals.queue = ['trade'];
+  resident.inventory = { stones: 20, water: 1 };
+  const summary = S.ZONE_RUNTIME.settle(state, 'caravanCamp', 24, {
+    clock: state.clock + 24,
+    engine: S.ENGINE,
+    market: S.MARKET
+  });
+  assert.ok(summary.residentActions >= 1);
+  assert.ok(summary.residentTrades >= 1);
+  assert.ok((state.facts.marketActivity || 0) >= 1);
+  assert.ok(state.market.transactions.some(transaction => transaction.actorId === id && transaction.eventId && transaction.provenanceId));
+});
+
+test('offline faction conflict damages cached residents and records a durable consequence', () => {
+  const state = S.newWorld({ seed: 'offline-conflict' });
+  const left = S.ENTITY.createEntity('ambient-offline-left', { name: '离线甲', location: 'blackTribeCamp', faction: 'black', goals: ['prepareWar'] });
+  const right = S.ENTITY.createEntity('ambient-offline-right', { name: '离线乙', location: 'blackTribeCamp', faction: 'northernTribes', goals: ['prepareWar'] });
+  state.entityCache[left.id] = left;
+  state.entityCache[right.id] = right;
+  state.zones.blackTribeCamp.danger = 100;
+  const summary = S.ZONE_RUNTIME.settle(state, 'blackTribeCamp', 1000, {
+    clock: state.clock + 1000,
+    engine: S.ENGINE,
+    consequence: S.CONSEQUENCES.record
+  });
+  assert.ok(summary.residentConflicts >= 1);
+  assert.ok(state.consequences.records.some(item => item.kind === 'offline_conflict' && item.location === 'blackTribeCamp'));
+  assert.ok(left.memory.episodes.some(item => item.kind === 'consequence:offline_conflict'));
+});
+
 test('same seed and same commands produce the same world state', () => {
   let a = S.newWorld({ seed: 'fixed' });
   let b = S.newWorld({ seed: 'fixed' });

@@ -138,6 +138,9 @@
       activityDelta: -8 * days,
       dangerDelta: 0,
       residentMoves: 0,
+      residentActions: 0,
+      residentTrades: 0,
+      residentPatrols: 0,
       residentConflicts: 0,
       residentDeaths: 0,
       queuedEvents: zone.runtime.queuedEvents.length,
@@ -152,9 +155,66 @@
     return (hash >>> 0) / 4294967296;
   }
 
-  function offlineResidents(state, locationId, summary) {
+  function offlineAction(state, entity, locationId, summary, options = {}) {
+    const zone = state.zones?.[locationId];
+    const faction = entity.faction && state.factions?.[entity.faction];
+    const goals = entity.goals?.queue || [];
+    const note = (kind, text, facts = {}) => {
+      if (options.remember) options.remember(state, entity.id, 'world', { kind, text, facts });
+      else {
+        entity.memory ||= { facts: {}, episodes: [] };
+        entity.memory.episodes ||= [];
+        entity.memory.episodes.unshift({ clock: state.clock, subjectId: 'world', kind, valence: 0, text });
+        entity.memory.episodes = entity.memory.episodes.slice(0, 24);
+      }
+    };
+    const emit = (type, payload) => options.engine?.emit?.(state, type, payload);
+    if (goals.includes('trade') && options.market && ['caravanCamp', 'village'].includes(locationId)) {
+      const result = options.market.npcTrade(state, entity, faction);
+      summary.residentActions += 1;
+      if (result?.ok) {
+        summary.residentTrades += 1;
+        state.facts.marketActivity = (state.facts.marketActivity || 0) + 1;
+        note('offline-trade', `${entity.identity?.name || entity.id}在离线期间完成了一笔交易。`, { marketTrade: result.eventId || result.id });
+        emit('zone.offline_action', { actorId: entity.id, location: locationId, goal: 'trade', result: result.goodId || null });
+      }
+      return result?.ok !== false;
+    }
+    if (goals.includes('patrol') || goals.includes('guard') || (faction?.interests?.war?.mobilization || 0) > 0.65) {
+      if (zone) {
+        zone.danger = Math.max(0, zone.danger - 0.35 * summary.days);
+        zone.activity += 0.6;
+      }
+      if (faction) faction.tension = Math.max(0, faction.tension - 0.08 * summary.days);
+      summary.residentActions += 1;
+      summary.residentPatrols += 1;
+      note('offline-patrol', `${entity.identity?.name || entity.id}在离线期间维持了${locationId}的秩序。`, { offlinePatrol: true });
+      emit('zone.offline_action', { actorId: entity.id, location: locationId, goal: goals.includes('patrol') ? 'patrol' : 'guard', result: 'stabilized' });
+      return true;
+    }
+    if ((goals.includes('hunt') || goals.includes('forage')) && zone?.resources?.food > 0) {
+      zone.resources.food = Math.max(0, zone.resources.food - 1);
+      entity.needs.hunger = clamp(entity.needs.hunger - 12, 0, 100);
+      summary.residentActions += 1;
+      note('offline-forage', `${entity.identity?.name || entity.id}在离线期间搜集了食物。`, { offlineForage: true });
+      emit('zone.offline_action', { actorId: entity.id, location: locationId, goal: goals.includes('hunt') ? 'hunt' : 'forage', result: 'food' });
+      return true;
+    }
+    if (goals.includes('prepareWar') && faction) {
+      faction.tension = Math.min(100, faction.tension + 0.16 * summary.days);
+      faction.influence = Math.min(100, faction.influence + 0.08 * summary.days);
+      summary.residentActions += 1;
+      note('offline-war-prep', `${entity.identity?.name || entity.id}在离线期间为${faction.name || faction.id}准备战事。`, { offlineWarPreparation: true });
+      emit('zone.offline_action', { actorId: entity.id, location: locationId, goal: 'prepareWar', result: 'prepared' });
+      return true;
+    }
+    return false;
+  }
+
+  function offlineResidents(state, locationId, summary, options = {}) {
     const zone = state.zones?.[locationId];
     const residents = Object.values(state.entityCache || {}).filter(entity => entity.position?.location === locationId);
+    const processedConflicts = new Set();
     for (const entity of residents) {
       entity.needs ||= { energy: 50, hunger: 20, safety: 60 };
       entity.needs.energy = clamp((Number(entity.needs.energy) || 0) + 20 * summary.days, 0, 100);
@@ -178,10 +238,26 @@
         entity.memory.episodes.unshift({ clock: state.clock, subjectId: destination, kind: 'offline-move', valence: zone.danger > 70 ? -1 : 0, text: `在离线期间从${locationId}迁往${destination}。` });
         entity.memory.episodes = entity.memory.episodes.slice(0, 24);
       }
-      if ((zone.danger > 80 || warPressure > 0.75) && stableRoll(`${state.clock}:conflict:${entity.id}`) < Math.min(0.5, summary.days * (warPressure > 0.75 ? 0.16 : 0.12))) {
-        entity.body.health = Math.max(0, entity.body.health - Math.max(1, Math.round(zone.danger * 0.04)));
+      offlineAction(state, entity, locationId, summary, options);
+      const opponent = residents.find(other => other.id !== entity.id && !processedConflicts.has(other.id) && other.position?.location === locationId && other.faction && entity.faction && other.faction !== entity.faction && other.alive !== false);
+      if (opponent && (zone.danger > 80 || warPressure > 0.75) && stableRoll(`${state.clock}:conflict:${entity.id}:${opponent.id}`) < Math.min(0.5, summary.days * (warPressure > 0.75 ? 0.16 : 0.12)) && entity.id.localeCompare(opponent.id) < 0) {
+        const beforeA = entity.alive !== false;
+        const beforeB = opponent.alive !== false;
+        if (options.damageEntity) {
+          options.damageEntity(state, opponent.id, Math.max(1, Math.round(zone.danger * 0.04)), entity.id, 'offline_conflict');
+          options.damageEntity(state, entity.id, Math.max(1, Math.round(zone.danger * 0.025)), opponent.id, 'offline_conflict');
+        } else {
+          opponent.body.health = Math.max(0, opponent.body.health - Math.max(1, Math.round(zone.danger * 0.04)));
+          entity.body.health = Math.max(0, entity.body.health - Math.max(1, Math.round(zone.danger * 0.025)));
+          if (opponent.body.health <= 0) opponent.alive = false;
+          if (entity.body.health <= 0) entity.alive = false;
+        }
+        processedConflicts.add(entity.id); processedConflicts.add(opponent.id);
         summary.residentConflicts += 1;
-        if (entity.body.health <= 0) { entity.alive = false; summary.residentDeaths += 1; }
+        if (beforeA && entity.alive === false) summary.residentDeaths += 1;
+        if (beforeB && opponent.alive === false) summary.residentDeaths += 1;
+        options.consequence?.(state, { kind: 'offline_conflict', actorId: entity.id, targetId: opponent.id, factionId: entity.faction, source: 'zone.offline_conflict', location: locationId, reason: `${entity.identity?.name || entity.id}与${opponent.identity?.name || opponent.id}在离线期间发生冲突。`, data: { danger: zone.danger }, tension: 0.5, pressure: 0.1 });
+        options.engine?.emit?.(state, 'zone.offline_conflict', { actorId: entity.id, targetId: opponent.id, location: locationId, danger: zone.danger });
       }
     }
   }
@@ -193,7 +269,7 @@
     const clock = options.clock ?? state.clock;
     const summary = summaryFor(zone, hours, clock);
     const days = summary.days;
-    offlineResidents(state, locationId, summary);
+    offlineResidents(state, locationId, summary, options);
     const activityBefore = Number(zone.activity) || 0;
     zone.activity = Math.max(0, activityBefore + summary.activityDelta);
     summary.dangerDelta = zone.activity > 45 ? 1.5 * days : -0.5 * days;
@@ -235,7 +311,7 @@
     hydrateLocation(state, locationId);
     const runtime = ensure(zone, clock);
     const elapsed = Math.max(0, clock - runtime.lastSettlementClock);
-    if (options.settle !== false && elapsed > 0) settle(state, locationId, elapsed, { clock });
+    if (options.settle !== false && elapsed > 0) settle(state, locationId, elapsed, { ...options, clock });
     runtime.active = true;
     runtime.suspended = false;
     runtime.stale = false;
@@ -278,7 +354,7 @@
         continue;
       }
       const elapsed = Math.max(0, state.clock - runtime.lastSettlementClock);
-      if (elapsed > 0) settle(state, id, elapsed, { clock: state.clock });
+      if (elapsed > 0) settle(state, id, elapsed, { ...options, clock: state.clock });
       runtime.active = false;
       runtime.suspended = true;
     }
