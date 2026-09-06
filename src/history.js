@@ -5,7 +5,7 @@
   'use strict';
 
   const HISTORY_SCHEMA = 1;
-  const SIGNIFICANT_TYPES = new Set(['world_started', 'director_event', 'choice', 'day_tick', 'npc_goal_action', 'damage', 'death', 'faction', 'travel', 'combat_start', 'arena_match', 'inheritance_round']);
+  const SIGNIFICANT_TYPES = new Set(['world_started', 'director_event', 'choice', 'day_tick', 'npc_goal_action', 'damage', 'death', 'faction', 'travel', 'combat_start', 'arena_match', 'inheritance_round', 'contract']);
 
   function create(seed, content) {
     return {

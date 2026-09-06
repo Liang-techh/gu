@@ -9,7 +9,7 @@
   if (!History) throw new Error('GuSimulationHistory must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
-  const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX } = Content;
+  const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS } = Content;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const copy = value => JSON.parse(JSON.stringify(value));
   const hash = value => {
@@ -96,6 +96,59 @@
     return entity;
   }
 
+  function contractDef(id) { return CONTRACT_DEFS.find(definition => definition.id === id); }
+
+  function refreshContracts(state) {
+    state.contracts ||= { available: [], active: {}, completed: [] };
+    state.contracts.available ||= []; state.contracts.active ||= {}; state.contracts.completed ||= [];
+    for (const definition of CONTRACT_DEFS) {
+      if (state.contracts.completed.some(item => item.id === definition.id) || state.contracts.active[definition.id] || state.contracts.available.includes(definition.id)) continue;
+      if (day(state) < definition.availableFromDay) continue;
+      if ((definition.flags || []).some(flag => !state.flags[flag])) continue;
+      if (!state.entities[definition.giver]?.alive) continue;
+      state.contracts.available.push(definition.id);
+    }
+  }
+
+  function contractObjectiveSatisfied(state, definition) {
+    const objective = definition.objective;
+    const p = state.entities.player;
+    if (objective.type === 'helpTalk') return !!state.entities[objective.target]?.memory.facts.player?.helped;
+    if (objective.type === 'investigationLeverage') return !!p.memory.facts.world.investigationLeverage;
+    if (objective.type === 'arenaWins') return state.arena.wins >= objective.count;
+    if (objective.type === 'inheritanceRound') return state.inheritance.round >= objective.count;
+    return false;
+  }
+
+  function acceptContract(state, id) {
+    refreshContracts(state);
+    const definition = contractDef(id);
+    if (!definition || !state.contracts.available.includes(id)) throw new Error('当前没有这份委托');
+    const p = state.entities.player; const giver = state.entities[definition.giver];
+    if (!giver || giver.position.location !== p.position.location || !definition.locations.includes(p.position.location)) throw new Error('委托人不在当前位置');
+    state.contracts.available = state.contracts.available.filter(item => item !== id);
+    state.contracts.active[id] = { id, giver: definition.giver, acceptedClock: state.clock, objective: copy(definition.objective) };
+    remember(state, definition.giver, 'player', { kind: 'contract', valence: 2, text: `你接受了委托“${definition.title}”。`, facts: { contractAccepted: id } });
+    log(state, 'contract', `你接受了委托：${definition.title}。`, { contractId: id, phase: 'accepted' });
+    advance(state, 1, 'contract');
+  }
+
+  function completeContract(state, id) {
+    refreshContracts(state);
+    const definition = contractDef(id); const active = state.contracts.active[id];
+    if (!definition || !active) throw new Error('你没有接受这份委托');
+    if (!contractObjectiveSatisfied(state, definition)) throw new Error('委托目标尚未完成');
+    const p = state.entities.player; const reward = definition.reward || {};
+    if (reward.insight) p.cultivation.insight += reward.insight;
+    if (reward.stones) p.inventory.stones = (p.inventory.stones || 0) + reward.stones;
+    if (reward.reputation) state.arena.reputation += reward.reputation;
+    if (reward.trust) relation(state, 'player', reward.trust.target).trust += reward.trust.amount;
+    if (reward.faction) affectFaction(state, reward.faction.id, reward.faction.attitude || 0, reward.faction.tension || 0);
+    delete state.contracts.active[id]; state.contracts.completed.push({ id, completedClock: state.clock });
+    log(state, 'contract', `你完成了委托：${definition.title}。`, { contractId: id, phase: 'completed', reward });
+    advance(state, 1, 'contract');
+  }
+
   function createZone(locationId, location) {
     const resources = { water: 0, moonPetal: 0, food: 0, relicFragment: 0 };
     if (location.tags.includes('water')) resources.water = 8;
@@ -142,6 +195,7 @@
       schema: SCHEMA_VERSION,
       content: { id: CONTENT_INDEX.id, version: CONTENT_VERSION },
       history: History.create(seed, { id: CONTENT_INDEX.id, version: CONTENT_VERSION }),
+      contracts: { available: [], active: {}, completed: [] },
       seed,
       rng: hash(seed),
       clock: 6,
@@ -439,6 +493,8 @@
 
   function normalize(state) {
     const p = state.entities.player;
+    state.contracts ||= { available: [], active: {}, completed: [] };
+    state.contracts.available ||= []; state.contracts.active ||= {}; state.contracts.completed ||= [];
     state.arena ||= { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 };
     state.inheritance ||= { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false };
     state.arena.matches = Math.max(0, Number(state.arena.matches) || 0); state.arena.wins = Math.max(0, Number(state.arena.wins) || 0); state.arena.losses = Math.max(0, Number(state.arena.losses) || 0); state.arena.streak = Math.max(0, Number(state.arena.streak) || 0); state.arena.reputation = Math.max(0, Number(state.arena.reputation) || 0);
@@ -657,6 +713,7 @@
     if (day(state) !== oldDay) dailyTick(state);
     directorTick(state);
     normalize(state);
+    refreshContracts(state);
     if (cause !== 'npc') state.director.lastTick = Math.min(state.director.lastTick, state.clock);
   }
 
@@ -754,6 +811,8 @@
       log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);
       advance(state, 1, 'travel'); return;
     }
+    if (id === 'accept_contract') { acceptContract(state, command.contractId); return; }
+    if (id === 'complete_contract') { completeContract(state, command.contractId); return; }
     if (id === 'arena_match') {
       if (p.position.location !== 'merchantCity' || !state.arena?.active) throw new Error('当前没有开放的商家城演武资格');
       const opponentPower = 0.18 + Math.floor(state.arena.wins / 3) * 0.06 + random(state) * 0.16;
@@ -932,7 +991,7 @@
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
   }
 
@@ -940,5 +999,5 @@
   registerEventHandlers();
   registerGoalHandlers();
   registerInteractionHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

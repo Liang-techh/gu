@@ -64,6 +64,19 @@ test('NPC social interaction changes relation and creates durable memory', () =>
   assert.ok(state.entities.fangzheng.memory.episodes.length >= before);
 });
 
+test('content-driven NPC contracts persist through acceptance, objective progress and delivery', () => {
+  let state = open(S.newWorld({ seed: 'contracts' }), 'observe');
+  state = ok(state, { type: 'action', id: 'wait', hours: 24 });
+  assert.ok(state.contracts.available.includes('fangzheng-support'));
+  state = ok(state, { type: 'action', id: 'wait', hours: 1 });
+  state = ok(state, { type: 'action', id: 'accept_contract', contractId: 'fangzheng-support' });
+  state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'help' });
+  state = ok(state, { type: 'action', id: 'complete_contract', contractId: 'fangzheng-support' });
+  assert.ok(state.contracts.completed.some(item => item.id === 'fangzheng-support'));
+  assert.equal(state.contracts.active['fangzheng-support'], undefined);
+  assert.ok(state.history.events.some(item => item.type === 'contract'));
+});
+
 test('NPCs run schedules while the player waits instead of freezing the world', () => {
   let state = open(S.newWorld({ seed: 'schedule' }), 'observe');
   const start = state.entities.fangyuan.position.location;

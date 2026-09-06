@@ -188,5 +188,12 @@
   ]
   };
 
-  return { CONTENT_VERSION: 2, CONTENT_INDEX, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
+  const CONTRACT_DEFS = [
+    { id: 'fangzheng-support', title: '帮助方正证明自己', giver: 'fangzheng', availableFromDay: 2, locations: ['academy'], objective: { type: 'helpTalk', target: 'fangzheng' }, reward: { insight: 3, trust: { target: 'fangzheng', amount: 5 } } },
+    { id: 'iron-case-lead', title: '铁家案件的线索', giver: 'tieruonan', availableFromDay: 22, flags: ['investigationArrived'], locations: ['village', 'ancestralHall'], objective: { type: 'investigationLeverage' }, reward: { insight: 6, faction: { id: 'iron', attitude: 5 } } },
+    { id: 'merchant-arena-streak', title: '演武场的三连胜', giver: 'shangxinci', availableFromDay: 32, flags: ['merchantCityOpened', 'arenaTrial'], locations: ['merchantCity'], objective: { type: 'arenaWins', count: 3 }, reward: { stones: 4, reputation: 5, trust: { target: 'shangxinci', amount: 6 } } },
+    { id: 'inheritance-scout', title: '三王传承的侦查报告', giver: 'weiyang', availableFromDay: 40, flags: ['threeKingsAwakened'], locations: ['threeForkMountain'], objective: { type: 'inheritanceRound', count: 5 }, reward: { insight: 8, faction: { id: 'shang', attitude: 6 } } }
+  ];
+
+  return { CONTENT_VERSION: 2, CONTENT_INDEX, CONTRACT_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
 });
