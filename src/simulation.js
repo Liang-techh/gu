@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'), require('./gu-systems.js'), require('./gu-components.js'), require('./gu-goals.js'), require('./gu-listeners.js'), require('./gu-actions.js'), require('./gu-world.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat, root.GuSimulationGuSystems, root.GuSimulationGuComponents, root.GuSimulationGuGoals, root.GuSimulationGuListeners, root.GuSimulationGuActions, root.GuSimulationGuWorld);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat, GuSystems, GuComponents, GuGoals, GuListeners, GuActions, GuWorld) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'), require('./gu-systems.js'), require('./gu-components.js'), require('./gu-goals.js'), require('./gu-listeners.js'), require('./gu-actions.js'), require('./gu-world.js'), require('./gu-state.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat, root.GuSimulationGuSystems, root.GuSimulationGuComponents, root.GuSimulationGuGoals, root.GuSimulationGuListeners, root.GuSimulationGuActions, root.GuSimulationGuWorld, root.GuSimulationGuState);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat, GuSystems, GuComponents, GuGoals, GuListeners, GuActions, GuWorld, GuState) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -12,6 +12,7 @@
   if (!GuListeners) throw new Error('GuSimulationGuListeners must load before simulation.js');
   if (!GuActions) throw new Error('GuSimulationGuActions must load before simulation.js');
   if (!GuWorld) throw new Error('GuSimulationGuWorld must load before simulation.js');
+  if (!GuState) throw new Error('GuSimulationGuState must load before simulation.js');
   if (!Identity) throw new Error('GuSimulationIdentity must load before simulation.js');
   if (!Pursuit) throw new Error('GuSimulationPursuit must load before simulation.js');
   if (!Agency) throw new Error('GuSimulationAgency must load before simulation.js');
@@ -118,6 +119,7 @@
   let socialRuntime;
   let combatRuntime;
   let guWorldRuntime;
+  let stateNormalizer;
   function directorTick(state) {
     return Director.tick(state, { engine: Engine, day, log });
   }
@@ -145,96 +147,7 @@
   }
 
 
-  function normalize(state) {
-    const p = state.entities.player;
-    Social.ensure(state);
-    state.social.recent = state.social.recent.slice(0, 128);
-    const knownEntityIds = new Set([...Object.keys(state.entities || {}), ...Object.keys(state.entityCache || {})]);
-    for (const id of Object.keys(state.social.lastActorClock)) if (!knownEntityIds.has(id)) delete state.social.lastActorClock[id];
-    Combat.ensure(state);
-    state.combatLedger.exchanges = state.combatLedger.exchanges.slice(0, 128);
-    state.events ||= { active: null, pending: [], recent: [], history: [], sequence: 0 };
-    state.events.pending ||= []; state.events.recent ||= []; state.events.history ||= [];
-    state.events.pending = state.events.pending.slice(-128);
-    state.events.recent = state.events.recent.slice(-256);
-    state.events.history = state.events.history.slice(-512);
-    state.logSequence = Math.max(Number(state.logSequence) || 0, state.events.history.reduce((max, entry) => Math.max(max, Number(String(entry.id || '').replace(/^e/, '')) || 0), 0));
-    for (const entity of Object.values(state.entities || {})) { Knowledge.ensure(entity); Identity.ensure(entity, Knowledge); Equipment.ensure(entity); Brain.ensure(entity); }
-    Engine.initializeComponents(state);
-    ZoneRuntime.ensureState(state, p?.position?.location);
-    state.contracts ||= { available: [], active: {}, completed: [] };
-    state.contracts.available ||= []; state.contracts.active ||= {}; state.contracts.completed ||= [];
-    state.arena ||= { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 };
-    state.inheritance ||= { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false };
-    state.frontier ||= { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 };
-    state.tower ||= { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false };
-    state.central ||= { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, auctionHeat: 0, sectPressure: 0, marketSupply: 72, marketScarcity: 28, rumorCredibility: 58, marketDebt: 0, marketReputation: 0, tracePressure: 0 };
-    state.central.marketSupply ??= 72; state.central.marketScarcity ??= 28; state.central.rumorCredibility ??= 58; state.central.marketDebt ??= 0; state.central.marketReputation ??= 0; state.central.tracePressure ??= 0;
-    state.worldWar ||= { shadowRebuilt: false, fiveRegions: false, southern: false, western: false, heavenly: false, heat: 0 };
-    state.eternalWar ||= { divineEmperor: false, twoHeavens: false, madDemonCave: false, dream: false, starHost: false, dreamPressure: 0, cosmicHeat: 0, dives: 0, successes: 0, failures: 0 };
-    state.intel ||= { leads: [], cases: {} }; state.intel.leads ||= []; state.intel.cases ||= {};
-    Consequence.ensure(state); state.consequences.records = state.consequences.records.slice(0, 256);
-    state.provenance ||= { sequence: 0, records: [] }; state.provenance.records ||= []; state.provenance.records = state.provenance.records.slice(0, 512);
-    state.intel.leads = state.intel.leads.slice(0, 256);
-    state.pursuit ||= { teams: {}, sequence: 0, alert: 0, contacts: 0 }; state.pursuit.teams ||= {}; state.pursuit.sequence = Math.max(0, Number(state.pursuit.sequence) || 0); state.pursuit.alert = clamp(Number(state.pursuit.alert) || 0, 0, 100); state.pursuit.contacts = Math.max(0, Number(state.pursuit.contacts) || 0);
-    state.agency ||= { commissions: {}, sequence: 0, reputation: 0, completed: 0, failed: 0 }; state.agency.commissions ||= {}; state.agency.sequence = Math.max(0, Number(state.agency.sequence) || 0); state.agency.reputation = clamp(Number(state.agency.reputation) || 0, -100, 100); state.agency.completed = Math.max(0, Number(state.agency.completed) || 0); state.agency.failed = Math.max(0, Number(state.agency.failed) || 0);
-    state.market ||= { prices: {}, supply: {}, demand: {}, transactions: [], day: 1 }; marketRuntime.ensure(state); state.market.transactions = state.market.transactions.slice(0, 256);
-    state.director ||= { pressure: 0, lastTick: 0, thread: [], history: [], cooldowns: {}, beat: 'opening' };
-    state.director.thread ||= []; state.director.history ||= []; state.director.cooldowns ||= {};
-    state.arena.matches = Math.max(0, Number(state.arena.matches) || 0); state.arena.wins = Math.max(0, Number(state.arena.wins) || 0); state.arena.losses = Math.max(0, Number(state.arena.losses) || 0); state.arena.streak = Math.max(0, Number(state.arena.streak) || 0); state.arena.reputation = Math.max(0, Number(state.arena.reputation) || 0);
-    state.inheritance.attempts = Math.max(0, Number(state.inheritance.attempts) || 0); state.inheritance.round = Math.max(0, Number(state.inheritance.round) || 0); state.inheritance.difficulty = Math.max(1, Number(state.inheritance.difficulty) || 1); state.inheritance.discoveries ||= [];
-    state.frontier.supply = clamp(Number(state.frontier.supply) || 0, 0, 100); state.frontier.campaignPressure = clamp(Number(state.frontier.campaignPressure) || 0, 0, 100); state.frontier.battles = Math.max(0, Number(state.frontier.battles) || 0); state.frontier.casualties = Math.max(0, Number(state.frontier.casualties) || 0);
-    state.tower.floors = Math.max(0, Number(state.tower.floors) || 0); state.tower.attempts = Math.max(0, Number(state.tower.attempts) || 0); state.tower.discoveries ||= [];
-    state.central.lotsSold = Math.max(0, Number(state.central.lotsSold) || 0); state.central.auctionHeat = clamp(Number(state.central.auctionHeat) || 0, 0, 100); state.central.sectPressure = clamp(Number(state.central.sectPressure) || 0, 0, 100); state.central.marketSupply = clamp(Number(state.central.marketSupply) || 0, 0, 100); state.central.marketScarcity = clamp(Number(state.central.marketScarcity) || 0, 0, 100); state.central.rumorCredibility = clamp(Number(state.central.rumorCredibility) || 0, 0, 100); state.central.marketDebt = clamp(Number(state.central.marketDebt) || 0, 0, 100); state.central.marketReputation = clamp(Number(state.central.marketReputation) || 0, -100, 100); state.central.tracePressure = clamp(Number(state.central.tracePressure) || 0, 0, 100);
-    state.worldWar.heat = clamp(Number(state.worldWar.heat) || 0, 0, 100);
-    state.eternalWar.dreamPressure = clamp(Number(state.eternalWar.dreamPressure) || 0, 0, 100);
-    state.eternalWar.cosmicHeat = clamp(Number(state.eternalWar.cosmicHeat) || 0, 0, 100);
-    state.eternalWar.dives = Math.max(0, Number(state.eternalWar.dives) || 0);
-    state.eternalWar.successes = Math.max(0, Number(state.eternalWar.successes) || 0);
-    state.eternalWar.failures = Math.max(0, Number(state.eternalWar.failures) || 0);
-    for (const entity of Engine.queryWith(state, 'cultivation')) {
-      Condition.ensure(entity);
-      const c = entity.cultivation;
-      c.rank = clamp(Number(c.rank) || 1, 1, 9);
-      c.stage = clamp(Number(c.stage) || 0, 0, 3);
-      c.aptitude = clamp(Number(c.aptitude) || 0.45, 0, 1);
-      c.progress = clamp(Number(c.progress) || 0, 0, 100);
-      c.insight = Math.max(0, Number(c.insight) || 0);
-      c.essenceMax = Math.max(20, Math.round(34 + c.aptitude * 38 + c.stage * 8 + (c.rank - 1) * 12));
-      c.essence = clamp(Number(c.essence) || 0, 0, c.essenceMax);
-    }
-    p.cultivation.rank = clamp(p.cultivation.rank, 1, 9);
-    p.cultivation.stage = clamp(p.cultivation.stage, 0, 3);
-    p.cultivation.essenceMax = Math.max(20, Math.round(34 + p.cultivation.aptitude * 38 + p.cultivation.stage * 8 + (p.cultivation.rank - 1) * 12));
-    p.cultivation.essence = clamp(p.cultivation.essence, 0, p.cultivation.essenceMax);
-    p.cultivation.progress = clamp(p.cultivation.progress, 0, 100);
-    p.cultivation.vitality = clamp(p.cultivation.vitality, 0, 100);
-    if (!p.body) p.body = { maxHealth: 78, health: 78, wounds: [], limbs: { head: 100, torso: 100, leftArm: 100, rightArm: 100, leftLeg: 100, rightLeg: 100 } };
-    p.body.maxHealth = Math.max(1, Number(p.body.maxHealth) || 78);
-    p.body.health = clamp(Number(p.body.health) || 0, 0, p.body.maxHealth);
-    p.cultivation.vitality = clamp((p.body.health / p.body.maxHealth) * 100, 0, 100);
-    for (const entity of Engine.queryWith(state, 'body', 'alive')) {
-      entity.body.maxHealth = Math.max(1, Number(entity.body.maxHealth) || 1);
-      entity.body.health = clamp(Number(entity.body.health) || 0, 0, entity.body.maxHealth);
-      if (entity.body.health <= 0) entity.alive = false;
-    }
-    p.needs.energy = clamp(p.needs.energy, 0, 100);
-    p.needs.hunger = clamp(p.needs.hunger, 0, 100);
-    for (const faction of Object.values(state.factions)) {
-      faction.interests ||= copy(FACTION_INTERESTS[faction.id] || {});
-      marketRuntime.ensureFaction(faction);
-      faction.influence = clamp(faction.influence, 0, 100);
-      faction.tension = clamp(faction.tension, 0, 100);
-      faction.attitude = clamp(faction.attitude, -100, 100);
-    }
-    for (const zone of Object.values(state.zones || {})) {
-      zone.danger = clamp(Number(zone.danger) || 0, 0, 100);
-      zone.activity = clamp(Number(zone.activity) || 0, 0, 100);
-      zone.visits = Math.max(0, Number(zone.visits) || 0);
-      for (const key of Object.keys(zone.resources || {})) zone.resources[key] = Math.max(0, Number(zone.resources[key]) || 0);
-    }
-    ZoneRuntime.reconcile(state, p?.position?.location);
-  }
+  function normalize(state) { return stateNormalizer.normalize(state); }
 
   function registerInteractionHandlers() {
     socialRuntime.registerInteractions(Engine);
@@ -345,6 +258,12 @@
   socialRuntime = Social.createRuntime({ engine: Engine, relation, remember, log, affectFaction, condition: Condition, market: marketRuntime });
   combatRuntime = Combat.createRuntime({ engine: Engine, body: Body, condition: Condition, effect: Effect, remember, log, consequence: Consequence.record, relation, random, ability: Ability, guSeeds: GU_SEEDS, clamp, advance });
   agencyRuntime = Agency.createRuntime({ engine: Engine, locations: LOCATIONS, random, clamp, relation, remember, log, advance, knowledge: Knowledge, market: marketRuntime });
+  stateNormalizer = GuState.createRuntime({
+    engine: Engine, social: Social, combat: Combat, condition: Condition,
+    consequence: Consequence, knowledge: Knowledge, identity: Identity,
+    equipment: Equipment, brain: Brain, zoneRuntime: ZoneRuntime,
+    market: marketRuntime, factionInterests: FACTION_INTERESTS, copy, clamp
+  });
   guWorldRuntime = GuWorld.createRuntime({
     schema: SCHEMA_VERSION, contentIndex: CONTENT_INDEX, contentVersion: CONTENT_VERSION, aptitude: APTITUDE,
     locations: LOCATIONS, populationTables: POPULATION_TABLES, factionSeeds: FACTION_SEEDS,
@@ -376,5 +295,5 @@
     hour, day, random, clamp, relation, remember, log, relValence, consequence: Consequence.record,
     damageEntity
   });
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, EQUIPMENT_DEFS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, EQUIPMENT: Equipment, EFFECTS: Effect, CONSEQUENCES: Consequence, PROVENANCE: Provenance, SOCIAL: socialRuntime, COMBAT: combatRuntime, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, GU_COMPONENTS: GuComponents, GU_GOALS: GuGoals, GU_LISTENERS: GuListeners, GU_ACTIONS: GuActions, GU_SYSTEMS: GuSystems, GU_WORLD: guWorldRuntime, newWorld: guWorldRuntime.newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, EQUIPMENT_DEFS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, EQUIPMENT: Equipment, EFFECTS: Effect, CONSEQUENCES: Consequence, PROVENANCE: Provenance, SOCIAL: socialRuntime, COMBAT: combatRuntime, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, GU_COMPONENTS: GuComponents, GU_GOALS: GuGoals, GU_LISTENERS: GuListeners, GU_ACTIONS: GuActions, GU_SYSTEMS: GuSystems, GU_WORLD: guWorldRuntime, GU_STATE: stateNormalizer, newWorld: guWorldRuntime.newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });
