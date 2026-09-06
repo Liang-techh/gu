@@ -23,7 +23,7 @@
       personality: seed.personality || {},
       cultivation,
       schedule: seed.schedule || {},
-      goals: { active: seed.goals?.[0] || 'idle', queue: seed.goals || [] },
+      goals: { active: seed.goals?.[0] || 'idle', queue: seed.goals || [], history: [] },
       needs: { energy: 100, hunger: 0, safety: 80 },
       body: { maxHealth, health: maxHealth, wounds: [], limbs: { head: 100, torso: 100, leftArm: 100, rightArm: 100, leftLeg: 100, rightLeg: 100 } },
       abilities: { gu: [], skills: [] },

@@ -165,6 +165,31 @@ test('director emits a situation from world conditions and does not bypass dispa
   assert.equal(resolved.entities.player.memory.facts.world.relicLead, true);
 });
 
+test('director scores candidates and respects rule cooldowns', () => {
+  S.ENGINE.registerDirectorRule({ id: 'test-director-high-priority', priority: 50, when: state => state.seed === 'director-scoring', build: () => ({ id: 'testHigh', title: '高优先级候选', choices: [{ id: 'ok' }] }) });
+  S.ENGINE.registerDirectorRule({ id: 'test-director-contextual', priority: 10, cooldownHours: 24, score: () => 60, when: state => state.seed === 'director-scoring', build: () => ({ id: 'testContextual', title: '高效用候选', choices: [{ id: 'ok' }] }) });
+  let state = open(S.newWorld({ seed: 'director-scoring' }), 'observe');
+  state.events.active = null;
+  state.director.cooldowns = {};
+  state.director.lastTick = 0;
+  const first = S.DIRECTOR.tick(state, { engine: S.ENGINE, day: S.day, log: () => {} });
+  assert.equal(first.id, 'testContextual');
+  assert.equal(state.director.cooldowns['test-director-contextual'], state.clock + 24);
+  state.events.active = null; state.clock += 6;
+  const second = S.DIRECTOR.tick(state, { engine: S.ENGINE, day: S.day, log: () => {} });
+  assert.equal(second.id, 'testHigh');
+});
+
+test('NPC goal utility combines needs, personality, faction pressure and recent repetition', () => {
+  const state = S.newWorld({ seed: 'goal-utility' });
+  const npc = S.ENTITY.createEntity('utility-npc', { name: '效用测试者', faction: 'black', location: 'blackTribeCamp', personality: { ambition: 40, curiosity: 20, loyalty: 20 }, goals: ['socialize', 'prepareWar'] });
+  state.entities[npc.id] = npc;
+  state.factions.black.tension = 90;
+  assert.equal(S.NPC_AI.selectGoal(state, npc, { day: S.day, relation: (world, a, b) => world.relationships[[a, b].sort().join('::')] || { trust: 0, fear: 0 } }), 'prepareWar');
+  npc.goals.history = [{ goal: 'prepareWar', day: S.day(state), clock: state.clock }];
+  assert.ok(S.NPC_AI.goalScore(state, npc, 'prepareWar', { day: S.day, relation: (world, a, b) => world.relationships[[a, b].sort().join('::')] || { trust: 0, fear: 0 } }) < 10);
+});
+
 test('market, alliance and wolf crisis are persistent world events', () => {
   let state = open(S.newWorld({ seed: 'world-events' }), 'observe');
   state = ok(state, { type: 'action', id: 'travel', location: 'village' });

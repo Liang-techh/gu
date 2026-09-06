@@ -14,6 +14,7 @@
 - 独立内容包 [src/content.js](<D:\Caves of Qud\gu-rpg\src\content.js>)：地点、人口表、势力、人物、蛊虫和章节来源可按内容版本扩展；
 - 独立区域构建器 [src/zone-builder.js](<D:\Caves of Qud\gu-rpg\src\zone-builder.js>)：按地点标签生成资源状态，并按人口表重建环境居民；
 - 独立 NPC AI 层 [src/npc-ai.js](<D:\Caves of Qud\gu-rpg\src\npc-ai.js>)：目标选择、日程导航、需求驱动和同场记忆通过依赖注入接入运行时；
+- NPC 目标选择使用效用评分：需求、性格、势力紧张、关系恐惧和近期目标历史共同决定下一个 GoalHandler，不再只是固定队列轮询；
 - 通用 NPC 目标处理器 [src/default-goals.js](<D:\Caves of Qud\gu-rpg\src\default-goals.js>)：人口表和关键人物使用的采集、巡逻、学习、调查、战争、疗伤等目标均有实际世界后果，不再静默 no-op；
 - 组件化蛊虫能力运行时 [src/ability.js](<D:\Caves of Qud\gu-rpg\src\ability.js>)：炼化、学习、真元消耗、能力发动和 `ability.used` 事件统一处理，不再把月光蛊逻辑写死在战斗分支中；
 - 独立实体/组件工厂 [src/entity.js](<D:\Caves of Qud\gu-rpg\src\entity.js>)：玩家、关键 NPC 和环境居民共用同一套组件默认值与校验入口；
@@ -22,6 +23,7 @@
 - 领域事件账本与传闻传播 [src/rumor.js](<D:\Caves of Qud\gu-rpg\src\rumor.js>)：事件不再只存在于待处理队列，同地点 NPC 和同势力关系网会根据交互、冲突、资源和战线事件形成带来源的二手记忆；
 - 独立行动目录 [src/action-catalog.js](<D:\Caves of Qud\gu-rpg\src\action-catalog.js>)：可用 command 根据当前世界状态生成，UI、自由意图解析和未来 AI 代理共享同一行动入口；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
+- 导演运行时支持候选评分、规则冷却和有限导演历史，多个同时满足条件的世界事件可以按当前状态竞争，而不是永远按注册顺序触发；
 - 独立意图解析 [src/intent.js](<D:\Caves of Qud\gu-rpg\src\intent.js>)：从完整内容地图生成地点意图，覆盖狐仙福地、中洲、仙鹤门和拍卖会等后续区域；
 - 内容包已覆盖第一卷青茅山后段、第二卷白骨山—商家城—三叉山—天梯山、第三卷北原草原—黑家军营—王庭福地—八十八角真阳楼、第四卷狐仙福地—中洲—仙鹤门—仙蛊拍卖会、第五卷首批五域战争区域链，以及第六卷首批两天终局区域链；
 - 商家城演武与三王传承不是一次性剧情：可以反复行动，积累连胜、声望、轮次、难度、资源和伤势；

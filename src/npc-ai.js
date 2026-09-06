@@ -4,17 +4,38 @@
 })(globalThis, function () {
   'use strict';
 
+  function goalScore(state, npc, goal, { day, relation }) {
+    const rel = relation(state, npc.id, 'player');
+    const faction = npc.faction ? state.factions[npc.faction] : null;
+    const queueIndex = npc.goals.queue.indexOf(goal);
+    const personality = npc.personality || {};
+    let score = queueIndex >= 0 ? 2.2 - queueIndex * 0.18 : 0.05;
+    if (goal === 'avoidPlayer') score += rel.fear * 0.06 + (faction?.attitude < -25 ? 3 : 0);
+    if (goal === 'findFood' || goal === 'hunt' || goal === 'forage') score += Math.max(0, npc.needs.hunger - 45) * 0.08;
+    if (goal === 'survive' || goal === 'returnHome') score += Math.max(0, 65 - npc.needs.safety) * 0.05;
+    if (goal === 'prepareWar' || goal === 'patrol' || goal === 'ambush') score += (faction?.tension || 0) * 0.055;
+    if (goal === 'maintainOrder' || goal === 'mediate') score += (faction?.tension || 0) * 0.035;
+    if (goal === 'gainRecognition' || goal === 'proveWorth') score += personality.ambition * 0.035 + state.director.pressure * 0.4;
+    if (goal === 'collectRumors' || goal === 'investigate' || goal === 'observe') score += personality.curiosity * 0.025;
+    if (goal === 'protectClan' || goal === 'protectBrother' || goal === 'protectFather' || goal === 'protectDaughter') score += personality.loyalty * 0.025;
+    if (goal === 'trade' || goal === 'auction') score += personality.greed * 0.018;
+    const recent = (npc.goals.history || []).filter(item => item.goal === goal && day(state) - item.day <= 1).length;
+    score -= recent * 0.35;
+    score += ((day(state) + npc.id.length + goal.length) % 7) * 0.01;
+    return score;
+  }
+
   function selectGoal(state, npc, { day, relation }) {
     const rel = relation(state, npc.id, 'player');
     const faction = npc.faction ? state.factions[npc.faction] : null;
     if (npc.conditions?.active?.some(condition => condition.id === 'afraid')) return 'avoidPlayer';
     if (rel.fear > 30) return 'avoidPlayer';
-    if (npc.needs.hunger > 70) return 'findFood';
-    if (faction?.tension > 70 && npc.goals.queue.includes('prepareWar')) return 'prepareWar';
-    if (faction?.tension > 55 && npc.goals.queue.includes('patrol')) return 'patrol';
-    if (faction?.attitude < -25 && npc.goals.queue.includes('avoidPlayer')) return 'avoidPlayer';
-    if (npc.personality.ambition > 75 && state.director.pressure > 3) return 'gainRecognition';
-    return npc.goals.queue[(day(state) + npc.id.length) % npc.goals.queue.length] || 'idle';
+    const candidates = [...new Set([...(npc.goals.queue || []), 'findFood', 'avoidPlayer', 'survive', 'gainRecognition'])];
+    if (npc.needs.hunger <= 70) candidates.splice(candidates.indexOf('findFood'), 1);
+    if (rel.fear <= 30 && !npc.goals.queue.includes('avoidPlayer') && faction?.attitude >= -25) candidates.splice(candidates.indexOf('avoidPlayer'), 1);
+    const scored = candidates.map(goal => ({ goal, score: goalScore(state, npc, goal, { day, relation }) }));
+    scored.sort((a, b) => b.score - a.score || a.goal.localeCompare(b.goal));
+    return scored[0]?.goal || 'idle';
   }
 
   function tick(state, { engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence }) {
@@ -27,6 +48,9 @@
       const target = npc.schedule[currentPhase] || npc.position.location;
       const goal = selectGoal(state, npc, { day, relation });
       npc.goals.active = goal;
+      npc.goals.history ||= [];
+      npc.goals.history.unshift({ goal, day: day(state), clock: state.clock });
+      npc.goals.history = npc.goals.history.slice(0, 16);
       const route = engine.findPath(state.locations, npc.position.location, target);
       const nextStep = route[1];
       if (nextStep) {
@@ -42,5 +66,5 @@
     }
   }
 
-  return { selectGoal, tick };
+  return { goalScore, selectGoal, tick };
 });

@@ -189,8 +189,13 @@
   }
 
   function findDirectorEvent(state) {
-    for (const rule of directorRules) if (rule.when(state)) return rule.build(state);
-    return null;
+    return findDirectorEvents(state)[0]?.event || null;
+  }
+
+  function findDirectorEvents(state) {
+    const candidates = [];
+    for (const rule of directorRules) if (rule.when(state)) candidates.push({ rule, event: rule.build(state) });
+    return candidates;
   }
 
   function registries() {
@@ -206,5 +211,5 @@
     };
   }
 
-  return { COMPONENTS, has, query, queryWith, attach, detach, patchComponent, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerAction, registerActionHook, runAction, registerSystem, runSystems, registerDirectorRule, findDirectorEvent, registries };
+  return { COMPONENTS, has, query, queryWith, attach, detach, patchComponent, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerAction, registerActionHook, runAction, registerSystem, runSystems, registerDirectorRule, findDirectorEvents, findDirectorEvent, registries };
 });
