@@ -251,7 +251,7 @@
       relationships: {},
       facts: {},
       flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false },
-      events: { active: null, pending: [], history: [] },
+      events: { active: null, pending: [], history: [], sequence: 0 },
       combat: null,
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
       log: [],

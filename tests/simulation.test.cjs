@@ -177,3 +177,12 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.events.includes('wolfTide'));
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
 });
+
+test('domain event sequence stays unique after the bounded stream rotates', () => {
+  const state = S.newWorld({ seed: 'event-sequence' });
+  for (let i = 0; i < 180; i++) S.ENGINE.emit(state, 'test.pulse', { i });
+  assert.equal(state.events.pending.length, 128);
+  assert.equal(state.events.pending[0].id, 'ev53');
+  assert.equal(state.events.pending.at(-1).id, 'ev180');
+  assert.equal(new Set(state.events.pending.map(event => event.id)).size, 128);
+});

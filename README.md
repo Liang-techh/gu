@@ -49,7 +49,7 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       14/14 passing
+npm test       15/15 passing
 npm run check:canon  20/20 term/source checks
 ```
 

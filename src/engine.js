@@ -28,7 +28,8 @@
   function emit(state, type, payload = {}) {
     state.events ||= { active: null, pending: [], history: [] };
     state.events.pending ||= [];
-    const event = { id: `ev${state.events.history.length + state.events.pending.length + 1}`, type, clock: state.clock, payload };
+    state.events.sequence = (Number(state.events.sequence) || 0) + 1;
+    const event = { id: `ev${state.events.sequence}`, type, clock: state.clock, payload };
     state.events.pending.push(event);
     if (state.events.pending.length > 128) state.events.pending.shift();
     return event;
