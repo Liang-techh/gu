@@ -19,6 +19,10 @@
   function parse(text, state, { locations, entities }) {
     const q = normalized(text);
     if (!q) return { ok: false, message: '输入一个行动，例如“去竹林”“观察”“修炼”“和方正说话”。' };
+    if (/向北|往北|北走|向上/.test(q)) return { ok: true, command: { type: 'action', id: 'step', direction: 'north' }, label: '向北走一格' };
+    if (/向东|往东|东走|向右/.test(q)) return { ok: true, command: { type: 'action', id: 'step', direction: 'east' }, label: '向东走一格' };
+    if (/向南|往南|南走|向下/.test(q)) return { ok: true, command: { type: 'action', id: 'step', direction: 'south' }, label: '向南走一格' };
+    if (/向西|往西|西走|向左/.test(q)) return { ok: true, command: { type: 'action', id: 'step', direction: 'west' }, label: '向西走一格' };
     if (/去|走|前往|进入|回/.test(q)) {
       const matches = [];
       for (const [id, aliases] of Object.entries(ALIASES)) for (const alias of aliases) if (q.includes(alias.toLowerCase())) matches.push({ id, length: alias.length });

@@ -20,7 +20,7 @@
       serialize: ({ value }) => ({ ...value, tags: [...(value.tags || [])] }),
       deserialize: ({ value }) => ({ ...value, tags: [...(value.tags || [])] })
     });
-    engine.registerComponent('position', objectComponent('position', { location: null }));
+    engine.registerComponent('position', objectComponent('position', { location: null, cell: null }));
     engine.registerComponent('faction', { ensure: entity => { if (entity.faction === undefined) entity.faction = null; return entity.faction; } });
     engine.registerComponent('personality', objectComponent('personality'));
     engine.registerComponent('cultivation', objectComponent('cultivation', { rank: 1, stage: 0, aptitude: 0.45, progress: 0, insight: 0, essence: 0, essenceMax: 20, vitality: 100 }));

@@ -35,6 +35,7 @@
 - 统一组件包 [src/gu-components.js](<D:\Caves of Qud\gu-rpg\src\gu-components.js>)：身份、位置、势力、修为、需求、日程、目标、能力、库存、记忆、知识、状态、身体、装备、效果、Brain 和代理人均注册生命周期/序列化定义，不再只有裸 JSON 字段；
 - 独立行动目录 [src/action-catalog.js](<D:\Caves of Qud\gu-rpg\src\action-catalog.js>)：可用 command 根据当前世界状态生成，UI、自由意图解析和未来 AI 代理共享同一行动入口；
 - 区域交互 affordance 包 [src/gu-affordances.js](<D:\Caves of Qud\gu-rpg\src\gu-affordances.js>)：观察、采集、遗藏搜索和侦查通过 Interaction Registry 注册；地点内容在 `LOCATIONS[*].interactions` 声明可用交互，玩家、NPC 和未来代理人共用同一处理器，执行后统一写入资源、记忆、事件、后果和时间，而不是再把环境动作硬编码在某个 UI 按钮里；
+- 局部空间运行时 [src/local-map.js](<D:\Caves of Qud\gu-rpg\src\local-map.js>)：每个地点拥有确定性的局部格点、障碍、地形和边缘出口；实体的 `position.cell` 记录地点内部位置，玩家通过 `step` 逐格移动，只有走到出口才进入相邻地点，前台只显示局部视野内的 NPC；
 - 基础行动全部进入 Action Registry：等待、旅行、修炼、学习、采集、休息、炼蛊、装备、交谈、挑战和势力影响不再由主模拟器的 ID 条件链直接分叉；
 - 内容系统包 [src/gu-systems.js](<D:\Caves of Qud\gu-rpg\src\gu-systems.js>)：小时级需求/状态/AI 与日级市场、区域、家族压力、战争和历史快照都通过可排序 System Registry 注册，世界推进不再藏在单一 daily tick 函数里；
 - NPC 内容目标包 [src/gu-goals.js](<D:\Caves of Qud\gu-rpg\src\gu-goals.js>)：资源争夺、遗藏调查、学堂竞争、保护关系、避开玩家和势力结盟等目标从模拟内核移出，通过 Goal Registry 注入世界；
@@ -70,7 +71,7 @@
 - 第六卷首批内容把神帝城、书山、蛮荒大世界、黄土大世界、逆流河、梦境战场和疯魔窟接入 `eternalWar` 状态；神帝城调度、两天重叠、元境线索、梦境潮汐和星宿安排形成终局级导演链；
 - UI 现在直接显示势力盟约的成员、合法性、补给、凝聚力与倒戈次数，玩家能观察外交账本而不是只能从日志猜测世界变化；
 - 梦境战场支持重复探索：每次 `dream_dive` 都根据修为、洞察、梦境压力和随机种子结算成功/反噬，并将深度、危险、伤势和势力张力写入世界状态；
-- `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
+- `identity / position(location + cell) / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
 - 事件历史、导演事件、可订阅事件监听器和统一 `dispatch` 结算入口；
 - 委托、演武、传承、北原巡逻和真阳楼闯层等高频动作通过 Action Registry 注册，规则验证与 UI 解耦；
 - NPC 日程、目标选择、移动、饥饿/精力和同场遭遇记忆；

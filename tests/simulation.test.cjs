@@ -61,6 +61,28 @@ test('zones have population tables, resources and regeneration independent of st
   assert.ok(next.zones.bambooForest.resources.moonPetal > 0);
 });
 
+test('local maps give entities cells, step actions and edge exits', () => {
+  let state = open(S.newWorld({ seed: 'local-grid' }), 'observe');
+  assert.deepEqual(state.entities.player.position.cell, { x: 3, y: 2 });
+  const first = ok(state, { type: 'action', id: 'step', direction: 'east' });
+  assert.deepEqual(first.entities.player.position.cell, { x: 4, y: 2 });
+  assert.ok(first.log.some(entry => entry.type === 'step'));
+  first.entities.player.position.cell = { x: 3, y: 0 };
+  const exited = ok(first, { type: 'action', id: 'step', direction: 'north' });
+  assert.equal(exited.entities.player.position.location, 'village');
+  assert.ok(exited.log.some(entry => entry.type === 'travel' && entry.text.includes('古月学堂')));
+  exited.entities.player.position.cell = { x: 0, y: 0 };
+  const blocked = S.dispatch(exited, { type: 'action', id: 'step', direction: 'west' });
+  assert.equal(blocked.ok, false);
+  assert.match(blocked.message, /没有可走的路|地形挡住/);
+  const contact = open(S.newWorld({ seed: 'local-contact' }), 'observe');
+  contact.entities.player.position.cell = { x: 0, y: 0 };
+  contact.entities.fangzheng.position.cell = { x: 3, y: 2 };
+  const tooFar = S.dispatch(contact, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'listen' });
+  assert.equal(tooFar.ok, false);
+  assert.match(tooFar.message, /视野之外/);
+});
+
 test('environment affordances expose composable observe, forage, relic search and scouting interactions', () => {
   let state = open(S.newWorld({ seed: 'affordances' }), 'observe');
   assert.deepEqual(S.AFFORDANCES.available(state, state.entities.player).map(item => item.id), ['observeZone']);
@@ -1268,7 +1290,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
-  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'interact', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'dream_realm_action', 'coalition_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
+  for (const id of ['wait', 'travel', 'step', 'cultivate', 'study', 'gather', 'interact', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'dream_realm_action', 'coalition_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
   for (const id of ['observeZone', 'forage', 'searchRelic', 'scoutZone']) assert.ok(snap.engine.registries.interactions.includes(id), `${id} should be interaction-registered`);
   for (const id of ['environmentExposure', 'terrainFatigue']) assert.ok(snap.engine.registries.effects?.[id], `${id} should be effect-registered`);
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));

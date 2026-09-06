@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'), require('./gu-systems.js'), require('./gu-components.js'), require('./gu-goals.js'), require('./gu-listeners.js'), require('./gu-actions.js'), require('./gu-world.js'), require('./gu-state.js'), require('./faction-pacts.js'), require('./gu-effects.js'), require('./gu-affordances.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat, root.GuSimulationGuSystems, root.GuSimulationGuComponents, root.GuSimulationGuGoals, root.GuSimulationGuListeners, root.GuSimulationGuActions, root.GuSimulationGuWorld, root.GuSimulationGuState, root.GuSimulationFactionPacts, root.GuSimulationGuEffects, root.GuSimulationGuAffordances);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat, GuSystems, GuComponents, GuGoals, GuListeners, GuActions, GuWorld, GuState, FactionPacts, GuEffects, GuAffordances) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'), require('./gu-systems.js'), require('./gu-components.js'), require('./gu-goals.js'), require('./gu-listeners.js'), require('./gu-actions.js'), require('./gu-world.js'), require('./gu-state.js'), require('./faction-pacts.js'), require('./gu-effects.js'), require('./gu-affordances.js'), require('./local-map.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat, root.GuSimulationGuSystems, root.GuSimulationGuComponents, root.GuSimulationGuGoals, root.GuSimulationGuListeners, root.GuSimulationGuActions, root.GuSimulationGuWorld, root.GuSimulationGuState, root.GuSimulationFactionPacts, root.GuSimulationGuEffects, root.GuSimulationGuAffordances, root.GuSimulationLocalMap);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat, GuSystems, GuComponents, GuGoals, GuListeners, GuActions, GuWorld, GuState, FactionPacts, GuEffects, GuAffordances, LocalMap) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -16,6 +16,7 @@
   if (!FactionPacts) throw new Error('GuSimulationFactionPacts must load before simulation.js');
   if (!GuEffects) throw new Error('GuSimulationGuEffects must load before simulation.js');
   if (!GuAffordances) throw new Error('GuSimulationGuAffordances must load before simulation.js');
+  if (!LocalMap) throw new Error('GuSimulationLocalMap must load before simulation.js');
   if (!Identity) throw new Error('GuSimulationIdentity must load before simulation.js');
   if (!Pursuit) throw new Error('GuSimulationPursuit must load before simulation.js');
   if (!Agency) throw new Error('GuSimulationAgency must load before simulation.js');
@@ -182,13 +183,20 @@
     return npc;
   }
 
+  function requireNearby(state, npcId) {
+    const npc = requireSameLocation(state, npcId);
+    const player = requirePlayer(state);
+    if (LocalMap && LocalMap.distance(player.position.cell, npc.position.cell) > 2) throw new Error('目标还在视野之外，请先走近一些');
+    return npc;
+  }
+
   function damageEntity(state, targetId, amount, sourceId, kind = 'strike') {
     return combatRuntime.damage(state, targetId, amount, sourceId, kind);
   }
 
   function beginConflict(state, targetId, kind = 'challenge') {
     const p = state.entities.player;
-    const target = requireSameLocation(state, targetId);
+    const target = requireNearby(state, targetId);
     if (targetId === state.playerId) throw new Error('不能与自己交锋');
     state.combat = { kind, attacker: 'player', defender: targetId, round: 1, guard: false, startedAt: state.clock };
     Engine.emit(state, 'combat.started', { attackerId: 'player', defenderId: targetId, kind, location: p.position.location });
@@ -267,7 +275,7 @@
     engine: Engine, social: Social, combat: Combat, condition: Condition,
     consequence: Consequence, knowledge: Knowledge, identity: Identity,
     equipment: Equipment, brain: Brain, zoneRuntime: ZoneRuntime,
-    market: marketRuntime, factionInterests: FACTION_INTERESTS, copy, clamp
+    market: marketRuntime, factionInterests: FACTION_INTERESTS, locations: LOCATIONS, localMap: LocalMap, copy, clamp
   });
   guWorldRuntime = GuWorld.createRuntime({
     schema: SCHEMA_VERSION, contentIndex: CONTENT_INDEX, contentVersion: CONTENT_VERSION, aptitude: APTITUDE,
@@ -275,7 +283,7 @@
     factionInterests: FACTION_INTERESTS, npcSeeds: NPC_SEEDS, sourceNotes: SOURCE_NOTES,
     history: History, entity: Entity, identity: Identity, knowledge: Knowledge,
     zoneBuilder: ZoneBuilder, zoneRuntime: ZoneRuntime, copy, hash, random, day,
-    relation, affectFaction, remember, log, advance
+    relation, affectFaction, remember, log, advance, localMap: LocalMap
   });
   directorRulesRuntime = DirectorRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES });
   eventRulesRuntime = EventRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES, activateSeed: guWorldRuntime.activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening: guWorldRuntime.applyOpening, pursuit: pursuitRuntime, consequence: Consequence.record, factionPacts: FactionPacts });
@@ -288,11 +296,11 @@
   GuActions.register({
     engine: Engine, locations: LOCATIONS, guSeeds: GU_SEEDS, equipmentDefs: EQUIPMENT_DEFS,
     zoneRuntime: ZoneRuntime, consequence: Consequence.record, remember, log, damageEntity,
-    advance, random, copy, relation, requireSameLocation, beginConflict, ability: Ability,
+    advance, random, copy, relation, requireSameLocation, requireNearby, beginConflict, ability: Ability,
     body: Body, equipment: Equipment, conversation: Conversation, conversationDefs: CONVERSATION_DEFS,
     day, affectFaction, identity: Identity, knowledge: Knowledge, contractRuntime,
     repeatableRuntime, pursuitRuntime, agencyRuntime, combatRuntime, marketRuntime,
-    rebirth: guWorldRuntime.rebirth, factionPacts: FactionPacts, affordances: affordanceRuntime
+    rebirth: guWorldRuntime.rebirth, factionPacts: FactionPacts, affordances: affordanceRuntime, localMap: LocalMap
   });
   GuSystems.register({
     engine: Engine, history: History, zoneRuntime: ZoneRuntime, npcAI: NpcAI, brain: Brain,
@@ -301,5 +309,5 @@
     hour, day, random, clamp, relation, remember, log, relValence, consequence: Consequence.record,
     damageEntity, factionPacts: FactionPacts
   });
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, EQUIPMENT_DEFS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, EQUIPMENT: Equipment, EFFECTS: Effect, CONSEQUENCES: Consequence, PROVENANCE: Provenance, SOCIAL: socialRuntime, COMBAT: combatRuntime, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, FACTION_PACTS: FactionPacts, GU_EFFECTS: guEffectDefinitions, AFFORDANCES: affordanceRuntime, GU_COMPONENTS: GuComponents, GU_GOALS: GuGoals, GU_LISTENERS: GuListeners, GU_ACTIONS: GuActions, GU_SYSTEMS: GuSystems, GU_WORLD: guWorldRuntime, GU_STATE: stateNormalizer, newWorld: guWorldRuntime.newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, EQUIPMENT_DEFS, SOURCE_NOTES, LOCAL_MAP: LocalMap, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, EQUIPMENT: Equipment, EFFECTS: Effect, CONSEQUENCES: Consequence, PROVENANCE: Provenance, SOCIAL: socialRuntime, COMBAT: combatRuntime, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, FACTION_PACTS: FactionPacts, GU_EFFECTS: guEffectDefinitions, AFFORDANCES: affordanceRuntime, GU_COMPONENTS: GuComponents, GU_GOALS: GuGoals, GU_LISTENERS: GuListeners, GU_ACTIONS: GuActions, GU_SYSTEMS: GuSystems, GU_WORLD: guWorldRuntime, GU_STATE: stateNormalizer, newWorld: guWorldRuntime.newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

@@ -47,20 +47,38 @@
   function mapPanel(s) {
     const here = s.entities.player.position.location;
     const location = S.LOCATIONS[here] || {};
-    const neighbors = location.neighbors || [];
-    const currentCell = `<div class="map-cell current"><span class="player-token">🧍</span><strong>${esc(location.name || here)}</strong><small>${terrainLabel(location)} · 你在这里</small></div>`;
-    const neighborCells = neighbors.map(id => `<button class="map-cell neighbor" data-command='${esc(JSON.stringify({ type: 'action', id: 'travel', location: id }))}'><span class="map-arrow">↗</span><strong>${esc(locName(id))}</strong><small>${terrainLabel(S.LOCATIONS[id])}</small></button>`).join('');
-    return `<article class="panel map-panel"><div class="panel-title"><h2>眼前的路</h2><span>只显示相邻地点</span></div><div class="region-map"><div class="map-center">${currentCell}</div><div class="map-neighbors">${neighborCells || '<span class="empty">没有可辨认的道路。</span>'}</div></div><p class="map-caption">你不是在菜单里选择世界。你在世界里走，地点、人物和事件会随着接触逐渐变得清楚。</p></article>`;
+    const local = S.LOCAL_MAP;
+    const map = local.profile(here, location);
+    const playerCell = local.normalizeCell(here, s.entities.player.position.cell, location, 'player');
+    const people = Object.values(s.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === here && e.position.cell);
+    const occupant = new Map(people.map(e => [`${e.position.cell.x},${e.position.cell.y}`, e]));
+    const tiles = [];
+    for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
+      const cell = { x, y }; const cellKey = `${x},${y}`; const npc = occupant.get(cellKey);
+      if (playerCell.x === x && playerCell.y === y) tiles.push('<div class="local-tile player-here" title="你"><span>🧍</span></div>');
+      else if (npc) tiles.push(`<div class="local-tile npc-here" title="${esc(npc.identity.name)}"><span>●</span></div>`);
+      else if (!local.isWalkable(cell, map)) tiles.push('<div class="local-tile blocked" aria-label="障碍">▪</div>');
+      else tiles.push(`<div class="local-tile terrain-${esc(map.terrain)}">${esc(local.terrainSymbol(map.terrain))}</div>`);
+    }
+    const exits = local.ORDER.map(direction => {
+      const target = map.neighbors[local.ORDER.indexOf(direction)];
+      if (!target) return `<span class="road-exit absent">${local.DIRECTIONS[direction].label} · 无路</span>`;
+      return `<button class="road-exit" data-command='${esc(JSON.stringify({ type: 'action', id: 'step', direction }))}'>${local.DIRECTIONS[direction].label} · ${esc(locName(target))}</button>`;
+    }).join('');
+    return `<article class="panel map-panel"><div class="panel-title"><h2>眼前的路</h2><span>${esc(location.name || here)} · 局部视野</span></div><div class="local-grid" style="--local-width:${map.width}">${tiles.join('')}</div><div class="road-exits">${exits}</div><p class="map-caption">你只能看见脚边的路和附近的人。走到边缘，才会进入另一处地点。</p></article>`;
   }
 
   function nearbyPanel(s) {
     const p = s.entities.player;
-    const people = Object.values(s.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === p.position.location);
+    const playerCell = S.LOCAL_MAP.normalizeCell(p.position.location, p.position.cell, S.LOCATIONS[p.position.location], 'player');
+    const people = Object.values(s.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === p.position.location && S.LOCAL_MAP.distance(playerCell, e.position.cell) <= 2);
     if (!people.length) return '<div class="empty">这里暂时没有熟人，只有风、雨和你的判断。</div>';
     return people.map(e => {
       const r = s.relationships[[e.id, 'player'].sort().join('::')] || {};
       const latest = e.memory.episodes[0];
-      const familiarity = Number(r.fear || 0) >= 20 ? '对你保持警惕' : Number(r.trust || 0) >= 10 ? '愿意听你说话' : '尚未熟悉';
+      const distance = S.LOCAL_MAP.distance(playerCell, e.position.cell);
+      const proximity = distance === 0 ? '就在你身边' : distance === 1 ? '离你只有一步' : '几步之外';
+      const familiarity = Number(r.fear || 0) >= 20 ? `对你保持警惕 · ${proximity}` : Number(r.trust || 0) >= 10 ? `愿意听你说话 · ${proximity}` : `尚未熟悉 · ${proximity}`;
       const offers = (s.contracts?.available || []).map(id => S.CONTRACT_DEFS.find(def => def.id === id)).filter(def => def?.giver === e.id && def.locations.includes(p.position.location));
       const active = Object.values(s.contracts?.active || {}).map(item => S.CONTRACT_DEFS.find(def => def.id === item.id)).filter(def => def?.giver === e.id);
       const conversations = S.CONVERSATION_RUNTIME.list(S.CONVERSATION_DEFS, s, e.id, { day: S.day });
@@ -131,7 +149,17 @@
     document.querySelectorAll('[data-command]').forEach(el => el.addEventListener('click', () => run(JSON.parse(el.dataset.command))));
     document.getElementById('save-game').onclick = () => { save(); toast('世界已保存。'); };
     document.getElementById('new-world').onclick = () => { if (confirm('离开会回到世界入口，本地存档仍会保留。确定吗？')) { state = null; startScreen(); } };
-    document.getElementById('run-command').onclick = () => { const input = document.getElementById('free-command'); const parsed = S.interpret(input.value, state); if (!parsed.ok) return toast(parsed.message); run(parsed.command); };
+    document.getElementById('run-command').onclick = () => {
+      const input = document.getElementById('free-command'); const parsed = S.interpret(input.value, state);
+      if (!parsed.ok) return toast(parsed.message);
+      let command = parsed.command;
+      if (command.id === 'travel') {
+        const index = S.LOCATIONS[state.entities.player.position.location]?.neighbors?.indexOf(command.location) ?? -1;
+        if (index < 0) return toast('远处的地点还不能直接抵达，请先沿眼前的道路逐格前进。');
+        command = { type: 'action', id: 'step', direction: S.LOCAL_MAP.ORDER[index] };
+      }
+      run(command);
+    };
     document.getElementById('free-command').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('run-command').click(); });
   }
   function run(command) { const result = S.dispatch(state, command); if (!result.ok) return toast(result.message); state = result.state; save(); render(); }

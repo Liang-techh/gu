@@ -20,8 +20,12 @@ with sync_playwright() as p:
     page.get_by_role('button', name='进入持续世界').click()
     page.get_by_role('button', name='先观察家老与同辈的反应').click()
     assert page.get_by_text('古月学堂', exact=True).count() >= 1
-    page.get_by_role('button', name='去古月山寨').click()
-    page.get_by_role('button', name='去竹林').click()
+    assert page.locator('.local-grid').is_visible()
+    for _ in range(3):
+        page.get_by_role('button', name='北 · 古月山寨').click()
+    for _ in range(4):
+        page.get_by_role('button', name='东 · 竹林').click()
+    assert page.get_by_text('竹林', exact=True).count() >= 1
     page.get_by_role('button', name='探索 / 采集').click()
     assert page.get_by_text('事件流', exact=True).is_visible()
     page.get_by_role('button', name='保存').click()

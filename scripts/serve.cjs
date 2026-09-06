@@ -14,6 +14,6 @@ http.createServer((req, res) => {
     res.end('Not found');
     return;
   }
-  res.writeHead(200, { 'content-type': types[path.extname(candidate)] || 'application/octet-stream' });
+  res.writeHead(200, { 'content-type': types[path.extname(candidate)] || 'application/octet-stream', 'cache-control': 'no-store' });
   fs.createReadStream(candidate).pipe(res);
 }).listen(port, '127.0.0.1', () => console.log(`Gu RPG demo: http://localhost:${port}/`));

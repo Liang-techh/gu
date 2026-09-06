@@ -9,13 +9,13 @@
   function register({
     engine, locations, guSeeds, equipmentDefs, zoneRuntime, consequence,
     remember, log, damageEntity, advance, random, copy, relation,
-    requireSameLocation, beginConflict, ability, body, equipment,
+    requireSameLocation, requireNearby, beginConflict, ability, body, equipment,
     conversation, conversationDefs, day, affectFaction, identity, knowledge,
     contractRuntime, repeatableRuntime, pursuitRuntime, agencyRuntime, combatRuntime,
-    marketRuntime, rebirth, factionPacts, affordances
+    marketRuntime, rebirth, factionPacts, affordances, localMap
   }) {
     function performConversation(state, command, p) {
-      const npc = requireSameLocation(state, command.target);
+      const npc = requireNearby(state, command.target);
       const result = conversation.resolve(conversationDefs, state, command, { day, relation, remember, log, affectFaction });
       engine.emit(state, 'social.conversation', { actorId: p.id, targetId: npc.id, conversationId: result.definition.id, choiceId: result.choice.id });
       relation(state, 'player', npc.id).lastSeen = state.clock;
@@ -281,17 +281,32 @@
     engine.registerAction('front_action', ({ state, command, p }) => frontAction(state, command, p));
     engine.registerAction('shadow_network_action', ({ state, command, p }) => shadowNetworkAction(state, command, p));
     engine.registerAction('interact', ({ state, command, p }) => runAffordance(state, command, p));
-    engine.registerAction('travel', ({ state, command, p }) => {
-      const target = command.location;
+    function travelTo(state, p, target, direction = null, cause = 'travel') {
       if (!locations[target] || !locations[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
       const from = p.position.location;
       p.position.location = target;
+      p.position.cell = localMap ? localMap.entryCell(target, locations[target], direction || 'north', p.id) : p.position.cell;
       zoneRuntime.transition(state, from, target, { engine, clock: state.clock, market: marketRuntime, consequence, remember, log, damageEntity });
-      engine.emit(state, 'world.travel', { actorId: 'player', from, to: target });
-      remember(state, 'player', 'world', { kind: 'travel', text: `从${locations[from].name}前往${locations[target].name}。`, facts: { [target]: true } });
+      engine.emit(state, 'world.travel', { actorId: 'player', from, to: target, direction, mode: direction ? 'edge' : 'region' });
+      remember(state, 'player', 'world', { kind: 'travel', text: `从${locations[from].name}前往${locations[target].name}。`, facts: { [target]: true, lastTravelDirection: direction } });
       log(state, 'travel', `你从${locations[from].name}前往${locations[target].name}。`);
-      advance(state, 1, 'travel');
+      advance(state, 1, cause);
+    }
+    engine.registerAction('step', ({ state, command, p }) => {
+      if (!localMap) throw new Error('局部地图尚未加载');
+      const here = p.position.location;
+      p.position.cell = localMap.normalizeCell(here, p.position.cell, locations[here], p.id);
+      const result = localMap.step(here, locations[here], p.position.cell, command.direction);
+      if (result.kind === 'blocked') throw new Error(result.reason === 'terrain' ? '前方被地形挡住了' : '这边没有可走的路');
+      if (result.kind === 'exit') return travelTo(state, p, result.location, result.direction, 'step');
+      const from = { ...p.position.cell };
+      p.position.cell = result.cell;
+      engine.emit(state, 'world.step', { actorId: p.id, location: here, from, to: { ...result.cell }, direction: result.direction });
+      remember(state, 'player', 'world', { kind: 'step', text: `你在${locations[here].name}向${localMap.DIRECTIONS[result.direction].label}走了一格。`, facts: { lastCell: { ...result.cell }, lastStepLocation: here } });
+      log(state, 'step', `你在${locations[here].name}向${localMap.DIRECTIONS[result.direction].label}走了一格。`, { location: here, from, to: { ...result.cell } });
+      advance(state, 1, 'step');
     });
+    engine.registerAction('travel', ({ state, command, p }) => travelTo(state, p, command.location));
     engine.registerAction('cultivate', ({ state, p }) => {
       const cost = Math.max(6, Math.round(p.cultivation.essenceMax * 0.18));
       if (p.cultivation.essence < cost) throw new Error('真元不足');
@@ -353,7 +368,7 @@
       advance(state, 1, 'unequip_gu');
     });
     engine.registerAction('talk', ({ state, command, p }) => {
-      const npc = requireSameLocation(state, command.target);
+      const npc = requireNearby(state, command.target);
       const r = relation(state, 'player', npc.id);
       const mode = command.mode || 'listen';
       const memoryBoost = (p.memory.facts[npc.id]?.helped ? 6 : 0) + (r.trust > 20 ? 3 : 0);

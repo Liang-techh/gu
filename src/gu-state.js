@@ -6,7 +6,7 @@
 
   // Content-side save/state normalizer. The kernel calls one provider hook;
   // this package owns the Gu-specific state schema and numeric invariants.
-  function createRuntime({ engine, social, combat, condition, consequence, knowledge, identity, equipment, brain, zoneRuntime, market, factionInterests, copy, clamp }) {
+  function createRuntime({ engine, social, combat, condition, consequence, knowledge, identity, equipment, brain, zoneRuntime, market, factionInterests, locations, localMap, copy, clamp }) {
     function normalize(state) {
       const player = state.entities.player;
       social.ensure(state);
@@ -21,7 +21,11 @@
       state.events.recent = state.events.recent.slice(-256);
       state.events.history = state.events.history.slice(-512);
       state.logSequence = Math.max(Number(state.logSequence) || 0, state.events.history.reduce((max, entry) => Math.max(max, Number(String(entry.id || '').replace(/^e/, '')) || 0), 0));
-      for (const entity of Object.values(state.entities || {})) { knowledge.ensure(entity); identity.ensure(entity, knowledge); equipment.ensure(entity); brain.ensure(entity); }
+      for (const entity of [...Object.values(state.entities || {}), ...Object.values(state.entityCache || {})]) {
+        knowledge.ensure(entity); identity.ensure(entity, knowledge); equipment.ensure(entity); brain.ensure(entity);
+        const locationId = entity.position?.location;
+        if (localMap && locationId && locations?.[locationId]) entity.position.cell = localMap.normalizeCell(locationId, entity.position.cell, locations[locationId], entity.id);
+      }
       engine.initializeComponents(state);
       zoneRuntime.ensureState(state, player?.position?.location);
       state.rebirth ||= { charges: 1, count: 0, scars: [], echoes: [] };

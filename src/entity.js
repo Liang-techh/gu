@@ -18,7 +18,7 @@
     return {
       id,
       identity: { name: seed.name || id, role: seed.role || '居民', tags: seed.tags || [] },
-      position: { location: seed.location },
+      position: { location: seed.location, cell: seed.cell ? { x: Number(seed.cell.x), y: Number(seed.cell.y) } : null },
       faction: seed.faction || null,
       personality: seed.personality || {},
       cultivation,
