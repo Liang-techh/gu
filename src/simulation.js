@@ -711,6 +711,16 @@
         zone.danger += event.payload.result === 'success' ? 1 : 0.5;
       }
     });
+    Engine.registerEventListener('frontier.patrol', 'frontierWarPressure', ({ state, event }) => {
+      const zone = state.zones[state.frontier.location];
+      if (zone) zone.activity += event.payload.result === 'success' ? 8 : 5;
+      if (state.factions.black) state.factions.black.tension += event.payload.result === 'success' ? 0.5 : 1.5;
+    });
+    Engine.registerEventListener('tower.floor', 'towerCompetitionPressure', ({ state, event }) => {
+      const zone = state.zones.trueYangTower;
+      if (zone) { zone.activity += event.payload.result === 'success' ? 7 : 4; zone.danger += event.payload.result === 'success' ? 1 : 2; }
+      if (state.factions.giantSun) state.factions.giantSun.tension += event.payload.result === 'success' ? 0.5 : 1;
+    });
   }
 
   function performArenaMatch(state, p) {
@@ -756,11 +766,52 @@
     advance(state, 4, 'inheritance_round');
   }
 
+  function performFrontierPatrol(state, p) {
+    if (!state.frontier?.opened || !['northernPlains', 'blackTribeCamp'].includes(p.position.location)) throw new Error('当前没有北原巡逻任务');
+    if (state.frontier.supply < 4) throw new Error('北原军需不足，无法组织巡逻');
+    const success = random(state) < clamp(0.62 + p.cultivation.rank * 0.05 + p.cultivation.insight * 0.006 - state.frontier.campaignPressure * 0.004, 0.16, 0.9);
+    state.frontier.battles += 1;
+    state.frontier.supply -= success ? 4 : 9;
+    if (success) {
+      p.cultivation.insight += 3; p.cultivation.progress += 5; state.factions.black.influence += 0.8;
+      remember(state, 'heiloulan', 'player', { kind: 'patrol', valence: 2, text: '你在北原巡逻中守住了补给线。' });
+      log(state, 'frontier_patrol', '你完成了一次北原巡逻，补给线暂时没有被截断。', { result: 'success', supply: state.frontier.supply, battles: state.frontier.battles });
+    } else {
+      state.frontier.casualties += 1; state.frontier.campaignPressure += 3; damageEntity(state, 'player', 4 + state.frontier.campaignPressure * 0.08, 'frontier', 'patrol_ambush');
+      state.factions.northernTribes.tension += 2;
+      log(state, 'frontier_patrol', '北原巡逻遭到伏击，补给和人员都付出了代价。', { result: 'failure', supply: state.frontier.supply, casualties: state.frontier.casualties });
+    }
+    Engine.emit(state, 'frontier.patrol', { result: success ? 'success' : 'failure', supply: state.frontier.supply, battles: state.frontier.battles, casualties: state.frontier.casualties });
+    advance(state, 3, 'frontier_patrol');
+  }
+
+  function performTowerFloor(state, p) {
+    if (p.position.location !== 'trueYangTower' || !state.tower?.active || !state.tower.formed) throw new Error('真阳楼当前没有开放的闯层资格');
+    const nextFloor = state.tower.floors + 1;
+    const difficulty = 1 + Math.floor((nextFloor - 1) / 8) * 0.18 + state.tower.attempts * 0.012 + state.frontier.campaignPressure * 0.003;
+    const power = 0.4 + p.cultivation.rank * 0.08 + p.cultivation.insight * 0.006 + p.cultivation.aptitude * 0.06;
+    const success = random(state) < clamp(0.7 + power - difficulty * 0.32, 0.1, 0.92);
+    state.tower.attempts += 1;
+    if (success) {
+      state.tower.floors = nextFloor; state.tower.discoveries.push({ floor: nextFloor, clock: state.clock });
+      p.cultivation.progress += 4 + difficulty * 1.5; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + 1;
+      remember(state, 'player', 'world', { kind: 'tower', valence: 3, text: `你通过了真阳楼第${nextFloor}层，楼层规则和外界战争压力仍在变化。`, facts: { lastTowerFloor: nextFloor } });
+      log(state, 'tower_floor', `你通过了八十八角真阳楼第 ${nextFloor} 层。`, { result: 'success', floor: nextFloor, difficulty });
+    } else {
+      p.needs.energy -= 12; damageEntity(state, 'player', 5 + difficulty * 2, 'trueYangTower', 'tower_trial');
+      log(state, 'tower_floor', `你在真阳楼第 ${nextFloor} 层受挫，楼层没有因此停止显化。`, { result: 'failure', floor: nextFloor, difficulty });
+    }
+    Engine.emit(state, 'tower.floor', { result: success ? 'success' : 'failure', floor: nextFloor, difficulty, attempts: state.tower.attempts });
+    advance(state, 5, 'tower_floor');
+  }
+
   function registerActionHandlers() {
     Engine.registerAction('accept_contract', ({ state, command }) => acceptContract(state, command.contractId));
     Engine.registerAction('complete_contract', ({ state, command }) => completeContract(state, command.contractId));
     Engine.registerAction('arena_match', ({ state, p }) => performArenaMatch(state, p));
     Engine.registerAction('inheritance_round', ({ state, p }) => performInheritanceRound(state, p));
+    Engine.registerAction('frontier_patrol', ({ state, p }) => performFrontierPatrol(state, p));
+    Engine.registerAction('tower_floor', ({ state, p }) => performTowerFloor(state, p));
   }
 
   function relValence(state, npcId) {
@@ -1013,6 +1064,8 @@
     if (/修炼|温养|打坐/.test(q)) return { ok: true, command: { type: 'action', id: 'cultivate' }, label: '温养空窍' };
     if (/演武|比斗|擂台/.test(q)) return { ok: true, command: { type: 'action', id: 'arena_match' }, label: '参加演武' };
     if (/三王传承|传承闯关|进入传承/.test(q)) return { ok: true, command: { type: 'action', id: 'inheritance_round' }, label: '挑战传承轮次' };
+    if (/北原巡逻|军帐巡逻|侦察北原/.test(q)) return { ok: true, command: { type: 'action', id: 'frontier_patrol' }, label: '执行北原巡逻' };
+    if (/真阳楼闯关|闯楼|登塔/.test(q)) return { ok: true, command: { type: 'action', id: 'tower_floor' }, label: '挑战真阳楼楼层' };
     if (/听课|学习/.test(q)) return { ok: true, command: { type: 'action', id: 'study' }, label: '听课' };
     if (/采集|采摘|取水|调查|探索|观察/.test(q)) return { ok: true, command: { type: 'action', id: 'gather' }, label: '探索并采集' };
     if (/休息|睡觉/.test(q)) return { ok: true, command: { type: 'action', id: 'rest' }, label: '休息' };

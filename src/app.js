@@ -84,6 +84,8 @@
     if (here === 'academy' || here === 'village') out.push(button('炼化月光蛊', { type: 'action', id: 'refine', guId: 'moonlight' }));
     if (here === 'merchantCity' && s.arena.active) out.push(button(`参加演武（${s.arena.wins}胜/${s.arena.matches}场）`, { type: 'action', id: 'arena_match' }, false, 'choice'));
     if (here === 'threeForkMountain' && s.inheritance.active && !s.inheritance.completed) out.push(button(`挑战传承第${s.inheritance.round + 1}轮`, { type: 'action', id: 'inheritance_round' }, false, 'choice'));
+    if (['northernPlains', 'blackTribeCamp'].includes(here) && s.frontier.opened) out.push(button(`北原巡逻（补给 ${Math.round(s.frontier.supply)}）`, { type: 'action', id: 'frontier_patrol' }, false, 'choice'));
+    if (here === 'trueYangTower' && s.tower.active) out.push(button(`闯真阳楼第${s.tower.floors + 1}层`, { type: 'action', id: 'tower_floor' }, false, 'choice'));
     return out.concat(S.LOCATIONS[here].neighbors.map(id => button(`去${S.LOCATIONS[id].name}`, { type: 'action', id: 'travel', location: id }, false, 'travel')));
   }
   function wire() {

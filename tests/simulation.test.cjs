@@ -218,7 +218,7 @@ test('volume three content pack turns northern war and true yang tower into stat
     marketArrival: 'listen', auction: 'observe', allianceCouncil: 'aid', wolfTide: 'mobilize',
     threeClanTournament: 'observe', ironInvestigation: 'cooperate', merchantCityArrival: 'enter',
     merchantArena: 'recruit', threeKingsInheritance: 'scout', heavenClimbTransmission: 'follow',
-    northernWarArrival: 'enter', blackCampaign: 'mediate', imperialCourtOpening: 'relief', trueYangTowerFormation: 'watch'
+    northernWarArrival: 'enter', blackCampaign: 'mediate', imperialCourtOpening: 'relief', trueYangTowerFormation: 'enter'
   };
   const advance = hours => {
     for (let i = 0; i < hours / 12; i++) {
@@ -240,6 +240,7 @@ test('volume three content pack turns northern war and true yang tower into stat
   advance(180);
   state = ok(state, { type: 'action', id: 'travel', location: 'northernPlains' });
   advance(120);
+  state = ok(state, { type: 'action', id: 'frontier_patrol' });
   state = ok(state, { type: 'action', id: 'travel', location: 'blackTribeCamp' });
   advance(240);
   state = ok(state, { type: 'action', id: 'travel', location: 'imperialCourt' });
@@ -254,6 +255,9 @@ test('volume three content pack turns northern war and true yang tower into stat
   assert.equal(state.entities.taibaiyunsheng.identity.name, '太白云生');
   assert.ok(state.history.events.some(event => event.data?.source?.source?.endsWith('第149章.txt')));
   assert.ok(state.frontier.campaignPressure > 0);
+  state = ok(state, { type: 'action', id: 'tower_floor' });
+  assert.equal(state.tower.attempts, 2);
+  assert.ok(state.history.events.some(event => event.type === 'tower_floor'));
 });
 
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
