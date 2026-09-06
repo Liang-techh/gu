@@ -10,6 +10,8 @@
     const register = rule => engine.registerDirectorRule({
       id: rule.id,
       priority: rule.priority,
+      score: rule.score,
+      cooldownHours: rule.cooldownHours,
       when: rule.when,
       build: () => ({
         id: rule.id,
@@ -79,6 +81,9 @@
         ] },
         { id: 'immortalAuction', priority: 180, type: 'market', title: '中洲仙蛊拍卖大会', text: '拍卖会把仙蛊、蛊方、情报和各大势力的关系网放在同一个大厅里。价格不是唯一成本，出价本身也会告诉别人你正在寻找什么。', source: sourceNotes.immortalAuction, when: state => state.flags.centralContinentOpened && !state.flags.immortalAuctionOpened && day(state) >= 105 && state.entities.player.position.location === 'immortalAuction', choices: [
           { id: 'bid', label: '参加竞拍', hint: '消耗元石与关系，获得稀缺资源的机会。' }, { id: 'observe', label: '观察各方需求', hint: '获得价格和势力情报，保留资源。' }, { id: 'rumor', label: '出售北原情报', hint: '获得资金，但会让更多人追踪你的过去。' }
+        ] },
+        { id: 'identityPursuit', priority: 185, type: 'investigation', title: '交易痕迹引来的追查', text: '你在拍卖会留下的价格、借贷和情报记录开始互相对上。有人还不知道你的真名，却已经知道该去哪里等你。面具可以遮住脸，不能自动抹掉因果。', source: sourceNotes.identityPursuit, cooldownHours: 48, when: state => state.central.tracePressure >= 25 && state.entities.player.knowledge.activeMask !== 'trueName' && state.clock - (state.facts.identityPursuitLastClock || -999) >= 48, choices: [
+          { id: 'erase', label: '花费元石抹除交易痕迹', hint: '降低追踪压力，消耗资源并损失部分市场信誉。' }, { id: 'misdirect', label: '伪造另一条线索', hint: '把追查导向竞争对手，但会降低情报可信度。' }, { id: 'confront', label: '带着面具反向设伏', hint: '把追查者变成诱饵，显著提高导演压力与敌意。' }
         ] },
         { id: 'sectPressure', priority: 190, type: 'siege', title: '宗门对狐仙福地的压力', text: '拍卖会之后，宗门不再满足于旁观。方正的师徒关系、狐仙福地的资源和你的北原行踪被卷进同一场攻防，福地的安全不再是默认前提。', source: sourceNotes.sectPressure, when: state => state.flags.immortalAuctionOpened && !state.flags.sectPressureActive && day(state) >= 115 && state.entities.player.position.location === 'foxFairyLand', choices: [
           { id: 'defend', label: '启动福地防御', hint: '消耗资源，降低入侵风险。' }, { id: 'negotiate', label: '与仙鹤门谈判', hint: '把方正和宗门关系转化为缓冲。' }, { id: 'ambush', label: '诱敌深入再反击', hint: '提高收益和风险，留下长期敌意。' }

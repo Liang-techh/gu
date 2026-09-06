@@ -335,7 +335,8 @@
     towerFormation: { source: 'reference/novel/第3卷：魔头乱世/第149章.txt', note: '真阳楼由风雪与王庭福地条件共同成形，塔楼探索应受世界状态影响而非固定开门。' },
     foxReturn: { source: 'reference/novel/第4卷：魔君纵横/第1章.txt', note: '北原旅途结束后回归狐仙福地，福地成为经营、休整和继续谋划的持久基地。' },
     sectPressure: { source: 'reference/novel/第4卷：魔君纵横/第50章.txt', note: '仙鹤门与方正的师徒关系把宗门任务、个人情感和福地攻防连接起来。' },
-    immortalAuction: { source: 'reference/novel/第4卷：魔君纵横/第100章.txt', note: '中洲拍卖大会汇聚散修、超级势力和仙蛊资源，适合构造成价格、关系和情报共同变化的市场系统。' }
+    immortalAuction: { source: 'reference/novel/第4卷：魔君纵横/第100章.txt', note: '中洲拍卖大会汇聚散修、超级势力和仙蛊资源，适合构造成价格、关系和情报共同变化的市场系统。' },
+    identityPursuit: { source: 'reference/novel/第4卷：魔君纵横/第119章.txt', note: '拍卖后交易线索、卖家身份与追杀互相串联，适合构造成面具、溯源和追查压力共同推进的导演事件。' }
     ,shadowRebuild: { source: 'reference/novel/第5卷：魔王雄霸/第1章.txt', note: '影无邪、影宗余脉、长生天与中洲局势，为重建势力和秘密网络提供原文锚点。' },
     southernFront: { source: 'reference/novel/第5卷：魔王雄霸/第300章.txt', note: '南疆、武家、武遗海与乔家关系把超级家族、外交和边境战争连接起来。' },
     westernDesert: { source: 'reference/novel/第5卷：魔王雄霸/第500章.txt', note: '西漠房家以蛊屋闻名，智道传承和豆神宫构成沙漠势力的结构性玩法。' },

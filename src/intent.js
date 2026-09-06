@@ -26,6 +26,8 @@
       if (matches[0] && locations[matches[0].id]) return { ok: true, command: { type: 'action', id: 'travel', location: matches[0].id }, label: `前往${locations[matches[0].id].name}` };
     }
     if (/修炼|温养|打坐/.test(q)) return { ok: true, command: { type: 'action', id: 'cultivate' }, label: '温养空窍' };
+    if (/摘下面具|恢复真名|恢复真实身份|公开身份/.test(q)) return { ok: true, command: { type: 'action', id: 'identity_mask', mode: 'drop' }, label: '恢复真实身份' };
+    if (/伪装|戴面具|换身份|隐藏身份|无名散修/.test(q)) return { ok: true, command: { type: 'action', id: 'identity_mask', mode: 'wear', maskId: 'anonymous' }, label: '戴上无名散修面具' };
     if (/演武|比斗|擂台/.test(q)) return { ok: true, command: { type: 'action', id: 'arena_match' }, label: '参加演武' };
     if (/三王传承|传承闯关|进入传承/.test(q)) return { ok: true, command: { type: 'action', id: 'inheritance_round' }, label: '挑战传承轮次' };
     if (/北原巡逻|军帐巡逻|侦察北原/.test(q)) return { ok: true, command: { type: 'action', id: 'frontier_patrol' }, label: '执行北原巡逻' };

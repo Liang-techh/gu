@@ -194,6 +194,15 @@
         log(state, 'choice', `你处理了中洲拍卖大会：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.immortalAuction });
         return true;
       });
+      engine.registerEvent('identityPursuit', ({ state, choice, event }) => {
+        const p = state.entities.player;
+        state.facts.identityPursuitLastClock = state.clock;
+        if (choice === 'erase') { p.inventory.stones = Math.max(0, p.inventory.stones - 5); state.central.tracePressure = Math.max(0, state.central.tracePressure - 22); state.central.marketReputation -= 3; }
+        if (choice === 'misdirect') { state.central.tracePressure = Math.max(0, state.central.tracePressure - 10); state.central.rumorCredibility = Math.max(0, state.central.rumorCredibility - 8); state.central.sectPressure += 2; }
+        if (choice === 'confront') { state.central.tracePressure = Math.min(100, state.central.tracePressure + 8); state.director.pressure = clamp(state.director.pressure + 3, 0, 10); state.factions.centralSects.tension += 5; state.factions.auctionImmortals.tension += 4; }
+        log(state, 'choice', `你处理了交易痕迹引发的追查：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.identityPursuit, trace: state.central.tracePressure });
+        return true;
+      });
       engine.registerEvent('sectPressure', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.sectPressureActive = true; state.central.sectPressure += 5;
@@ -304,4 +313,3 @@
 
   return { createRuntime };
 });
-

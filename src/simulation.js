@@ -1,11 +1,12 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
   if (!Content) throw new Error('GuSimulationContent must load before simulation.js');
+  if (!Identity) throw new Error('GuSimulationIdentity must load before simulation.js');
   if (!History) throw new Error('GuSimulationHistory must load before simulation.js');
   if (!ZoneBuilder) throw new Error('GuSimulationZoneBuilder must load before simulation.js');
   if (!NpcAI) throw new Error('GuSimulationNpcAI must load before simulation.js');
@@ -142,6 +143,7 @@
     state.entities.player.inventory = { water: 5, moonPetal: 6, wine: 1, stones: 8 };
     state.entities.player.body.health = state.entities.player.body.maxHealth;
     state.entities.player.needs = { energy: 92, hunger: 8, safety: 70 };
+    Identity.ensure(state.entities.player, Knowledge);
     for (const [id, seedData] of Object.entries(NPC_SEEDS)) {
       if (seedData.fromDay && seedData.fromDay > day(state)) { state.facts.latentNpcs ||= {}; state.facts.latentNpcs[id] = seedData.fromDay; }
       else state.entities[id] = Entity.createEntity(id, seedData);
@@ -208,7 +210,7 @@
 
   function normalize(state) {
     const p = state.entities.player;
-    for (const entity of Object.values(state.entities || {})) Knowledge.ensure(entity);
+    for (const entity of Object.values(state.entities || {})) { Knowledge.ensure(entity); Identity.ensure(entity, Knowledge); }
     state.contracts ||= { available: [], active: {}, completed: [] };
     state.contracts.available ||= []; state.contracts.active ||= {}; state.contracts.completed ||= [];
     state.arena ||= { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 };
@@ -408,6 +410,11 @@
       const zone = state.zones.immortalAuction;
       if (zone) zone.activity += event.payload.result === 'bid' ? 8 : 4;
       if (state.factions.auctionImmortals) state.factions.auctionImmortals.tension += event.payload.result === 'bid' ? 0.8 : ['raise', 'rumor'].includes(event.payload.result) ? 1.2 : 0.2;
+      if (event.payload.trace >= 10) {
+        state.director.pressure = clamp(state.director.pressure + Math.min(0.5, event.payload.trace * 0.005), 0, 10);
+        const qin = state.entities.qinbaisheng;
+        if (qin) Identity.exposeTrace(state.entities.player, qin, state.clock, Knowledge, '拍卖追踪');
+      }
     });
     Engine.registerEventListener('dream.dive', 'dreamRealmPressure', ({ state, event }) => {
       const zone = state.zones.dreamRealms;
@@ -424,6 +431,27 @@
     advance(state, 1, 'conversation');
   }
 
+  function identityAction(state, command, p) {
+    const mode = command.mode || 'wear';
+    if (mode === 'wear') {
+      const mask = Identity.wear(p, command.maskId || 'anonymous', state.clock, Knowledge);
+      remember(state, 'player', 'world', { kind: 'secret', source: 'identity:wear', text: `你换上了“${mask.label}”的身份面具。`, facts: { activeMask: p.knowledge.activeMask, publicIdentity: mask.label } });
+      log(state, 'identity_mask', `你开始以“${mask.label}”的身份行动。`, { mode, maskId: p.knowledge.activeMask, strength: mask.strength });
+    } else if (mode === 'drop') {
+      const mask = Identity.wear(p, 'trueName', state.clock, Knowledge);
+      log(state, 'identity_mask', `你摘下面具，恢复公开身份“${mask.label}”。`, { mode, maskId: 'trueName' });
+    } else if (mode === 'reveal') {
+      const target = state.entities[command.target];
+      if (!target || target.id === 'player' || target.position.location !== p.position.location) throw new Error('只能向同地点的 NPC 摊牌');
+      Identity.reveal(p, target, state.clock, Knowledge, '主动摊牌');
+      const rel = relation(state, 'player', target.id);
+      rel.trust += 5; rel.fear = Math.max(0, rel.fear - 2);
+      log(state, 'identity_mask', `你向${target.identity.name}摊牌，真实身份被写入对方记忆。`, { mode, targetId: target.id, maskId: p.knowledge.activeMask });
+      Engine.emit(state, 'identity.revealed', { actorId: 'player', targetId: target.id, maskId: p.knowledge.activeMask, location: p.position.location });
+    } else throw new Error('未知的身份行动');
+    advance(state, 1, 'identity_mask');
+  }
+
   function registerActionHandlers() {
     Engine.registerAction('accept_contract', ({ state, command }) => contractRuntime.accept(state, command.contractId));
     Engine.registerAction('complete_contract', ({ state, command }) => contractRuntime.complete(state, command.contractId));
@@ -432,6 +460,7 @@
     Engine.registerAction('frontier_patrol', ({ state, p }) => repeatableRuntime.frontierPatrol(state, p));
     Engine.registerAction('tower_floor', ({ state, p }) => repeatableRuntime.towerFloor(state, p));
     Engine.registerAction('auction_lot', ({ state, command, p }) => repeatableRuntime.auctionLot(state, p, command));
+    Engine.registerAction('identity_mask', ({ state, command, p }) => identityAction(state, command, p));
     Engine.registerAction('dream_dive', ({ state, p }) => repeatableRuntime.dreamDive(state, p));
     Engine.registerAction('conversation', ({ state, command, p }) => performConversation(state, command, p));
     Engine.registerActionHook('after', '*', 'actionMetrics', ({ state, command }) => {
@@ -736,9 +765,9 @@
     const p = state.entities.player;
     return {
       day: day(state), hour: hour(state), phase: phase(state), location: p.position.location,
-      player: { ...p.cultivation, name: p.identity.name, inventory: copy(p.inventory), abilities: copy(p.abilities), needs: copy(p.needs) },
+      player: { ...p.cultivation, name: Identity.visible(p, 'player', Knowledge).name, trueName: p.identity.name, activeMask: p.knowledge.activeMask, inventory: copy(p.inventory), abilities: copy(p.abilities), needs: copy(p.needs), identity: copy(Identity.visible(p, 'player', Knowledge)) },
       combat: copy(state.combat || null),
-      nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null, suspicion: Knowledge.suspicion(e, 'player') })),
+      nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => { const identity = Identity.visible(e, 'player', Knowledge); return { id: e.id, name: identity.name, role: identity.role, tags: identity.tags, masked: identity.masked, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null, suspicion: Knowledge.suspicion(e, 'player') }; }),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
       activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), worldWar: copy(state.worldWar), eternalWar: copy(state.eternalWar), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), domainEvents: copy(state.events.recent || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
@@ -756,5 +785,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, KNOWLEDGE: Knowledge, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, KNOWLEDGE: Knowledge, IDENTITY: Identity, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

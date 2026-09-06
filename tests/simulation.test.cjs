@@ -401,6 +401,38 @@ test('auction intent exposes market actions as explicit commands', () => {
   assert.equal(S.interpret('核验情报', state).command.mode, 'verify');
 });
 
+test('identity masks change the public view and reveal true identity selectively', () => {
+  let state = open(S.newWorld({ seed: 'identity-masks' }), 'observe');
+  assert.equal(state.entities.player.knowledge.activeMask, 'trueName');
+  state = ok(state, { type: 'action', id: 'identity_mask', mode: 'wear', maskId: 'anonymous' });
+  assert.equal(state.entities.player.knowledge.activeMask, 'anonymous');
+  assert.equal(S.snapshot(state).player.name, '无名散修');
+  assert.equal(S.snapshot(state).player.trueName, '古月族人');
+  assert.ok(S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS }).some(action => action.command.mode === 'drop'));
+
+  state.entities.fangyuan.position.location = state.entities.player.position.location;
+  state = ok(state, { type: 'action', id: 'identity_mask', mode: 'reveal', target: 'fangyuan' });
+  assert.equal(S.KNOWLEDGE.get(state.entities.fangyuan, 'player', 'identityKnown').value, true);
+  assert.equal(S.IDENTITY.visible(state.entities.player, 'fangyuan', S.KNOWLEDGE).name, '古月族人');
+  assert.ok(state.history.events.some(event => event.type === 'identity_mask'));
+  state = ok(state, { type: 'action', id: 'identity_mask', mode: 'drop' });
+  assert.equal(state.entities.player.knowledge.activeMask, 'trueName');
+});
+
+test('director turns masked market traces into a recoverable pursuit event', () => {
+  let state = open(S.newWorld({ seed: 'identity-pursuit' }), 'observe');
+  state = ok(state, { type: 'action', id: 'identity_mask', mode: 'wear', maskId: 'anonymous' });
+  state.central.tracePressure = 30;
+  state.events.active = null;
+  state.director.lastTick = 0;
+  state = ok(state, { type: 'action', id: 'wait', hours: 2 });
+  assert.equal(state.events.active.id, 'identityPursuit');
+  state = ok(state, { type: 'resolve_event', choice: 'erase' });
+  assert.equal(state.events.active, null);
+  assert.ok(state.central.tracePressure < 30);
+  assert.ok(state.history.events.some(event => event.data?.source?.source?.endsWith('第119章.txt')));
+});
+
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
   let state = open(S.newWorld({ seed: 'intent' }), 'observe');
   const parsed = S.interpret('去竹林', state);
