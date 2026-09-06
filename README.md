@@ -66,6 +66,7 @@ python -m http.server 4173
 ```text
 npm test       25/25 passing
 npm run check:canon  55/55 term/source checks
+npm run check:content  content schema valid
 ```
 
 当前是可运行的多区域垂直切片，不声称已经完成 Qud 级别的格点物理、液体/温度、完整历史生成和全书内容。后续系统会继续以可测试的组件/事件模块逐卷加入。
