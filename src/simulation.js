@@ -508,6 +508,136 @@
   }
 
   function registerActionHandlers() {
+    Engine.registerAction('wait', ({ state, command }) => {
+      advance(state, Number(command.hours) || 2, 'wait');
+      log(state, 'action', '你等待了一段时间，观察世界如何自行变化。');
+    });
+    Engine.registerAction('travel', ({ state, command, p }) => {
+      const target = command.location;
+      if (!LOCATIONS[target] || !LOCATIONS[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
+      const from = p.position.location;
+      p.position.location = target;
+      ZoneRuntime.transition(state, from, target, { engine: Engine, clock: state.clock, market: marketRuntime, consequence: Consequence.record, remember, log, damageEntity });
+      Engine.emit(state, 'world.travel', { actorId: 'player', from, to: target });
+      remember(state, 'player', 'world', { kind: 'travel', text: `从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`, facts: { [target]: true } });
+      log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);
+      advance(state, 1, 'travel');
+    });
+    Engine.registerAction('cultivate', ({ state, p }) => {
+      const cost = Math.max(6, Math.round(p.cultivation.essenceMax * 0.18));
+      if (p.cultivation.essence < cost) throw new Error('真元不足');
+      p.cultivation.essence -= cost;
+      const gain = 4 + p.cultivation.aptitude * 8 + p.cultivation.insight * 0.06;
+      p.cultivation.progress += gain;
+      p.needs.energy -= 8;
+      remember(state, 'player', 'world', { kind: 'cultivation', text: '你在雨声中温养空窍。' });
+      log(state, 'action', `你温养空窍，修为进度增加 ${gain.toFixed(1)}。`);
+      advance(state, 3, 'cultivate');
+    });
+    Engine.registerAction('study', ({ state, p }) => {
+      if (p.position.location !== 'academy') throw new Error('只有在学堂才能听课');
+      p.cultivation.insight += 2;
+      p.cultivation.progress += 1;
+      relation(state, 'player', 'guYue').trust += 1;
+      log(state, 'action', '你听完一堂关于真元与蛊虫的课，家老把你的表现记在心里。');
+      advance(state, 2, 'study');
+    });
+    Engine.registerAction('gather', ({ state, p }) => {
+      const loc = p.position.location;
+      const zone = state.zones[loc];
+      if (!zone || !['bambooForest', 'riverbank', 'cliffCave'].includes(loc)) throw new Error('当前位置没有可采集的区域资源');
+      if (loc === 'riverbank') {
+        const amount = Math.min(3, zone.resources.water);
+        if (amount < 1) throw new Error('河滩的水源暂时不足');
+        zone.resources.water -= amount;
+        p.inventory.water += amount;
+      }
+      if (loc === 'bambooForest') {
+        const petals = Math.min(2, zone.resources.moonPetal);
+        if (petals < 1) throw new Error('竹林里的月兰花瓣已经被采得差不多了');
+        zone.resources.moonPetal -= petals;
+        zone.resources.food = Math.max(0, zone.resources.food - 1);
+        p.inventory.moonPetal += petals;
+        p.inventory.food = (p.inventory.food || 0) + 1;
+      }
+      if (loc === 'cliffCave') {
+        const fragment = Math.min(1, zone.resources.relicFragment);
+        if (fragment < 1) throw new Error('石缝里暂时没有新的遗藏碎片');
+        zone.resources.relicFragment -= fragment;
+        p.inventory.relicFragment = (p.inventory.relicFragment || 0) + fragment;
+        state.flags.relicDiscovered = true;
+      }
+      zone.activity += 12;
+      zone.visits += 1;
+      Engine.emit(state, 'world.resource_gathered', { actorId: 'player', location: loc, resources: copy(p.inventory) });
+      if (random(state) < zone.danger / 260) {
+        damageEntity(state, 'player', 4 + zone.danger * 0.08, 'world', 'environment');
+        p.needs.safety -= 8;
+      }
+      p.cultivation.insight += random(state) < 0.35 ? 1 : 0;
+      log(state, 'action', `你在${LOCATIONS[loc].name}进行采集，资源与线索都发生了变化。`);
+      advance(state, 2, 'gather');
+    });
+    Engine.registerAction('rest', ({ state, p }) => {
+      p.needs.energy += 42;
+      p.needs.hunger += 4;
+      log(state, 'action', '你休息了一晚，人物和势力仍在世界中行动。');
+      advance(state, 6, 'rest');
+    });
+    Engine.registerAction('challenge', ({ state, command }) => beginConflict(state, command.target, command.kind || 'challenge'));
+    Engine.registerAction('refine', ({ state, command, p }) => {
+      if (p.position.location !== 'academy' && p.position.location !== 'village') throw new Error('这里没有适合炼化蛊虫的安静场所');
+      const guId = command.guId || 'moonlight';
+      p.inventory.gu ||= {};
+      const current = p.inventory.gu[guId] || { progress: 0, refined: false, hunger: 0 };
+      if (current.refined) throw new Error('这只蛊已经炼化');
+      const cost = 8;
+      if (p.cultivation.essence < cost) throw new Error('真元不足');
+      p.cultivation.essence -= cost;
+      current.progress += 22 + p.cultivation.aptitude * 12;
+      if (current.progress >= 100) {
+        current.progress = 100;
+        current.refined = true;
+        Ability.learn(p, guId);
+        log(state, 'milestone', `你炼化了${GU_SEEDS[guId].name}。`, { guId });
+      } else log(state, 'action', `你尝试炼化${GU_SEEDS[guId].name}，蛊虫仍在抵抗。`);
+      p.inventory.gu[guId] = current;
+      advance(state, 2, 'refine');
+    });
+    Engine.registerAction('equip_gu', ({ state, command, p }) => {
+      const item = Equipment.equip(p, command.guId, EQUIPMENT_DEFS, Body, state.clock);
+      Engine.emit(state, 'equipment.equipped', { actorId: p.id, itemId: item.itemId, slot: item.slot, location: p.position.location });
+      log(state, 'equipment', `你将${EQUIPMENT_DEFS[command.guId].label}装备到${item.slot}。`, { itemId: item.itemId, slot: item.slot });
+      advance(state, 1, 'equip_gu');
+    });
+    Engine.registerAction('unequip_gu', ({ state, command, p }) => {
+      const previous = Equipment.unequip(p, command.guId, EQUIPMENT_DEFS, state.clock);
+      if (!previous) throw new Error('这只蛊当前没有装备');
+      Engine.emit(state, 'equipment.unequipped', { actorId: p.id, itemId: previous.itemId, slot: previous.slot, location: p.position.location });
+      log(state, 'equipment', `你卸下了${EQUIPMENT_DEFS[command.guId]?.label || command.guId}。`, { itemId: previous.itemId, slot: previous.slot });
+      advance(state, 1, 'unequip_gu');
+    });
+    Engine.registerAction('talk', ({ state, command, p }) => {
+      const npc = requireSameLocation(state, command.target);
+      const r = relation(state, 'player', npc.id);
+      const mode = command.mode || 'listen';
+      const memoryBoost = (p.memory.facts[npc.id]?.helped ? 6 : 0) + (r.trust > 20 ? 3 : 0);
+      if (!Engine.runInteraction(mode, { state, p, npc, relation: r, memoryBoost })) Engine.runInteraction('listen', { state, p, npc, relation: r, memoryBoost });
+      r.lastSeen = state.clock;
+      advance(state, 1, 'talk');
+    });
+    Engine.registerAction('influence', ({ state, command, p }) => {
+      const faction = state.factions[command.factionId];
+      if (!faction) throw new Error('未知势力');
+      if ((p.inventory.stones || 0) < 1) throw new Error('至少需要一枚元石作为行动成本');
+      p.inventory.stones -= 1;
+      faction.attitude += 4;
+      faction.tension += command.kind === 'rumor' ? 4 : -2;
+      state.director.pressure += command.kind === 'rumor' ? 1 : 0;
+      relation(state, 'player', command.factionId).trust += 4;
+      log(state, 'faction', `你对${faction.name}施加了一次${command.kind === 'rumor' ? '传闻' : '援助'}影响。`, { factionId: command.factionId });
+      advance(state, 2, 'influence');
+    });
     Engine.registerAction('accept_contract', ({ state, command }) => contractRuntime.accept(state, command.contractId));
     Engine.registerAction('complete_contract', ({ state, command }) => contractRuntime.complete(state, command.contractId));
     Engine.registerAction('arena_match', ({ state, p }) => repeatableRuntime.arenaMatch(state, p));
@@ -678,110 +808,6 @@
     if (state.events.active) throw new Error('请先处理当前世界事件');
     const registered = Engine.runAction(id, { state, command, p });
     if (registered.handled) return;
-    if (id === 'wait') { advance(state, Number(command.hours) || 2, 'wait'); log(state, 'action', '你等待了一段时间，观察世界如何自行变化。'); return; }
-    if (id === 'travel') {
-      const target = command.location;
-      if (!LOCATIONS[target] || !LOCATIONS[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
-      const from = p.position.location; p.position.location = target;
-      ZoneRuntime.transition(state, from, target, { engine: Engine, clock: state.clock, market: marketRuntime, consequence: Consequence.record, remember, log, damageEntity });
-      Engine.emit(state, 'world.travel', { actorId: 'player', from, to: target });
-      remember(state, 'player', 'world', { kind: 'travel', text: `从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`, facts: { [target]: true } });
-      log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);
-      advance(state, 1, 'travel'); return;
-    }
-    if (id === 'cultivate') {
-      const cost = Math.max(6, Math.round(p.cultivation.essenceMax * 0.18));
-      if (p.cultivation.essence < cost) throw new Error('真元不足');
-      p.cultivation.essence -= cost;
-      const gain = 4 + p.cultivation.aptitude * 8 + p.cultivation.insight * 0.06;
-      p.cultivation.progress += gain;
-      p.needs.energy -= 8;
-      remember(state, 'player', 'world', { kind: 'cultivation', text: '你在雨声中温养空窍。' });
-      log(state, 'action', `你温养空窍，修为进度增加 ${gain.toFixed(1)}。`);
-      advance(state, 3, 'cultivate'); return;
-    }
-    if (id === 'study') {
-      if (p.position.location !== 'academy') throw new Error('只有在学堂才能听课');
-      p.cultivation.insight += 2; p.cultivation.progress += 1;
-      relation(state, 'player', 'guYue').trust += 1;
-      log(state, 'action', '你听完一堂关于真元与蛊虫的课，家老把你的表现记在心里。');
-      advance(state, 2, 'study'); return;
-    }
-    if (id === 'gather') {
-      const loc = p.position.location;
-      const zone = state.zones[loc];
-      if (!zone || !['bambooForest', 'riverbank', 'cliffCave'].includes(loc)) throw new Error('当前位置没有可采集的区域资源');
-      if (loc === 'riverbank') {
-        const amount = Math.min(3, zone.resources.water);
-        if (amount < 1) throw new Error('河滩的水源暂时不足');
-        zone.resources.water -= amount; p.inventory.water += amount;
-      }
-      if (loc === 'bambooForest') {
-        const petals = Math.min(2, zone.resources.moonPetal);
-        if (petals < 1) throw new Error('竹林里的月兰花瓣已经被采得差不多了');
-        zone.resources.moonPetal -= petals; zone.resources.food = Math.max(0, zone.resources.food - 1);
-        p.inventory.moonPetal += petals; p.inventory.food = (p.inventory.food || 0) + 1;
-      }
-      if (loc === 'cliffCave') {
-        const fragment = Math.min(1, zone.resources.relicFragment);
-        if (fragment < 1) throw new Error('石缝里暂时没有新的遗藏碎片');
-        zone.resources.relicFragment -= fragment; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + fragment; state.flags.relicDiscovered = true;
-      }
-      zone.activity += 12; zone.visits += 1;
-      Engine.emit(state, 'world.resource_gathered', { actorId: 'player', location: loc, resources: copy(p.inventory) });
-      if (random(state) < zone.danger / 260) { damageEntity(state, 'player', 4 + zone.danger * 0.08, 'world', 'environment'); p.needs.safety -= 8; }
-      p.cultivation.insight += random(state) < 0.35 ? 1 : 0;
-      log(state, 'action', `你在${LOCATIONS[loc].name}进行采集，资源与线索都发生了变化。`);
-      advance(state, 2, 'gather'); return;
-    }
-    if (id === 'rest') { p.needs.energy += 42; p.needs.hunger += 4; log(state, 'action', '你休息了一晚，人物和势力仍在世界中行动。'); advance(state, 6, 'rest'); return; }
-    if (id === 'challenge') { beginConflict(state, command.target, command.kind || 'challenge'); return; }
-    if (id === 'refine') {
-      if (p.position.location !== 'academy' && p.position.location !== 'village') throw new Error('这里没有适合炼化蛊虫的安静场所');
-      const guId = command.guId || 'moonlight';
-      p.inventory.gu ||= {};
-      const current = p.inventory.gu[guId] || { progress: 0, refined: false, hunger: 0 };
-      if (current.refined) throw new Error('这只蛊已经炼化');
-      const cost = 8;
-      if (p.cultivation.essence < cost) throw new Error('真元不足');
-      p.cultivation.essence -= cost;
-      current.progress += 22 + p.cultivation.aptitude * 12;
-      if (current.progress >= 100) { current.progress = 100; current.refined = true; Ability.learn(p, guId); log(state, 'milestone', `你炼化了${GU_SEEDS[guId].name}。`, { guId }); }
-      else log(state, 'action', `你尝试炼化${GU_SEEDS[guId].name}，蛊虫仍在抵抗。`);
-      p.inventory.gu[guId] = current;
-      advance(state, 2, 'refine'); return;
-    }
-    if (id === 'equip_gu') {
-      const guId = command.guId;
-      const item = Equipment.equip(p, guId, EQUIPMENT_DEFS, Body, state.clock);
-      Engine.emit(state, 'equipment.equipped', { actorId: p.id, itemId: item.itemId, slot: item.slot, location: p.position.location });
-      log(state, 'equipment', `你将${EQUIPMENT_DEFS[guId].label}装备到${item.slot}。`, { itemId: item.itemId, slot: item.slot });
-      advance(state, 1, 'equip_gu'); return;
-    }
-    if (id === 'unequip_gu') {
-      const previous = Equipment.unequip(p, command.guId, EQUIPMENT_DEFS, state.clock);
-      if (!previous) throw new Error('这只蛊当前没有装备');
-      Engine.emit(state, 'equipment.unequipped', { actorId: p.id, itemId: previous.itemId, slot: previous.slot, location: p.position.location });
-      log(state, 'equipment', `你卸下了${EQUIPMENT_DEFS[command.guId]?.label || command.guId}。`, { itemId: previous.itemId, slot: previous.slot });
-      advance(state, 1, 'unequip_gu'); return;
-    }
-    if (id === 'talk') {
-      const npc = requireSameLocation(state, command.target);
-      const r = relation(state, 'player', npc.id);
-      const mode = command.mode || 'listen';
-      const memoryBoost = (p.memory.facts[npc.id]?.helped ? 6 : 0) + (r.trust > 20 ? 3 : 0);
-      if (!Engine.runInteraction(mode, { state, p, npc, relation: r, memoryBoost })) Engine.runInteraction('listen', { state, p, npc, relation: r, memoryBoost });
-      r.lastSeen = state.clock; advance(state, 1, 'talk'); return;
-    }
-    if (id === 'influence') {
-      const faction = state.factions[command.factionId];
-      if (!faction) throw new Error('未知势力');
-      if ((p.inventory.stones || 0) < 1) throw new Error('至少需要一枚元石作为行动成本');
-      p.inventory.stones -= 1; faction.attitude += 4; faction.tension += command.kind === 'rumor' ? 4 : -2; state.director.pressure += command.kind === 'rumor' ? 1 : 0;
-      relation(state, 'player', command.factionId).trust += 4;
-      log(state, 'faction', `你对${faction.name}施加了一次${command.kind === 'rumor' ? '传闻' : '援助'}影响。`, { factionId: command.factionId });
-      advance(state, 2, 'influence'); return;
-    }
     throw new Error('未知行动');
   }
 

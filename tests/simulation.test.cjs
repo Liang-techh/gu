@@ -895,6 +895,8 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.equal(typeof S.REPEATABLE_SYSTEMS.arenaMatch, 'function');
   assert.equal(typeof S.REPEATABLE_SYSTEMS.dreamDive, 'function');
   assert.equal(typeof S.MARKET.trade, 'function');
+  assert.equal(typeof S.COMBAT.attack, 'function');
+  assert.equal(typeof S.SOCIAL.apply, 'function');
   assert.equal(typeof S.ZONE_RUNTIME.transition, 'function');
   assert.equal(typeof S.GOAL_HANDLER.pushChildGoal, 'function');
   assert.equal(typeof S.ENGINE.registerEventPhaseListener, 'function');
@@ -917,6 +919,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
+  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
