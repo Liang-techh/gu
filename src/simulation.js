@@ -307,7 +307,7 @@
     social: socialRuntime, combat: combatRuntime, market: marketRuntime, pursuit: pursuitRuntime, knowledge: Knowledge,
     agency: agencyRuntime, condition: Condition, effect: Effect, locations: LOCATIONS, phase,
     hour, day, random, clamp, relation, remember, log, relValence, consequence: Consequence.record,
-    damageEntity, factionPacts: FactionPacts
+    damageEntity, factionPacts: FactionPacts, localMap: LocalMap
   });
   return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, EQUIPMENT_DEFS, SOURCE_NOTES, LOCAL_MAP: LocalMap, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, EQUIPMENT: Equipment, EFFECTS: Effect, CONSEQUENCES: Consequence, PROVENANCE: Provenance, SOCIAL: socialRuntime, COMBAT: combatRuntime, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, FACTION_PACTS: FactionPacts, GU_EFFECTS: guEffectDefinitions, AFFORDANCES: affordanceRuntime, GU_COMPONENTS: GuComponents, GU_GOALS: GuGoals, GU_LISTENERS: GuListeners, GU_ACTIONS: GuActions, GU_SYSTEMS: GuSystems, GU_WORLD: guWorldRuntime, GU_STATE: stateNormalizer, newWorld: guWorldRuntime.newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

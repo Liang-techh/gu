@@ -92,7 +92,17 @@
   }
 
   function distance(a, b) { return Math.abs((a?.x || 0) - (b?.x || 0)) + Math.abs((a?.y || 0) - (b?.y || 0)); }
+  function lineOfSight(map, from, to, radius = 4) {
+    if (!isWalkable(from, map) || !isWalkable(to, map) || distance(from, to) > radius) return false;
+    const dx = to.x - from.x; const dy = to.y - from.y; const steps = Math.max(Math.abs(dx), Math.abs(dy));
+    for (let i = 1; i < steps; i++) {
+      const cell = { x: Math.round(from.x + (dx * i) / steps), y: Math.round(from.y + (dy * i) / steps) };
+      if (!isWalkable(cell, map)) return false;
+    }
+    return true;
+  }
+  function visible(locationId, location, from, to, radius = 4) { return lineOfSight(profile(locationId, location), from, to, radius); }
   function terrainSymbol(terrain) { return ({ water: '~', grass: '·', stone: '▪', road: '·', courtyard: '·' }[terrain] || '·'); }
 
-  return { WIDTH, HEIGHT, DIRECTIONS, ORDER, profile, inBounds, isWalkable, spawnCell, normalizeCell, layoutEntities, entryCell, step, distance, terrainSymbol };
+  return { WIDTH, HEIGHT, DIRECTIONS, ORDER, profile, inBounds, isWalkable, spawnCell, normalizeCell, layoutEntities, entryCell, step, distance, lineOfSight, visible, terrainSymbol };
 });

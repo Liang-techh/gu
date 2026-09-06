@@ -141,7 +141,7 @@ NPC 的 `prepareWar`、`protectClan`、`patrol` 和 `mediate` 目标也会识别
 玩家和 NPC 都使用相同的组件形状：
 
 - `identity`：名字、角色、标签。
-- `position`：地点与地点内部格点。`src/local-map.js` 为每个内容地点生成确定性的局部地形、障碍和四向出口；玩家用 `step` 行动逐格移动，走到边缘才触发区域迁移，旧存档由状态归一化补齐 `position.cell`。
+- `position`：地点与地点内部格点。`src/local-map.js` 为每个内容地点生成确定性的局部地形、障碍和四向出口；玩家用 `step` 行动逐格移动，走到边缘才触发区域迁移，旧存档由状态归一化补齐 `position.cell`。同一模块还提供曼哈顿距离和基于障碍的视线计算，前台只能渲染玩家视野内的实体。
 - `needs`：精力、饥饿、安全感。
 - `cultivation`：资质、境界、阶段、真元、修为。
 - `personality`：野心、谨慎、忠诚、贪欲、好奇。

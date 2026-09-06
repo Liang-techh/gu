@@ -83,6 +83,27 @@ test('local maps give entities cells, step actions and edge exits', () => {
   assert.match(tooFar.message, /视野之外/);
 });
 
+test('local visibility respects distance and hard cover', () => {
+  const map = { width: 3, height: 1, blocked: ['1,0'] };
+  assert.equal(S.LOCAL_MAP.lineOfSight(map, { x: 0, y: 0 }, { x: 0, y: 0 }), true);
+  assert.equal(S.LOCAL_MAP.lineOfSight(map, { x: 0, y: 0 }, { x: 2, y: 0 }, 4), false);
+  assert.equal(S.LOCAL_MAP.lineOfSight({ width: 3, height: 1, blocked: [] }, { x: 0, y: 0 }, { x: 2, y: 0 }, 1), false);
+});
+
+test('active NPCs move inside the player area and emit local contact events', () => {
+  let state = open(S.newWorld({ seed: 'local-npc' }), 'observe');
+  const npc = state.entities.fangzheng;
+  npc.position.location = 'academy';
+  npc.position.cell = { x: 2, y: 1 };
+  state.entities.player.position.location = 'academy';
+  state.entities.player.position.cell = { x: 3, y: 2 };
+  const before = { ...npc.position.cell };
+  state = ok(state, { type: 'action', id: 'wait', hours: 1 });
+  assert.ok(state.log.some(entry => entry.type === 'npc_step'));
+  assert.notDeepEqual(state.entities.fangzheng.position.cell, before);
+  assert.ok(state.events.recent.some(event => event.type === 'npc.step'));
+});
+
 test('environment affordances expose composable observe, forage, relic search and scouting interactions', () => {
   let state = open(S.newWorld({ seed: 'affordances' }), 'observe');
   assert.deepEqual(S.AFFORDANCES.available(state, state.entities.player).map(item => item.id), ['observeZone']);

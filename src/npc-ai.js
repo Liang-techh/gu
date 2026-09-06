@@ -93,7 +93,44 @@
     return [...new Set(candidates)];
   }
 
-  function tick(state, { engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence, brain, goalAction }) {
+  function localStep(state, npc, { engine, localMap, locations, relation, remember, log, relValence }) {
+    if (!localMap || !npc.position?.location || !locations[npc.position.location]) return null;
+    const locationId = npc.position.location;
+    const location = locations[locationId];
+    const from = localMap.normalizeCell(locationId, npc.position.cell, location, npc.id);
+    npc.position.cell = from;
+    const player = state.entities?.player;
+    const playerCell = player?.position?.location === locationId ? localMap.normalizeCell(locationId, player.position.cell, location, 'player') : null;
+    const occupied = new Set(Object.values(state.entities || {}).filter(entity => entity.id !== npc.id && entity.alive && entity.position?.location === locationId && entity.position?.cell).map(entity => `${entity.position.cell.x},${entity.position.cell.y}`));
+    const goal = npc.goals?.active || 'idle';
+    const preferred = [];
+    if (playerCell && ['avoidPlayer', 'survive', 'returnHome'].includes(goal)) {
+      const dx = from.x - playerCell.x; const dy = from.y - playerCell.y;
+      if (Math.abs(dx) >= Math.abs(dy) && dx) preferred.push(dx > 0 ? 'east' : 'west');
+      if (dy) preferred.push(dy > 0 ? 'south' : 'north');
+    } else if (playerCell && ['collectRumors', 'investigate', 'observe', 'socialize', 'protectBrother', 'protectClan', 'protectFather', 'protectDaughter', 'mediate'].includes(goal)) {
+      const dx = playerCell.x - from.x; const dy = playerCell.y - from.y;
+      if (Math.abs(dx) >= Math.abs(dy) && dx) preferred.push(dx > 0 ? 'east' : 'west');
+      if (dy) preferred.push(dy > 0 ? 'south' : 'north');
+    }
+    const offset = (state.clock + npc.id.length) % localMap.ORDER.length;
+    for (let i = 0; i < localMap.ORDER.length; i++) preferred.push(localMap.ORDER[(offset + i) % localMap.ORDER.length]);
+    for (const direction of [...new Set(preferred)]) {
+      const result = localMap.step(locationId, location, from, direction);
+      if (result.kind !== 'step' || occupied.has(`${result.cell.x},${result.cell.y}`)) continue;
+      npc.position.cell = result.cell;
+      engine.emit(state, 'npc.step', { npcId: npc.id, actorId: npc.id, location: locationId, from, to: { ...result.cell }, direction, goal });
+      log(state, 'npc_step', `${npc.identity.name}在${location.name}内向${localMap.DIRECTIONS[direction].label}移动。`, { npcId: npc.id, location: locationId, from, to: { ...result.cell }, goal });
+      if (playerCell && localMap.distance(result.cell, playerCell) <= 1) {
+        engine.emit(state, 'npc.local_contact', { npcId: npc.id, targetId: 'player', location: locationId, cell: { ...result.cell }, goal });
+        remember(state, npc.id, 'player', { kind: 'local-contact', valence: relValence(state, npc.id), text: `在${location.name}内与你擦肩而过。`, facts: { lastLocalContact: state.clock, localContactLocation: locationId } });
+      }
+      return { from, to: result.cell, direction };
+    }
+    return null;
+  }
+
+  function tick(state, { engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence, brain, goalAction, localMap }) {
     const currentPhase = phase(state);
     for (const npc of engine.queryWith(state, 'identity', 'position', 'needs', 'goals', 'schedule')) {
       if (npc.id === 'player' || !npc.alive || npc.agent) continue;
@@ -147,11 +184,12 @@
         if (consequence?.combatId) npc.goals.history[0].combatId = consequence.combatId;
         if (consequence?.interactionId) npc.goals.history[0].interactionId = consequence.interactionId;
       }
+      if (localMap && state.clock % 4 === 0 && npc.position.location === state.entities.player.position.location) localStep(state, npc, { engine, localMap, locations, relation, remember, log, relValence });
       if (npc.position.location === state.entities.player.position.location && random(state) < 0.12) {
         remember(state, npc.id, 'player', { kind: 'encounter', valence: relValence(state, npc.id), text: `在${locations[npc.position.location].name}再次遇见了你。` });
       }
     }
   }
 
-  return { goalScore, selectGoal, goalCandidates, tick };
+  return { goalScore, selectGoal, goalCandidates, localStep, tick };
 });

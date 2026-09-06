@@ -50,7 +50,7 @@
     const local = S.LOCAL_MAP;
     const map = local.profile(here, location);
     const playerCell = local.normalizeCell(here, s.entities.player.position.cell, location, 'player');
-    const people = Object.values(s.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === here && e.position.cell);
+    const people = Object.values(s.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === here && e.position.cell && local.visible(here, location, playerCell, e.position.cell, 4));
     const occupant = new Map(people.map(e => [`${e.position.cell.x},${e.position.cell.y}`, e]));
     const tiles = [];
     for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
@@ -71,7 +71,7 @@
   function nearbyPanel(s) {
     const p = s.entities.player;
     const playerCell = S.LOCAL_MAP.normalizeCell(p.position.location, p.position.cell, S.LOCATIONS[p.position.location], 'player');
-    const people = Object.values(s.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === p.position.location && S.LOCAL_MAP.distance(playerCell, e.position.cell) <= 2);
+    const people = Object.values(s.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === p.position.location && S.LOCAL_MAP.visible(p.position.location, S.LOCATIONS[p.position.location], playerCell, e.position.cell, 2));
     if (!people.length) return '<div class="empty">这里暂时没有熟人，只有风、雨和你的判断。</div>';
     return people.map(e => {
       const r = s.relationships[[e.id, 'player'].sort().join('::')] || {};
