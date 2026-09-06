@@ -2,7 +2,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const D=require('../mud/data.js');
-const E=require('../mud/engine.js');
+const E=require('../mud/upgrade.js');
 
 function fresh(){
   const s=E.newGame({name:'测试者',grade:'甲等',seed:'mud-test'});
@@ -26,8 +26,9 @@ function refineMoon(s){
   return g;
 }
 
-test('new game begins in Qingmao Mountain with an unrefined Moonlight Gu',()=>{
+test('new game begins in Guyue Village with an unrefined Moonlight Gu',()=>{
   const s=E.newGame({grade:'丙等',seed:'start'});
+  assert.equal(s.loc,'village');
   assert.equal(s.p.rank,1);
   assert.match(D.LOCATIONS[s.loc].region,/青茅山/);
   assert.equal(s.gu.some(g=>g.id==='moon'&&!g.refined),true);
@@ -41,6 +42,14 @@ test('opening choices alter persistent state',()=>{
   E.dispatch(b,{type:'event',id:'outside'});
   assert.notDeepEqual(a.flags,b.flags);
   assert.notEqual(a.p.clue,b.p.clue);
+});
+
+test('only following the wine trail unlocks the waterfall crevice',()=>{
+  const hide=E.newGame({seed:'hide'});E.dispatch(hide,{type:'event',id:'outside'});hide.event='wineTrail';E.dispatch(hide,{type:'event',id:'hide'});
+  assert.equal(Boolean(hide.flags.wineTrailFollow),false);
+  const follow=E.newGame({seed:'follow'});E.dispatch(follow,{type:'event',id:'outside'});follow.event='wineTrail';E.dispatch(follow,{type:'event',id:'follow'});
+  assert.equal(Boolean(follow.flags.wineTrailFollow),true);
+  assert.equal(follow.ach.includes('wineSecret'),true);
 });
 
 test('refining the first Gu establishes the vital Gu',()=>{
@@ -91,6 +100,11 @@ test('dungeon entry uses the unlocked dungeon state',()=>{
   assert.equal(E.context(s).mode,'dungeon');
 });
 
+test('clearing Flower Wine inheritance awards its achievement',()=>{
+  const s=fresh();s.cleared.push('flowerWine');E.dispatch(s,{type:'train'});
+  assert.equal(s.ach.includes('inheritanceOwner'),true);
+});
+
 test('sixth rank creates a blessed land and immortal economy',()=>{
   const s=fresh();s.p.rank=5;s.p.stage=3;s.p.progress=D.RANKS[5].threshold;s.p.aperture.aptitude=99;s.p.stats.will=100;refill(s);
   for(let i=0;i<12&&s.p.rank<6;i++){s.p.progress=D.RANKS[5].threshold;refill(s);E.dispatch(s,{type:'breakthrough'});s.event=null;}
@@ -121,7 +135,7 @@ test('all nine ranks are reachable through the same breakthrough engine',()=>{
 test('rank-nine finale provides multiple endings',()=>{
   const s=fresh();s.p.rank=9;s.p.stage=3;s.event='rankNineFinal';
   const labels=E.choices(s).map(c=>c.label);
-  assert.ok(labels.length>=4);
+  assert.ok(labels.length>=6);
   assert.equal(E.dispatch(s,{type:'event',id:'clan'}).ok,true);
   assert.equal(s.ending,'clanGuardian');
 });
@@ -133,6 +147,11 @@ test('Spring Autumn Cicada unlocks the hidden reverse-time ending',()=>{
   assert.equal(E.dispatch(s,{type:'event',id:'reverse'}).ok,true);
   assert.equal(s.ending,'reverseTime');
   assert.equal(s.ach.includes('secretEnding'),true);
+});
+
+test('visiting all five major regions awards the travel achievement',()=>{
+  const s=fresh();s.visited.push('central','north','east','west');E.dispatch(s,{type:'train'});
+  assert.equal(s.ach.includes('fiveRegions'),true);
 });
 
 test('save roundtrip keeps progression, Gu, land, achievements and ending state',()=>{
