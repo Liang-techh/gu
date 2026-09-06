@@ -7,8 +7,43 @@
   // Gu-specific GoalHandlers. The Brain/GoalHandler runtime stays content
   // agnostic; this package turns the novel's people, rivalries and resources
   // into world mutations registered at boot.
-  function register({ engine, locations, clamp, relation, remember, log, factionPacts, affordances }) {
+  function register({ engine, locations, clamp, relation, remember, log, factionPacts, affordances, localObjects }) {
+    function nearbyObject(state, npc, predicate) {
+      return localObjects?.visible(state, npc)
+        .filter(object => predicate(object) && localObjects && Math.abs((object.cell?.x || 0) - (npc.position.cell?.x || 0)) + Math.abs((object.cell?.y || 0) - (npc.position.cell?.y || 0)) <= 1)
+        .sort((a, b) => a.id.localeCompare(b.id))[0] || null;
+    }
+
+    function recordNpcDiscovery(state, npc, result, mode) {
+      const object = result.object;
+      const zone = state.zones[npc.position.location];
+      zone.discoveries ||= [];
+      if (!zone.discoveries.some(item => item.objectId === object.id)) zone.discoveries.unshift({ objectId: object.id, kind: object.kind, label: object.label, actorId: npc.id, clock: state.clock });
+      if (object.clue?.fact) {
+        state.facts[object.clue.fact] = true;
+        state.intel ||= { leads: [], cases: {} };
+        const leadId = `local:${npc.position.location}:${object.id}`;
+        if (!state.intel.leads.some(lead => lead.id === leadId)) state.intel.leads.unshift({ id: leadId, type: object.clue.kind || object.kind, location: npc.position.location, objectId: object.id, confidence: Number(object.clue.confidence || 0.5), clock: state.clock, status: 'open', discoveredBy: npc.id });
+      }
+      engine.emit(state, `local.object_${mode}`, { actorId: npc.id, location: npc.position.location, objectId: object.id, kind: object.kind, discovered: object.discovered, resolved: object.resolved });
+      remember(state, npc.id, 'world', { kind: mode === 'follow' ? 'trace-followed' : 'local-clue', valence: 1, text: `${npc.identity.name}在${locations[npc.position.location].name}处理了${object.label}。`, facts: { [`localObject:${object.id}`]: true } });
+      return object;
+    }
+
     engine.registerGoal('secureResources', ({ state, npc, faction }) => {
+      const object = nearbyObject(state, npc, item => item.kind === 'resource' && item.remaining > 0);
+      if (object) {
+        const result = localObjects.interact(state, npc, object.id, 'gather');
+        const resourceId = object.resourceId || 'food';
+        npc.inventory ||= {};
+        npc.inventory[resourceId] = (npc.inventory[resourceId] || 0) + result.amount;
+        const zone = state.zones[npc.position.location];
+        if (zone.resources && resourceId in zone.resources) zone.resources[resourceId] = Math.max(0, zone.resources[resourceId] - result.amount);
+        if (faction) faction.influence += 0.55;
+        engine.emit(state, 'local.resource_gathered', { actorId: npc.id, location: npc.position.location, objectId: object.id, resourceId, amount: result.amount });
+        log(state, 'npc_local_object', `${npc.identity.name}在${locations[npc.position.location].name}采集了${object.label}。`, { npcId: npc.id, objectId: object.id, goal: 'secureResources' });
+        return true;
+      }
       const result = affordances?.executeForActor('forage', state, npc);
       if (!result) return false;
       if (faction) faction.influence += 0.4;
@@ -17,6 +52,16 @@
       return true;
     });
     engine.registerGoal('findRelic', ({ state, npc }) => {
+      const object = nearbyObject(state, npc, item => ['trace', 'relic', 'clue'].includes(item.kind) && item.active && !item.resolved);
+      if (object) {
+        const mode = object.discovered ? 'follow' : 'inspect';
+        const result = localObjects.interact(state, npc, object.id, mode);
+        recordNpcDiscovery(state, npc, result, mode);
+        state.facts.relicInterest = (state.facts.relicInterest || 0) + 1;
+        state.director.pressure = clamp(state.director.pressure + 0.35, 0, 10);
+        log(state, 'npc_local_object', `${npc.identity.name}${mode === 'follow' ? '沿着' : '调查了'}${object.label}。`, { npcId: npc.id, objectId: object.id, goal: 'findRelic', mode });
+        return true;
+      }
       const result = affordances?.executeForActor('searchRelic', state, npc);
       if (!result) return false;
       state.facts.relicInterest = (state.facts.relicInterest || 0) + 1;

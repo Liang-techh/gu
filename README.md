@@ -38,6 +38,7 @@
 - 局部空间运行时 [src/local-map.js](<D:\Caves of Qud\gu-rpg\src\local-map.js>)：每个地点拥有确定性的局部格点、障碍、地形和边缘出口；实体的 `position.cell` 记录地点内部位置，玩家通过 `step` 逐格移动，只有走到出口才进入相邻地点，前台只显示局部视野内的 NPC；
 - 局部视野与 NPC 空间行动：`local-map` 计算距离与障碍遮挡，地图不会再把同一区域的所有实体直接透视出来；活跃区域 NPC 每四小时按目标在格点内移动，进入玩家视野时发出 `npc.step` / `npc.local_contact` 事件并写入记忆。
 - 局部发现运行时 [src/local-objects.js](<D:\Caves of Qud\gu-rpg\src\local-objects.js>)：资源节点、告示、脚印、残痕和练习场拥有独立格点与生命周期，只在玩家视野内生成调查/采集/追查动作；互动会写入区域发现、玩家记忆、情报线索、资源库存和领域事件。
+- NPC 局部对象争夺：NPC 的 `secureResources` / `findRelic` 目标会沿局部格点靠近对象，并与玩家共用采集、调查、追查和消耗规则；同一个资源节点可以先被 NPC 取走，也可以成为玩家与势力争夺的局部事实。
 - 基础行动全部进入 Action Registry：等待、旅行、修炼、学习、采集、休息、炼蛊、装备、交谈、挑战和势力影响不再由主模拟器的 ID 条件链直接分叉；
 - 内容系统包 [src/gu-systems.js](<D:\Caves of Qud\gu-rpg\src\gu-systems.js>)：小时级需求/状态/AI 与日级市场、区域、家族压力、战争和历史快照都通过可排序 System Registry 注册，世界推进不再藏在单一 daily tick 函数里；
 - NPC 内容目标包 [src/gu-goals.js](<D:\Caves of Qud\gu-rpg\src\gu-goals.js>)：资源争夺、遗藏调查、学堂竞争、保护关系、避开玩家和势力结盟等目标从模拟内核移出，通过 Goal Registry 注入世界；

@@ -35,7 +35,15 @@
           if (object.kind === 'resource') object.remaining = Math.max(0, Number(object.remaining ?? object.amount ?? 0));
           if (!existing.has(seed.id)) bucket.objects.push(object);
         }
-        bucket.objects = bucket.objects.filter(object => object && object.id).map(object => ({ ...object, location: locationId }));
+        bucket.objects = bucket.objects.filter(object => object && object.id);
+        for (const object of bucket.objects) {
+          object.location = locationId;
+          object.cell = localMap.normalizeCell(locationId, object.cell, location, `object:${object.id}`);
+          object.active = object.active !== false;
+          object.discovered = !!object.discovered;
+          object.resolved = !!object.resolved;
+          if (object.kind === 'resource') object.remaining = Math.max(0, Number(object.remaining ?? object.amount ?? 0));
+        }
       }
       return state.localObjects;
     }
@@ -78,6 +86,7 @@
         if (!['trace', 'relic'].includes(object.kind)) throw new Error('这条发现还不能追踪');
         if (!object.discovered) throw new Error('先调查清楚它留下的痕迹');
         object.resolved = true;
+        object.active = false;
         return { mode, object, amount: 1 };
       }
       object.discovered = true;

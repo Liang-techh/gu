@@ -94,11 +94,14 @@
     });
     if (localObjects) {
       const actor = state.entities?.player;
-      for (const object of localObjects.visible(state, actor)) {
+      const visibleObjects = localObjects.visible(state, actor);
+      const actorCell = actor?.position?.cell;
+      for (const object of visibleObjects) {
+        const near = locations?.[here] && localObjects && Math.abs((object.cell?.x || 0) - (actorCell?.x || 0)) + Math.abs((object.cell?.y || 0) - (actorCell?.y || 0)) <= 1;
         actions.push({ id: `local:inspect:${object.id}`, label: `调查${object.label}`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'inspect' } });
-        if (object.kind === 'resource' && object.remaining > 0) actions.push({ id: `local:gather:${object.id}`, label: `采集${object.label}`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'gather' } });
-        if (object.kind === 'practice' && object.discovered) actions.push({ id: `local:practice:${object.id}`, label: `在${object.label}练习`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'practice' } });
-        if (['trace', 'relic'].includes(object.kind) && object.discovered && !object.resolved) actions.push({ id: `local:follow:${object.id}`, label: `追查${object.label}`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'follow' } });
+        if (near && object.kind === 'resource' && object.remaining > 0) actions.push({ id: `local:gather:${object.id}`, label: `采集${object.label}`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'gather' } });
+        if (near && object.kind === 'practice' && object.discovered) actions.push({ id: `local:practice:${object.id}`, label: `在${object.label}练习`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'practice' } });
+        if (near && ['trace', 'relic'].includes(object.kind) && object.discovered && !object.resolved) actions.push({ id: `local:follow:${object.id}`, label: `追查${object.label}`, kind: 'local', command: { type: 'action', id: 'local_interact', objectId: object.id, mode: 'follow' } });
       }
     }
     const nearbyAgents = Object.values(state.entities || {}).filter(entity => entity.id !== 'player' && entity.alive && !entity.agent && entity.position?.location === here && Object.values(state.agency?.commissions || {}).filter(item => item.status === 'active' && item.agentId === entity.id).length < 2).slice(0, 4);

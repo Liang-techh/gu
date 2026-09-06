@@ -124,6 +124,13 @@
         { id: 'starHostPlan', priority: 290, type: 'cosmic', title: '星宿安排与天脉节点', text: '两天混淆让天庭的天脉节点承受前所未有的压力。星宿意志留下的安排不再只是历史背景，而会成为所有势力必须回应的世界级计划。', source: sourceNotes.starHost, when: state => state.flags.madDemonCaveOpened && state.flags.dreamSurgeOpened && !state.flags.starHostPlanOpened && day(state) >= 260 && state.entities.player.position.location === 'heavenlyCourt', choices: [
           { id: 'defend', label: '协助稳定天脉节点', hint: '降低宇宙热度，换取天庭的人道资源。' }, { id: 'break', label: '寻找安排中的破绽', hint: '获得终局情报，但让天庭与无极遗产同时关注你。' }, { id: 'wait', label: '等待两天混淆完成', hint: '保留实力，让其他势力先承担灾变。' }
         ] },
+        { id: 'localTraceEscalation', priority: 226, type: 'investigation', title: '脚印在雨里突然转向', text: '你追查的猎户脚印没有走向山寨，也没有走向猎物，而是在竹林深处突然转向。有人在这里看见了不该看见的东西，并且已经意识到有人在追查。', source: sourceNotes.localFindings || sourceNotes.relic, cooldownHours: 36, score: state => state.intel.leads.filter(lead => lead.type === 'hunter-trail' && lead.status === 'open').length * 4 + state.director.pressure * 0.2, when: state => {
+          return !state.events.active && !state.facts.localTraceEvent && state.entities.player.position.location === 'bambooForest' && state.intel.leads.some(lead => lead.type === 'hunter-trail' && lead.status === 'open' && state.clock - Number(lead.clock || state.clock) >= 2);
+        }, choices: [
+          { id: 'follow', label: '顺着转向后的脚印追下去', hint: '把局部线索升级成新的追查压力，也可能惊动留下痕迹的人。' },
+          { id: 'warn', label: '把异常告诉山寨', hint: '提高家族对竹林的警戒，放弃一部分线索独占权。' },
+          { id: 'conceal', label: '抹掉自己的来路', hint: '降低当下暴露，暂时让线索进入冷却。' }
+        ] },
         { id: 'coalitionFracture', priority: 225, type: 'politics', title: '盟约裂痕浮出水面', text: '一项原本可以维持的势力承诺开始失去共同解释：补给没有按时抵达，成员都说自己已经承担了足够代价。裂痕还没有变成倒戈，但所有人都在等待谁先让步。', source: { source: 'emergent:coalition', note: '由持续世界中的盟约状态生成，而非固定章节。' }, cooldownHours: 48, score: state => {
           const strained = Object.values(state.coalitions?.pacts || {}).filter(pact => pact.status === 'strained');
           return strained.reduce((score, pact) => score + Math.max(0, 45 - pact.legitimacy) + Math.max(0, 35 - pact.supply) * 0.5, 0);

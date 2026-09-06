@@ -116,6 +116,48 @@ test('local objects only become actions after entering their sight, then persist
   assert.equal(state.facts.hunterTurnedAway, true);
   assert.ok(state.intel.leads.some(lead => lead.objectId === 'hunter-footprints'));
   assert.ok(state.events.recent.some(event => event.type === 'local.object_follow'));
+  const restored = S.validate(JSON.stringify(state));
+  assert.equal(restored.localObjects.bambooForest.objects.find(object => object.id === 'moon-orchid-patch').remaining, 2);
+  assert.equal(restored.localObjects.bambooForest.objects.find(object => object.id === 'hunter-footprints').active, false);
+});
+
+test('local trace leads are promoted into a director event instead of ending as a log entry', () => {
+  let state = open(S.newWorld({ seed: 'local-trace-director' }), 'observe');
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'bambooForest' });
+  const trace = state.localObjects.bambooForest.objects.find(object => object.id === 'hunter-footprints');
+  state.entities.player.position.cell = { ...trace.cell };
+  state = ok(state, { type: 'action', id: 'local_interact', objectId: trace.id, mode: 'inspect' });
+  state = ok(state, { type: 'action', id: 'local_interact', objectId: trace.id, mode: 'follow' });
+  if (!state.events.active) state = ok(state, { type: 'action', id: 'wait', hours: 6 });
+  assert.equal(state.events.active.id, 'localTraceEscalation');
+  state = ok(state, { type: 'resolve_event', choice: 'warn' });
+  assert.equal(state.facts.hunterWarning, true);
+  assert.equal(state.facts.localTraceEvent.choice, 'warn');
+  assert.equal(state.intel.leads.find(lead => lead.objectId === trace.id).status, 'hot');
+});
+
+test('NPC resource goals can claim the same local object runtime as the player', () => {
+  let state = open(S.newWorld({ seed: 'npc-local-object' }), 'observe');
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'bambooForest' });
+  const npc = state.entities['ambient-bambooForest-1'];
+  const patch = state.localObjects.bambooForest.objects.find(object => object.id === 'moon-orchid-patch');
+  const map = S.LOCAL_MAP.profile('bambooForest', S.LOCATIONS.bambooForest);
+  const adjacent = S.LOCAL_MAP.ORDER.map(direction => {
+    const delta = S.LOCAL_MAP.DIRECTIONS[direction];
+    return { x: patch.cell.x - delta.x, y: patch.cell.y - delta.y };
+  }).find(cell => S.LOCAL_MAP.isWalkable(cell, map));
+  npc.position.location = 'bambooForest';
+  npc.position.cell = adjacent || { ...patch.cell };
+  npc.inventory = {};
+  npc.goals.active = 'secureResources';
+  const before = patch.remaining;
+  const handled = S.ENGINE.runGoal('secureResources', { state, npc, faction: state.factions[npc.faction] });
+  assert.equal(handled, true);
+  assert.equal(patch.remaining, before - 1);
+  assert.equal(npc.inventory.moonPetal, 1);
+  assert.ok(state.events.recent.some(event => event.type === 'local.resource_gathered' && event.payload.actorId === npc.id));
 });
 
 test('active NPCs move inside the player area and emit local contact events', () => {

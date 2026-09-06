@@ -372,6 +372,7 @@
     opening: { source: 'reference/novel/第1卷：魔性不改/第7章.txt', note: '方源、青茅山、古月山寨与学堂构成青茅山开局的社会空间。' },
     academy: { source: 'reference/novel/第1卷：魔性不改/第6章.txt', note: '空窍、元海、真元与方正构成修行起点和兄弟关系的原文依据。' },
     relic: { source: 'reference/novel/第1卷：魔性不改/第14章.txt', note: '酒虫、竹林、河滩和石缝构成可被行动触发的遗藏线索。' },
+    localFindings: { source: 'reference/novel/第1卷：魔性不改/第14章.txt', note: '竹林、河滩和石缝里的脚印、寒痕与旧血迹，把局部观察转成可传播的调查线索。' },
     market: { source: 'reference/novel/第1卷：魔性不改/第109章.txt', note: '商队提前进入青茅山，市场活动成为会改变资源和势力关系的区域事件。' },
     marketDisaster: { source: 'reference/novel/第2卷：魔子出山/第97章.txt', note: '灾害改变拍卖供给、人口迁徙和势力议价，市场机会与生存损失同时出现。' },
     auction: { source: 'reference/novel/第1卷：魔性不改/第110章.txt', note: '贾富与拍卖会提供商队掌柜、外来资本和价格博弈的原文依据。' },

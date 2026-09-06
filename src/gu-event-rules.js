@@ -371,6 +371,31 @@
         log(state, 'choice', `你处理了梦境战场潮汐：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.twoHeavens });
         return true;
       });
+      engine.registerEvent('localTraceEscalation', ({ state, choice, event }) => {
+        const p = state.entities.player;
+        state.facts.localTraceEvent = { clock: state.clock, choice, location: p.position.location };
+        const lead = state.intel.leads.find(item => item.type === 'hunter-trail' && item.status === 'open');
+        if (lead) lead.status = choice === 'conceal' ? 'cold' : 'hot';
+        if (choice === 'follow') {
+          p.cultivation.insight += 4;
+          state.director.pressure = clamp(state.director.pressure + 1.2, 0, 10);
+          state.zones.bambooForest.danger = clamp(state.zones.bambooForest.danger + 4, 0, 100);
+          remember(state, 'player', 'world', { kind: 'local-investigation', valence: 3, text: '你顺着突然转向的脚印继续追查，竹林里不再只有猎户和猎物。', facts: { localTraceHot: true } });
+        }
+        if (choice === 'warn') {
+          state.facts.hunterWarning = true;
+          state.factions.guYue.influence += 2;
+          state.factions.guYue.tension += 1;
+          state.zones.bambooForest.danger = clamp(state.zones.bambooForest.danger + 2, 0, 100);
+          remember(state, 'guyuebo', 'player', { kind: 'warning', valence: 2, text: '你把竹林里的异常脚印交给了山寨，家族开始重新评估这片林子的风险。', facts: { hunterWarning: true } });
+        }
+        if (choice === 'conceal') {
+          state.director.pressure = Math.max(0, state.director.pressure - 0.5);
+          remember(state, 'player', 'world', { kind: 'concealment', valence: 1, text: '你抹掉自己的来路，让这条线索暂时沉入雨水和泥土。', facts: { localTraceCold: true } });
+        }
+        log(state, 'choice', `你处理了竹林脚印的异常转向：${event.choices.find(c => c.id === choice).label}。`, { source: event.source?.source || event.source, choice, leadId: lead?.id });
+        return true;
+      });
       engine.registerEvent('starHostPlan', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.starHostPlanOpened = true; state.eternalWar.starHost = true;

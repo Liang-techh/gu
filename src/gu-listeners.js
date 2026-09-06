@@ -59,7 +59,21 @@
       if (zone) { zone.activity += event.payload.result === 'success' ? 8 : 12; zone.danger += event.payload.result === 'success' ? 1 : 3; }
       if (state.factions.dreamPathForces) state.factions.dreamPathForces.tension += event.payload.result === 'success' ? 0.4 : 1.2;
     });
-    return ['rumorPropagation', 'zoneVisitAccounting', 'arenaCrowdActivity', 'inheritanceFrontierPressure', 'frontierWarPressure', 'towerCompetitionPressure', 'auctionMarketActivity', 'marketActivity', 'dreamRealmPressure'];
+    engine.registerEventListener('local.resource_gathered', 'localResourceActivity', ({ state, event }) => {
+      const zone = state.zones[event.payload.location];
+      if (zone) zone.activity += event.payload.actorId === 'player' ? 2 : 1;
+      const actor = state.entities[event.payload.actorId];
+      const faction = actor?.faction && state.factions[actor.faction];
+      if (faction && event.payload.actorId !== 'player') faction.influence += 0.15;
+      if ((state.localObjects?.[event.payload.location]?.objects || []).some(object => object.id === event.payload.objectId && !object.active)) {
+        if (zone) zone.activity += 1;
+        engine.emit(state, 'local.object_depleted', { location: event.payload.location, objectId: event.payload.objectId, resourceId: event.payload.resourceId });
+      }
+    });
+    engine.registerEventListener('local.object_follow', 'localTracePressure', ({ state, event }) => {
+      if (['trace', 'relic'].includes(event.payload.kind)) state.director.pressure = clamp(state.director.pressure + (event.payload.actorId === 'player' ? 0.1 : 0.06), 0, 10);
+    });
+    return ['rumorPropagation', 'zoneVisitAccounting', 'arenaCrowdActivity', 'inheritanceFrontierPressure', 'frontierWarPressure', 'towerCompetitionPressure', 'auctionMarketActivity', 'marketActivity', 'dreamRealmPressure', 'localResourceActivity', 'localTracePressure'];
   }
 
   return { register };

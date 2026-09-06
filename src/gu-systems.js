@@ -9,7 +9,7 @@
   function register({
     engine, history, zoneRuntime, npcAI, brain, social, combat, market, pursuit, agency,
     condition, effect, knowledge, locations, phase, hour, day, random, clamp, relation, remember,
-    log, relValence, consequence, damageEntity, factionPacts, localMap
+    log, relValence, consequence, damageEntity, factionPacts, localMap, localObjects
   }) {
     engine.registerSystem('hour', 'conditionTick', ({ state }) => {
       for (const entity of engine.queryWith(state, 'conditions')) {
@@ -36,7 +36,7 @@
     engine.registerSystem('hour', 'pursuitSimulation', ({ state }) => pursuit.tick(state), 60);
     engine.registerSystem('hour', 'npcSimulation', ({ state }) => npcAI.tick(state, {
       engine, locations, phase, hour, day, random, clamp, relation, remember, log, relValence,
-      brain, localMap,
+      brain, localMap, localObjects,
       goalAction: (world, npc, goal, context) => {
         const consequence = {};
         if (combat && ['ambush', 'patrol'].includes(goal)) {
