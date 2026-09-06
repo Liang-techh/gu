@@ -912,6 +912,22 @@ test('coalition ledger turns diplomacy into durable promises and deterministic d
   assert.deepEqual(S.validate(JSON.stringify(state)).coalitions, state.coalitions);
 });
 
+test('AI director generates coalition fracture from live world state, not chapter date', () => {
+  let state = open(S.newWorld({ seed: 'emergent-director' }), 'observe');
+  state.entities.player.position.location = 'village';
+  state.clock = 24;
+  state.director.lastTick = -999;
+  const pact = S.FACTION_PACTS.upsert(state, ['guYue', 'bai', 'xiong'], { day: 2, source: 'test', legitimacy: 12, cohesion: 20, supply: 14 });
+  pact.status = 'strained';
+  const event = S.DIRECTOR.tick(state, { engine: S.ENGINE, day: S.day, log: () => {} });
+  assert.equal(event.id, 'coalitionFracture');
+  assert.equal(state.events.active.id, 'coalitionFracture');
+  state = ok(state, { type: 'resolve_event', choice: 'mediate' });
+  assert.equal(state.events.active, null);
+  assert.ok(state.events.recent.some(item => item.type === 'faction.coalition_changed'));
+  assert.ok(state.coalitions.pacts['bai::guYue::xiong'].legitimacy > 12);
+});
+
 test('save validation preserves components, memories, relationships and deterministic RNG', () => {
   let state = open(S.newWorld({ seed: 'save' }), 'observe');
   state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'listen' });

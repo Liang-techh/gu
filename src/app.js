@@ -57,6 +57,7 @@
         </div>
         <aside class="side-column">
           <article class="panel compact"><div class="panel-title"><h2>世界状态</h2><span>导演压力 ${state.director.pressure}/10</span></div>${snap.factions.map(f => `<div class="faction-row"><div><strong>${esc(f.name)}</strong><small>影响力 ${Math.round(f.influence)} · 态度 ${Math.round(f.attitude)}</small></div><i><em style="width:${f.tension}%"></em></i><small>紧张 ${Math.round(f.tension)}</small></div>`).join('')}</article>
+          ${coalitionPanel(s)}
           ${pursuitPanel(state)}
           ${agencyPanel(state)}
           ${marketPanel(state)}
@@ -83,6 +84,13 @@
     const teams = Object.values(s.pursuit?.teams || {}).filter(team => team.status === 'active');
     if (!teams.length) return '';
     return `<article class="panel compact"><div class="panel-title"><h2>追捕网络</h2><span>警戒 ${Math.round(s.pursuit.alert || 0)}</span></div>${teams.map(team => { const faction = s.factions[team.factionId]; return `<div class="faction-row"><div><strong>${esc(faction?.name || team.factionId)}追捕队</strong><small>成员 ${team.members.length} · 线索 ${Math.round(team.clueConfidence * 100)}%</small></div><i><em style="width:${team.progress}%"></em></i><small>推进 ${Math.round(team.progress)}%</small></div>`; }).join('')}</article>`;
+  }
+  function coalitionPanel(s) {
+    const pacts = Object.values(s.coalitions?.pacts || {});
+    if (!pacts.length) return '';
+    const labels = { active: '维持', strained: '紧绷', defected: '已倒戈', broken: '已破裂' };
+    const factionName = id => s.factions.find(faction => faction.id === id)?.name || id;
+    return `<article class="panel compact"><div class="panel-title"><h2>势力盟约</h2><span>外交压力 ${Math.round(s.coalitions.diplomacyPressure || 0)}</span></div>${pacts.slice(0, 6).map(pact => `<div class="coalition-row"><strong>${esc(pact.members.map(factionName).join(' · '))}</strong><small>${labels[pact.status] || pact.status} · 合法性 ${Math.round(pact.legitimacy)} · 补给 ${Math.round(pact.supply)}</small><i><em style="width:${Math.max(0, Math.min(100, pact.cohesion))}%"></em></i><small>凝聚 ${Math.round(pact.cohesion)} · 倒戈 ${pact.defections || 0}</small></div>`).join('')}</article>`;
   }
   function agencyPanel(s) {
     const commissions = Object.values(s.agency?.commissions || {}).filter(item => item.status === 'active');

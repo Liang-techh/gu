@@ -270,6 +270,23 @@
         engine.emit(state, 'shadow-network.exposure_resolved', { actorId: p.id, choice, exposure: network.exposure, cohesion: network.cohesion, intelligence: network.intelligence });
         return true;
       });
+      engine.registerEvent('coalitionFracture', ({ state, choice, event }) => {
+        const p = state.entities.player;
+        const locationMembers = { village: ['guYue', 'bai', 'xiong'], centralContinent: ['centralSects', 'shadowSect'], southernBorder: ['southernSuperClans', 'centralSects'], westernDesert: ['westernDesertFang', 'centralSects'], heavenlyCourt: ['heavenlyCourt', 'twoHeavensForces'], longLifeHeaven: ['longLifeHeaven', 'twoHeavensForces'], dreamRealms: ['dreamPathForces', 'centralSects', 'twoHeavensForces'] };
+        const members = locationMembers[p.position.location] || [];
+        const pact = Object.values(state.coalitions?.pacts || {}).filter(item => item.status === 'strained' && item.members.some(member => members.includes(member))).sort((a, b) => a.legitimacy - b.legitimacy || a.supply - b.supply)[0];
+        if (!pact) return true;
+        state.facts.coalitionFractureLastClock = state.clock;
+        if (choice === 'mediate') { pact.legitimacy += 10; pact.cohesion += 8; pact.supply = Math.max(0, pact.supply - 1); state.director.pressure = Math.max(0, state.director.pressure - 1); }
+        if (choice === 'fund') { if ((p.inventory.stones || 0) < 2) throw new Error('补上盟约缺口至少需要两枚元石'); p.inventory.stones -= 2; pact.supply += 16; pact.legitimacy += 6; pact.obligations[p.faction] = Math.max(0, (pact.obligations[p.faction] || 0) - 10); }
+        if (choice === 'expose') { p.cultivation.insight += 5; pact.legitimacy -= 12; pact.cohesion -= 9; state.coalitions.diplomacyPressure += 7; consequence(state, { kind: 'coalition_exposure', actorId: p.id, factionId: pact.members[0], source: 'coalitionFracture', location: p.position.location, reason: '你把盟约里未兑现的条件公开，获得政治筹码，也把裂痕推向公开对立。', data: { pactId: pact.id, legitimacy: pact.legitimacy, cohesion: pact.cohesion }, tension: 2, pressure: 0.3 }); }
+        if (choice === 'ignore') { pact.supply = Math.max(0, pact.supply - 8); pact.legitimacy -= 4; state.director.pressure = clamp(state.director.pressure + 1, 0, 10); consequence(state, { kind: 'ignored_coalition_fracture', actorId: p.id, factionId: pact.members[0], source: 'coalitionFracture', location: p.position.location, reason: '你放弃处理盟约裂痕，成员把沉默解释成允许承诺继续失效。', data: { pactId: pact.id, supply: pact.supply, legitimacy: pact.legitimacy }, tension: 1, pressure: 0.25 }); }
+        pact.legitimacy = clamp(pact.legitimacy, -100, 100); pact.cohesion = clamp(pact.cohesion, 0, 100); pact.supply = clamp(pact.supply, 0, 100);
+        remember(state, 'player', 'world', { kind: 'coalition-fracture', valence: choice === 'mediate' || choice === 'fund' ? 3 : -1, text: `你处理了${pact.members.join('、')}之间的盟约裂痕：${event.choices.find(item => item.id === choice).label}。`, facts: { coalitionFracture: true, pactId: pact.id, choice } });
+        log(state, 'choice', `你处理了盟约裂痕：${event.choices.find(item => item.id === choice).label}。`, { pactId: pact.id, source: 'emergent:coalition', legitimacy: pact.legitimacy, cohesion: pact.cohesion, supply: pact.supply });
+        engine.emit(state, 'faction.coalition_changed', { actorId: p.id, pactId: pact.id, change: 'director_response', choice, status: pact.status, legitimacy: pact.legitimacy, cohesion: pact.cohesion, supply: pact.supply });
+        return true;
+      });
       engine.registerEvent('fiveRegionsWar', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.fiveRegionsWarOpened = true; state.worldWar.fiveRegions = true; state.worldWar.heat += choice === 'regions' ? 12 : 6;

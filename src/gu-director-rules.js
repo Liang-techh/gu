@@ -123,6 +123,17 @@
         ] },
         { id: 'starHostPlan', priority: 290, type: 'cosmic', title: '星宿安排与天脉节点', text: '两天混淆让天庭的天脉节点承受前所未有的压力。星宿意志留下的安排不再只是历史背景，而会成为所有势力必须回应的世界级计划。', source: sourceNotes.starHost, when: state => state.flags.madDemonCaveOpened && state.flags.dreamSurgeOpened && !state.flags.starHostPlanOpened && day(state) >= 260 && state.entities.player.position.location === 'heavenlyCourt', choices: [
           { id: 'defend', label: '协助稳定天脉节点', hint: '降低宇宙热度，换取天庭的人道资源。' }, { id: 'break', label: '寻找安排中的破绽', hint: '获得终局情报，但让天庭与无极遗产同时关注你。' }, { id: 'wait', label: '等待两天混淆完成', hint: '保留实力，让其他势力先承担灾变。' }
+        ] },
+        { id: 'coalitionFracture', priority: 225, type: 'politics', title: '盟约裂痕浮出水面', text: '一项原本可以维持的势力承诺开始失去共同解释：补给没有按时抵达，成员都说自己已经承担了足够代价。裂痕还没有变成倒戈，但所有人都在等待谁先让步。', source: { source: 'emergent:coalition', note: '由持续世界中的盟约状态生成，而非固定章节。' }, cooldownHours: 48, score: state => {
+          const strained = Object.values(state.coalitions?.pacts || {}).filter(pact => pact.status === 'strained');
+          return strained.reduce((score, pact) => score + Math.max(0, 45 - pact.legitimacy) + Math.max(0, 35 - pact.supply) * 0.5, 0);
+        }, when: state => {
+          const here = state.entities.player.position.location;
+          const locationMembers = { village: ['guYue', 'bai', 'xiong'], centralContinent: ['centralSects', 'shadowSect'], southernBorder: ['southernSuperClans', 'centralSects'], westernDesert: ['westernDesertFang', 'centralSects'], heavenlyCourt: ['heavenlyCourt', 'twoHeavensForces'], longLifeHeaven: ['longLifeHeaven', 'twoHeavensForces'], dreamRealms: ['dreamPathForces', 'centralSects', 'twoHeavensForces'] };
+          const members = locationMembers[here] || [];
+          return !state.events.active && day(state) >= 2 && state.clock - (state.facts.coalitionFractureLastClock || -999) >= 48 && Object.values(state.coalitions?.pacts || {}).some(pact => pact.status === 'strained' && pact.members.some(member => members.includes(member)) && pact.members.length >= 2);
+        }, choices: [
+          { id: 'mediate', label: '替各方重新核对承诺', hint: '消耗时间，恢复盟约的合法性和凝聚力。' }, { id: 'fund', label: '用元石补上缺口', hint: '消耗资源换取短期稳定，让各方记住谁提供了补给。' }, { id: 'expose', label: '把未兑现的条件公开', hint: '获得洞察和政治筹码，但会把裂痕推向倒戈。' }, { id: 'ignore', label: '让他们自己承担后果', hint: '保留行动自由，盟约会继续失去资源。' }
         ] }
       ];
       rules.forEach(register);
