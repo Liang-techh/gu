@@ -135,6 +135,13 @@ test('NPC goals produce world-side consequences, not only text', () => {
   assert.ok(state.log.some(entry => entry.type === 'npc_goal_action'));
 });
 
+test('faction pressure changes NPC goal selection', () => {
+  const state = S.newWorld({ seed: 'faction-ai' });
+  state.factions.black.tension = 82;
+  const scout = { id: 'black-scout', faction: 'black', needs: { hunger: 0 }, personality: { ambition: 20 }, goals: { queue: ['prepareWar'] } };
+  assert.equal(S.NPC_AI.selectGoal(state, scout, { day: S.day, relation: (world, a, b) => world.relationships[[a, b].sort().join('::')] || { trust: 0, fear: 0 } }), 'prepareWar');
+});
+
 test('faction network records both player-facing attitude and inter-faction tension', () => {
   let state = open(S.newWorld({ seed: 'factions' }), 'observe');
   const before = state.factions.guYue.attitude;
