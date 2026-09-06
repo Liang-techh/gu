@@ -43,7 +43,7 @@
 
   function render() {
     if (!state) return startScreen();
-    const snap = S.snapshot(state); const p = snap.player; const here = state.entities.player.position.location;
+    const snap = S.snapshot(state); const p = snap.player; const here = state.entities.player.position.location; const zone = snap.zone;
     const gu = p.inventory.gu || {};
     app.innerHTML = `<div class="shell">
       <header class="topbar"><div><div class="kicker">青茅山 · 持续世界</div><h1>${esc(p.name)}</h1><p>${esc(timeText(state))} · ${esc(locName(here))}</p></div><div class="top-actions"><button id="save-game">保存</button><button id="new-world">新世界</button></div></header>
@@ -51,7 +51,7 @@
       ${combatPanel(state)}
       <section class="dashboard">
         <div class="main-column">
-          <article class="scene"><div class="scene-label">当前场景</div><h2>${esc(locName(here))}</h2><p>${esc(sceneText(here))}</p><div class="meter-row"><span>生命</span><b>${Math.round(p.vitality)}%</b><i><em style="width:${p.vitality}%"></em></i></div><div class="meter-row"><span>真元</span><b>${Math.round(p.essence)} / ${p.essenceMax}</b><i><em style="width:${(p.essence / p.essenceMax) * 100}%"></em></i></div><div class="meter-row"><span>修为</span><b>${Math.round(p.progress)}%</b><i><em style="width:${p.progress}%"></em></i></div></article>
+          <article class="scene"><div class="scene-label">当前场景</div><h2>${esc(locName(here))}</h2><p>${esc(sceneText(here))}</p><div class="zone-meta"><span>天气 ${esc(zone.weather)}</span><span>危险 ${Math.round(zone.danger)}</span><span>区域活动 ${Math.round(zone.activity)}</span><span>人口 ${Math.round(zone.population)}</span></div><div class="meter-row"><span>生命</span><b>${Math.round(p.vitality)}%</b><i><em style="width:${p.vitality}%"></em></i></div><div class="meter-row"><span>真元</span><b>${Math.round(p.essence)} / ${p.essenceMax}</b><i><em style="width:${(p.essence / p.essenceMax) * 100}%"></em></i></div><div class="meter-row"><span>修为</span><b>${Math.round(p.progress)}%</b><i><em style="width:${p.progress}%"></em></i></div></article>
           <article class="panel"><div class="panel-title"><h2>行动</h2><span>所有按钮都会推进世界时间</span></div><div class="action-grid">${actionButtons(state)}</div><div class="command-row"><input id="free-command" placeholder="自由描述：去竹林、修炼、和方正说话……"><button id="run-command">执行</button></div></article>
           <article class="panel"><div class="panel-title"><h2>同场人物</h2><span>他们会移动，也会记住你</span></div><div class="people-grid">${nearbyPanel(state)}</div></article>
         </div>

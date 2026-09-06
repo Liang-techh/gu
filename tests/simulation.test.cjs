@@ -22,6 +22,20 @@ test('world starts from novel-derived opening but resolves through an event cont
   assert.ok(next.log.some(entry => entry.type === 'choice'));
 });
 
+test('zones have population tables, resources and regeneration independent of story events', () => {
+  const state = S.newWorld({ seed: 'zones' });
+  assert.ok(Object.keys(state.zones).length >= 7);
+  assert.ok(Object.values(state.entities).some(entity => entity.id.startsWith('ambient-')));
+  const before = state.zones.bambooForest.resources.moonPetal;
+  let next = open(state, 'observe');
+  next = ok(next, { type: 'action', id: 'travel', location: 'village' });
+  next = ok(next, { type: 'action', id: 'travel', location: 'bambooForest' });
+  next = ok(next, { type: 'action', id: 'gather' });
+  assert.ok(next.zones.bambooForest.resources.moonPetal < before);
+  next = ok(next, { type: 'action', id: 'wait', hours: 24 });
+  assert.ok(next.zones.bambooForest.resources.moonPetal > 0);
+});
+
 test('same seed and same commands produce the same world state', () => {
   let a = S.newWorld({ seed: 'fixed' });
   let b = S.newWorld({ seed: 'fixed' });

@@ -30,13 +30,23 @@
   const APTITUDE = { '甲等': 0.92, '乙等': 0.68, '丙等': 0.45, '丁等': 0.22 };
 
   const LOCATIONS = {
-    academy: { name: '古月学堂', type: 'institution', neighbors: ['village', 'ancestralHall'], tags: ['safe', 'learning'] },
-    village: { name: '古月山寨', type: 'settlement', neighbors: ['academy', 'bambooForest', 'caravanCamp'], tags: ['safe', 'market'] },
-    ancestralHall: { name: '宗族祠堂', type: 'institution', neighbors: ['academy'], tags: ['politics', 'ritual'] },
-    bambooForest: { name: '竹林', type: 'wilderness', neighbors: ['village', 'riverbank'], tags: ['wild', 'resource'] },
-    riverbank: { name: '山溪河滩', type: 'wilderness', neighbors: ['bambooForest', 'cliffCave'], tags: ['wild', 'water'] },
-    cliffCave: { name: '瀑布石缝', type: 'ruin', neighbors: ['riverbank'], tags: ['hidden', 'relic'] },
-    caravanCamp: { name: '商队营地', type: 'market', neighbors: ['village'], tags: ['market', 'rumor'] }
+    academy: { name: '古月学堂', type: 'institution', neighbors: ['village', 'ancestralHall'], tags: ['safe', 'learning'], population: 'academy' },
+    village: { name: '古月山寨', type: 'settlement', neighbors: ['academy', 'bambooForest', 'caravanCamp'], tags: ['safe', 'market'], population: 'village' },
+    ancestralHall: { name: '宗族祠堂', type: 'institution', neighbors: ['academy'], tags: ['politics', 'ritual'], population: 'hall' },
+    bambooForest: { name: '竹林', type: 'wilderness', neighbors: ['village', 'riverbank'], tags: ['wild', 'resource'], population: 'forest' },
+    riverbank: { name: '山溪河滩', type: 'wilderness', neighbors: ['bambooForest', 'cliffCave'], tags: ['wild', 'water'], population: 'river' },
+    cliffCave: { name: '瀑布石缝', type: 'ruin', neighbors: ['riverbank'], tags: ['hidden', 'relic'], population: 'ruin' },
+    caravanCamp: { name: '商队营地', type: 'market', neighbors: ['village'], tags: ['market', 'rumor'], population: 'caravan' }
+  };
+
+  const POPULATION_TABLES = {
+    academy: [{ role: '学堂学徒', faction: 'guYue', goals: ['study', 'proveWorth'], weight: 5 }, { role: '旁听者', faction: 'guYue', goals: ['observe', 'socialize'], weight: 2 }],
+    village: [{ role: '古月族人', faction: 'guYue', goals: ['work', 'socialize'], weight: 7 }, { role: '猎户', faction: 'guYue', goals: ['hunt', 'trade'], weight: 3 }],
+    hall: [{ role: '祠堂执事', faction: 'guYue', goals: ['maintainOrder', 'collectRumors'], weight: 3 }],
+    forest: [{ role: '山兽', faction: null, goals: ['forage', 'avoidPlayer'], weight: 5 }, { role: '采药人', faction: 'guYue', goals: ['secureResources', 'returnHome'], weight: 2 }],
+    river: [{ role: '山兽', faction: null, goals: ['drink', 'forage'], weight: 4 }, { role: '采集者', faction: 'guYue', goals: ['secureResources', 'returnHome'], weight: 2 }],
+    ruin: [{ role: '遗藏窥探者', faction: 'demonic', goals: ['findRelic', 'avoidPlayer'], weight: 2 }],
+    caravan: [{ role: '商旅', faction: 'caravans', goals: ['trade', 'collectRumors'], weight: 5 }, { role: '护卫', faction: 'caravans', goals: ['guard', 'patrol'], weight: 3 }]
   };
 
   const FACTION_SEEDS = {
@@ -155,6 +165,43 @@
     };
   }
 
+  function createZone(locationId, location) {
+    const resources = { water: 0, moonPetal: 0, food: 0, relicFragment: 0 };
+    if (location.tags.includes('water')) resources.water = 8;
+    if (location.tags.includes('resource')) { resources.moonPetal = 10; resources.food = 4; }
+    if (location.tags.includes('relic')) resources.relicFragment = 3;
+    if (location.tags.includes('market')) { resources.water = 5; resources.food = 5; }
+    return { id: locationId, danger: location.tags.includes('wild') ? 22 : 4, resources, population: 0, activity: 0, discoveries: [], visits: 0, weather: '雨' };
+  }
+
+  function weightedPopulation(state, table) {
+    const total = table.reduce((sum, row) => sum + row.weight, 0);
+    let needle = random(state) * total;
+    for (const row of table) { needle -= row.weight; if (needle <= 0) return row; }
+    return table[table.length - 1];
+  }
+
+  function seedPopulation(state) {
+    for (const [locationId, location] of Object.entries(LOCATIONS)) {
+      const zone = state.zones[locationId];
+      const table = POPULATION_TABLES[location.population] || [];
+      const count = location.type === 'wilderness' || location.type === 'ruin' ? 1 : 2;
+      for (let i = 0; i < count && table.length; i++) {
+        const row = weightedPopulation(state, table);
+        const id = `ambient-${locationId}-${i + 1}`;
+        const name = `${row.role}·${String.fromCharCode('甲'.charCodeAt(0) + i)}`;
+        state.entities[id] = createEntity(id, {
+          name, role: row.role, faction: row.faction, location: locationId,
+          personality: { ambition: 20 + Math.floor(random(state) * 60), caution: 20 + Math.floor(random(state) * 70), loyalty: 20 + Math.floor(random(state) * 70), greed: 10 + Math.floor(random(state) * 70), curiosity: 10 + Math.floor(random(state) * 70) },
+          cultivation: { rank: 1, stage: 0, aptitude: 0.35 + random(state) * 0.35 },
+          goals: row.goals,
+          schedule: { morning: locationId, afternoon: locationId, evening: locationId, night: locationId }
+        });
+        zone.population += 1;
+      }
+    }
+  }
+
   function newWorld(options = {}) {
     const seed = String(options.seed ?? '青茅山');
     const aptitudeName = APTITUDE[options.aptitude] ? options.aptitude : '丙等';
@@ -166,6 +213,7 @@
       playerId: 'player',
       entities: {},
       locations: copy(LOCATIONS),
+      zones: {},
       factions: {},
       relationships: {},
       facts: {},
@@ -186,6 +234,8 @@
     state.entities.player.body.health = state.entities.player.body.maxHealth;
     state.entities.player.needs = { energy: 92, hunger: 8, safety: 70 };
     for (const [id, seedData] of Object.entries(NPC_SEEDS)) state.entities[id] = createEntity(id, seedData);
+    for (const [id, location] of Object.entries(LOCATIONS)) state.zones[id] = createZone(id, location);
+    seedPopulation(state);
     for (const id of Object.keys(state.entities)) remember(state, id, 'world', { kind: 'origin', text: '青茅山的雨季刚刚开始。', facts: { region: '青茅山' } });
     relation(state, 'player', 'fangyuan').fear = 4;
     relation(state, 'player', 'fangzheng').trust = 6;
@@ -319,6 +369,12 @@
       faction.tension = clamp(faction.tension, 0, 100);
       faction.attitude = clamp(faction.attitude, -100, 100);
     }
+    for (const zone of Object.values(state.zones || {})) {
+      zone.danger = clamp(Number(zone.danger) || 0, 0, 100);
+      zone.activity = clamp(Number(zone.activity) || 0, 0, 100);
+      zone.visits = Math.max(0, Number(zone.visits) || 0);
+      for (const key of Object.keys(zone.resources || {})) zone.resources[key] = Math.max(0, Number(zone.resources[key]) || 0);
+    }
   }
 
   function npcGoal(state, npc) {
@@ -354,7 +410,9 @@
   function npcDoGoal(state, npc, goal) {
     const faction = npc.faction && state.factions[npc.faction];
     if (goal === 'secureResources' && ['bambooForest', 'riverbank'].includes(npc.position.location)) {
-      npc.inventory.moonPetal = (npc.inventory.moonPetal || 0) + 1;
+      const zone = state.zones[npc.position.location];
+      if (zone?.resources.moonPetal > 0) { zone.resources.moonPetal -= 1; npc.inventory.moonPetal = (npc.inventory.moonPetal || 0) + 1; }
+      if (zone) zone.activity += 4;
       if (faction) faction.influence += 0.4;
       log(state, 'npc_goal_action', `${npc.identity.name}为了资源在${LOCATIONS[npc.position.location].name}搜寻。`, { npcId: npc.id, goal });
     } else if (goal === 'findRelic' && ['bambooForest', 'riverbank', 'cliffCave'].includes(npc.position.location)) {
@@ -392,6 +450,15 @@
       for (const episode of npc.memory.episodes) episode.valence *= 0.985;
     }
     const p = state.entities.player;
+    for (const zone of Object.values(state.zones)) {
+      zone.activity = Math.max(0, zone.activity - 12);
+      zone.danger = clamp(zone.danger + (zone.activity > 45 ? 2 : -1), 0, 100);
+      if (zone.resources.water !== undefined) zone.resources.water = Math.min(12, zone.resources.water + 2);
+      if (zone.resources.moonPetal !== undefined) zone.resources.moonPetal = Math.min(16, zone.resources.moonPetal + 3);
+      if (zone.resources.food !== undefined) zone.resources.food = Math.min(8, zone.resources.food + 1);
+      if (zone.resources.relicFragment !== undefined && state.flags.relicDiscovered) zone.resources.relicFragment = Math.min(3, zone.resources.relicFragment + 0.2);
+      zone.weather = random(state) < 0.65 ? '雨' : random(state) < 0.5 ? '晴' : '雾';
+    }
     const rel = relation(state, 'player', 'guYue');
     state.factions.guYue.tension += p.cultivation.rank > 1 ? 1 : 0;
     state.factions.bai.tension += state.factions.guYue.tension > 45 ? 1 : 0;
@@ -504,6 +571,8 @@
       const target = command.location;
       if (!LOCATIONS[target] || !LOCATIONS[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');
       const from = p.position.location; p.position.location = target;
+      state.zones[target].visits += 1;
+      state.zones[target].activity += 2;
       remember(state, 'player', 'world', { kind: 'travel', text: `从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`, facts: { [target]: true } });
       log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);
       advance(state, 1, 'travel'); return;
@@ -528,10 +597,26 @@
     }
     if (id === 'gather') {
       const loc = p.position.location;
-      if (!['bambooForest', 'riverbank', 'cliffCave'].includes(loc)) throw new Error('当前位置没有可安全采集的资源');
-      if (loc === 'riverbank') p.inventory.water += 3;
-      if (loc === 'bambooForest') { p.inventory.moonPetal += 2; p.inventory.food = (p.inventory.food || 0) + 1; }
-      if (loc === 'cliffCave') { p.inventory.relicFragment = (p.inventory.relicFragment || 0) + 1; state.flags.relicDiscovered = true; }
+      const zone = state.zones[loc];
+      if (!zone || !['bambooForest', 'riverbank', 'cliffCave'].includes(loc)) throw new Error('当前位置没有可采集的区域资源');
+      if (loc === 'riverbank') {
+        const amount = Math.min(3, zone.resources.water);
+        if (amount < 1) throw new Error('河滩的水源暂时不足');
+        zone.resources.water -= amount; p.inventory.water += amount;
+      }
+      if (loc === 'bambooForest') {
+        const petals = Math.min(2, zone.resources.moonPetal);
+        if (petals < 1) throw new Error('竹林里的月兰花瓣已经被采得差不多了');
+        zone.resources.moonPetal -= petals; zone.resources.food = Math.max(0, zone.resources.food - 1);
+        p.inventory.moonPetal += petals; p.inventory.food = (p.inventory.food || 0) + 1;
+      }
+      if (loc === 'cliffCave') {
+        const fragment = Math.min(1, zone.resources.relicFragment);
+        if (fragment < 1) throw new Error('石缝里暂时没有新的遗藏碎片');
+        zone.resources.relicFragment -= fragment; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + fragment; state.flags.relicDiscovered = true;
+      }
+      zone.activity += 12; zone.visits += 1;
+      if (random(state) < zone.danger / 260) { damageEntity(state, 'player', 4 + zone.danger * 0.08, 'world', 'environment'); p.needs.safety -= 8; }
       p.cultivation.insight += random(state) < 0.35 ? 1 : 0;
       log(state, 'action', `你在${LOCATIONS[loc].name}进行采集，资源与线索都发生了变化。`);
       advance(state, 2, 'gather'); return;
@@ -612,7 +697,7 @@
 
   function validate(raw) {
     const state = typeof raw === 'string' ? JSON.parse(raw) : copy(raw);
-    if (!state || state.schema !== SCHEMA_VERSION || !state.entities?.player || !state.factions || !state.events) throw new Error('无效的 simulation-first 存档');
+    if (!state || state.schema !== SCHEMA_VERSION || !state.entities?.player || !state.factions || !state.events || !state.zones) throw new Error('无效的 simulation-first 存档');
     if (!Number.isInteger(state.clock) || !Number.isInteger(state.rng) || state.rng === 0) throw new Error('存档随机状态损坏');
     if (!LOCATIONS[state.entities.player.position.location]) throw new Error('存档地点不存在');
     normalize(state);
@@ -627,7 +712,7 @@
       combat: copy(state.combat || null),
       nearby: Object.values(state.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), combat: copy(state.combat || null), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), log: state.log.slice(0, 20).map(copy)
     };
   }
 
