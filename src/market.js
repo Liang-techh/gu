@@ -81,7 +81,9 @@
         factionMarket.treasury = Math.max(0, factionMarket.treasury + (side === 'sell' ? price : -price));
         factionMarket.lastClock = state.clock;
       }
-      engine.emit(state, 'market.trade', transaction);
+      const event = engine.emit(state, 'market.trade', transaction);
+      transaction.eventId = event.id;
+      transaction.provenanceId = event.provenance?.id || null;
       return { ok: true, ...transaction };
     }
 

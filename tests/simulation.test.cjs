@@ -578,6 +578,10 @@ test('NPC trade goals mutate a shared market and enter the rumor/history pipelin
   assert.ok(state.market.supply.water !== beforeSupply || state.market.supply.food !== 20);
   assert.ok(state.events.recent.some(event => event.type === 'market.trade'));
   assert.ok(state.log.some(event => event.type === 'market_trade'));
+  const transaction = state.market.transactions[0];
+  assert.ok(transaction.eventId);
+  assert.ok(transaction.provenanceId);
+  assert.equal(state.provenance.records.some(item => item.id === transaction.provenanceId), true);
 });
 
 test('free intent parser only returns commands; state changes remain rule-owned', () => {
