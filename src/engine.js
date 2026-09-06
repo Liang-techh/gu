@@ -53,10 +53,13 @@
   function emit(state, type, payload = {}) {
     state.events ||= { active: null, pending: [], history: [] };
     state.events.pending ||= [];
+    state.events.recent ||= [];
     state.events.sequence = (Number(state.events.sequence) || 0) + 1;
     const event = { id: `ev${state.events.sequence}`, type, clock: state.clock, payload };
     state.events.pending.push(event);
     if (state.events.pending.length > 128) state.events.pending.shift();
+    state.events.recent.push(event);
+    if (state.events.recent.length > 256) state.events.recent.shift();
     for (const listener of [...(eventListeners.get(type) || []), ...(eventListeners.get('*') || [])]) listener.handler({ state, event });
     return event;
   }

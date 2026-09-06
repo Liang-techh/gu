@@ -74,6 +74,17 @@ test('NPC social interaction changes relation and creates durable memory', () =>
   assert.ok(state.entities.fangzheng.memory.episodes.length >= before);
 });
 
+test('domain events persist as a ledger and spread local rumors to uninvolved NPCs', () => {
+  let state = open(S.newWorld({ seed: 'rumors' }), 'observe');
+  const uninvolved = Object.values(state.entities).find(entity => entity.id !== 'player' && entity.id !== 'fangzheng' && entity.position.location === 'academy');
+  assert.ok(uninvolved);
+  state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'threaten' });
+  assert.ok(state.events.recent.some(event => event.type === 'social.interaction'));
+  assert.ok(S.snapshot(state).domainEvents.some(event => event.type === 'social.interaction'));
+  assert.ok(state.entities[uninvolved.id].memory.episodes.some(item => item.kind === 'rumor-social'));
+  assert.equal(state.entities[uninvolved.id].memory.facts.fangzheng.heardInteraction !== undefined, true);
+});
+
 test('content-driven NPC contracts persist through acceptance, objective progress and delivery', () => {
   let state = open(S.newWorld({ seed: 'contracts' }), 'observe');
   state = ok(state, { type: 'action', id: 'wait', hours: 24 });
@@ -373,6 +384,8 @@ test('domain event sequence stays unique after the bounded stream rotates', () =
   assert.equal(state.events.pending[0].id, 'ev53');
   assert.equal(state.events.pending.at(-1).id, 'ev180');
   assert.equal(new Set(state.events.pending.map(event => event.id)).size, 128);
+  assert.equal(state.events.recent.length, 180);
+  assert.equal(state.events.recent[0].id, 'ev1');
 });
 
 test('long-running world remains finite, recoverable and structurally valid', () => {
