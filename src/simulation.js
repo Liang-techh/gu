@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'), require('./gu-systems.js'), require('./gu-components.js'), require('./gu-goals.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat, root.GuSimulationGuSystems, root.GuSimulationGuComponents, root.GuSimulationGuGoals);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat, GuSystems, GuComponents, GuGoals) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./zone-runtime.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./body.js'), require('./equipment.js'), require('./effect.js'), require('./provenance.js'), require('./consequence.js'), require('./contracts.js'), require('./repeatable-systems.js'), require('./gu-director-rules.js'), require('./gu-event-rules.js'), require('./knowledge.js'), require('./identity.js'), require('./pursuit.js'), require('./agency.js'), require('./market.js'), require('./brain.js'), require('./social.js'), require('./combat.js'), require('./gu-systems.js'), require('./gu-components.js'), require('./gu-goals.js'), require('./gu-listeners.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationZoneRuntime, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationBody, root.GuSimulationEquipment, root.GuSimulationEffect, root.GuSimulationProvenance, root.GuSimulationConsequence, root.GuSimulationContracts, root.GuSimulationRepeatableSystems, root.GuDirectorRules, root.GuEventRules, root.GuSimulationKnowledge, root.GuSimulationIdentity, root.GuSimulationPursuit, root.GuSimulationAgency, root.GuSimulationMarket, root.GuSimulationBrain, root.GuSimulationSocial, root.GuSimulationCombat, root.GuSimulationGuSystems, root.GuSimulationGuComponents, root.GuSimulationGuGoals, root.GuSimulationGuListeners);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, ZoneRuntime, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Body, Equipment, Effect, Provenance, Consequence, Contracts, RepeatableSystems, DirectorRules, EventRules, Knowledge, Identity, Pursuit, Agency, Market, Brain, Social, Combat, GuSystems, GuComponents, GuGoals, GuListeners) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -9,6 +9,7 @@
   if (!GuSystems) throw new Error('GuSimulationGuSystems must load before simulation.js');
   if (!GuComponents) throw new Error('GuSimulationGuComponents must load before simulation.js');
   if (!GuGoals) throw new Error('GuSimulationGuGoals must load before simulation.js');
+  if (!GuListeners) throw new Error('GuSimulationGuListeners must load before simulation.js');
   if (!Identity) throw new Error('GuSimulationIdentity must load before simulation.js');
   if (!Pursuit) throw new Error('GuSimulationPursuit must load before simulation.js');
   if (!Agency) throw new Error('GuSimulationAgency must load before simulation.js');
@@ -356,63 +357,6 @@
     socialRuntime.registerInteractions(Engine);
   }
 
-  function registerEventListeners() {
-    Engine.registerEventListener('*', 'rumorPropagation', ({ state, event }) => {
-      if (event.type === 'social.interaction' && event.payload?.rumor === false) return;
-      Rumor.propagate(state, event, { locations: LOCATIONS, query: Engine.query, remember });
-    });
-    Engine.registerEventListener('world.travel', 'zoneVisitAccounting', ({ state, event }) => {
-      const zone = state.zones[event.payload.to];
-      if (!zone) return;
-      zone.visits += 1;
-      zone.activity += 2;
-    });
-    Engine.registerEventListener('arena.match', 'arenaCrowdActivity', ({ state, event }) => {
-      const zone = state.zones.merchantCity;
-      if (zone) zone.activity += event.payload.result === 'win' ? 5 : 3;
-    });
-    Engine.registerEventListener('inheritance.round', 'inheritanceFrontierPressure', ({ state, event }) => {
-      const zone = state.zones.threeForkMountain;
-      if (zone) {
-        zone.activity += event.payload.result === 'success' ? 5 : 2;
-        zone.danger += event.payload.result === 'success' ? 1 : 0.5;
-      }
-    });
-    Engine.registerEventListener('frontier.patrol', 'frontierWarPressure', ({ state, event }) => {
-      const zone = state.zones[state.frontier.location];
-      if (zone) zone.activity += event.payload.result === 'success' ? 8 : 5;
-      if (state.factions.black) state.factions.black.tension += event.payload.result === 'success' ? 0.5 : 1.5;
-    });
-    Engine.registerEventListener('tower.floor', 'towerCompetitionPressure', ({ state, event }) => {
-      const zone = state.zones.trueYangTower;
-      if (zone) { zone.activity += event.payload.result === 'success' ? 7 : 4; zone.danger += event.payload.result === 'success' ? 1 : 2; }
-      if (state.factions.giantSun) state.factions.giantSun.tension += event.payload.result === 'success' ? 0.5 : 1;
-    });
-    Engine.registerEventListener('auction.lot', 'auctionMarketActivity', ({ state, event }) => {
-      const zone = state.zones.immortalAuction;
-      if (zone) zone.activity += event.payload.result === 'bid' ? 8 : 4;
-      if (state.factions.auctionImmortals) state.factions.auctionImmortals.tension += event.payload.result === 'bid' ? 0.8 : ['raise', 'rumor'].includes(event.payload.result) ? 1.2 : 0.2;
-      if (event.payload.trace >= 10) {
-        state.director.pressure = clamp(state.director.pressure + Math.min(0.5, event.payload.trace * 0.005), 0, 10);
-        const qin = state.entities.qinbaisheng;
-        if (qin) Identity.exposeTrace(state.entities.player, qin, state.clock, Knowledge, '拍卖追踪');
-      }
-    });
-    Engine.registerEventListener('market.trade', 'marketActivity', ({ state, event }) => {
-      const zone = state.zones[event.payload.location];
-      if (zone) zone.activity += event.payload.side === 'buy' ? 2 : 1;
-      const faction = event.payload.factionId && state.factions[event.payload.factionId];
-      if (faction) faction.influence += event.payload.side === 'buy' ? 0.15 : 0.1;
-      const actor = state.entities[event.payload.actorId];
-      log(state, 'market_trade', `${actor?.identity?.name || '某人'}在${LOCATIONS[event.payload.location]?.name || event.payload.location}完成了一笔${event.payload.side === 'buy' ? '买入' : '卖出'}。`, { ...event.payload });
-    });
-    Engine.registerEventListener('dream.dive', 'dreamRealmPressure', ({ state, event }) => {
-      const zone = state.zones.dreamRealms;
-      if (zone) { zone.activity += event.payload.result === 'success' ? 8 : 12; zone.danger += event.payload.result === 'success' ? 1 : 3; }
-      if (state.factions.dreamPathForces) state.factions.dreamPathForces.tension += event.payload.result === 'success' ? 0.4 : 1.2;
-    });
-  }
-
   function performConversation(state, command, p) {
     const npc = requireSameLocation(state, command.target);
     const result = Conversation.resolve(CONVERSATION_DEFS, state, command, { day, relation, remember, log, affectFaction });
@@ -704,7 +648,7 @@
   GuGoals.register({ engine: Engine, locations: LOCATIONS, clamp, relation, remember, log });
   DefaultGoals.register({ engine: Engine, remember, market: marketRuntime, log });
   registerInteractionHandlers();
-  registerEventListeners();
+  GuListeners.register({ engine: Engine, rumor: Rumor, locations: LOCATIONS, remember, clamp, identity: Identity, knowledge: Knowledge, log });
   registerActionHandlers();
   GuSystems.register({
     engine: Engine, history: History, zoneRuntime: ZoneRuntime, npcAI: NpcAI, brain: Brain,

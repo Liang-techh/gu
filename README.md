@@ -36,6 +36,7 @@
 - 基础行动全部进入 Action Registry：等待、旅行、修炼、学习、采集、休息、炼蛊、装备、交谈、挑战和势力影响不再由主模拟器的 ID 条件链直接分叉；
 - 内容系统包 [src/gu-systems.js](<D:\Caves of Qud\gu-rpg\src\gu-systems.js>)：小时级需求/状态/AI 与日级市场、区域、家族压力、战争和历史快照都通过可排序 System Registry 注册，世界推进不再藏在单一 daily tick 函数里；
 - NPC 内容目标包 [src/gu-goals.js](<D:\Caves of Qud\gu-rpg\src\gu-goals.js>)：资源争夺、遗藏调查、学堂竞争、保护关系、避开玩家和势力结盟等目标从模拟内核移出，通过 Goal Registry 注入世界；
+- 内容事件监听包 [src/gu-listeners.js](<D:\Caves of Qud\gu-rpg\src\gu-listeners.js>)：传闻、旅行、演武、传承、战线、拍卖、交易和梦境的世界后果通过 Event Registry 注入，不再由主模拟器维护内容监听器；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；
 - 小说内容导演规则包 [src/gu-director-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-director-rules.js>)：30 个卷章局势只声明触发条件、爽点选择和来源，内核不再持有内容包的导演候选定义；
 - 小说事件结算包 [src/gu-event-rules.js](<D:\Caves of Qud\gu-rpg\src\gu-event-rules.js>)：导演选择后的旗标、资源、关系、记忆、势力和战争后果通过统一事件注册表结算，模拟内核不再承载卷章事件处理器；
