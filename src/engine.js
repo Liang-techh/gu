@@ -12,6 +12,7 @@
   const interactionHandlers = new Map();
   const eventHandlers = new Map();
   const eventListeners = new Map();
+  const actionHandlers = new Map();
   const systemHandlers = new Map();
   const directorRules = [];
 
@@ -109,6 +110,17 @@
     return handler;
   }
 
+  function registerAction(id, handler) {
+    if (!id || typeof handler !== 'function') throw new Error('动作处理器必须有 id 和函数');
+    actionHandlers.set(id, handler);
+    return handler;
+  }
+
+  function runAction(id, context) {
+    const handler = actionHandlers.get(id);
+    return handler ? { handled: true, result: handler(context) } : { handled: false, result: false };
+  }
+
   function registerSystem(phase, id, handler, priority = 0) {
     if (!phase || !id || typeof handler !== 'function') throw new Error('系统必须有 phase、id 和函数');
     const systems = systemHandlers.get(phase) || [];
@@ -145,10 +157,11 @@
       interactions: [...interactionHandlers.keys()],
       events: [...eventHandlers.keys()],
       listeners: Object.fromEntries([...eventListeners.entries()].map(([type, listeners]) => [type, listeners.map(listener => listener.id)])),
+      actions: [...actionHandlers.keys()],
       systems: Object.fromEntries([...systemHandlers.entries()].map(([phase, systems]) => [phase, systems.map(system => system.id)])),
       directorRules: directorRules.map(rule => rule.id)
     };
   }
 
-  return { COMPONENTS, has, query, queryWith, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerSystem, runSystems, registerDirectorRule, findDirectorEvent, registries };
+  return { COMPONENTS, has, query, queryWith, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerAction, runAction, registerSystem, runSystems, registerDirectorRule, findDirectorEvent, registries };
 });

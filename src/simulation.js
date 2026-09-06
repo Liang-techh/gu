@@ -647,6 +647,56 @@
     });
   }
 
+  function performArenaMatch(state, p) {
+    if (p.position.location !== 'merchantCity' || !state.arena?.active) throw new Error('当前没有开放的商家城演武资格');
+    const opponentPower = 0.18 + Math.floor(state.arena.wins / 3) * 0.06 + random(state) * 0.16;
+    const playerPower = 0.28 + p.cultivation.rank * 0.08 + p.cultivation.insight * 0.008 + p.cultivation.aptitude * 0.08 + state.arena.streak * 0.015;
+    const win = random(state) < clamp(0.5 + playerPower - opponentPower, 0.12, 0.9);
+    state.arena.matches += 1;
+    if (win) {
+      state.arena.wins += 1; state.arena.streak += 1; state.arena.reputation += 3;
+      p.cultivation.progress += 4 + state.arena.streak * 0.4; state.factions.shang.influence += 0.4;
+      relation(state, 'player', 'weiyang').trust += 0.3;
+      remember(state, 'weiyang', 'player', { kind: 'arena', valence: 2, text: '你在演武场用连续胜利积累名声。' });
+      log(state, 'arena_match', `你在商家城演武场获胜，当前连胜 ${state.arena.streak} 场。`, { result: 'win', matches: state.arena.matches, wins: state.arena.wins });
+    } else {
+      state.arena.losses += 1; state.arena.streak = 0; state.arena.reputation = Math.max(0, state.arena.reputation - 1);
+      damageEntity(state, 'player', 3 + state.arena.losses * 0.4, 'arena', 'arena_strike'); p.needs.energy -= 8;
+      log(state, 'arena_match', '你在演武场落败，伤势和旁观者的判断一起留下。', { result: 'loss', matches: state.arena.matches, losses: state.arena.losses });
+    }
+    Engine.emit(state, 'arena.match', { result: win ? 'win' : 'loss', matches: state.arena.matches, wins: state.arena.wins, losses: state.arena.losses });
+    advance(state, 2, 'arena_match');
+  }
+
+  function performInheritanceRound(state, p) {
+    if (p.position.location !== 'threeForkMountain' || !state.inheritance?.active || state.inheritance.completed) throw new Error('当前没有可进入的三王传承');
+    const nextRound = state.inheritance.round + 1;
+    const difficulty = 1 + Math.floor((nextRound - 1) / 10) * 0.22 + state.inheritance.attempts * 0.015;
+    const power = 0.38 + p.cultivation.rank * 0.07 + p.cultivation.insight * 0.007 + p.cultivation.aptitude * 0.06;
+    const success = random(state) < clamp(0.72 + power - difficulty * 0.34, 0.08, 0.92);
+    state.inheritance.attempts += 1; state.inheritance.difficulty = difficulty;
+    if (success) {
+      state.inheritance.round = nextRound; state.inheritance.discoveries.push({ round: nextRound, clock: state.clock });
+      p.cultivation.progress += 3 + difficulty * 2; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + 1;
+      state.facts.threeKingsAttempts = state.inheritance.attempts;
+      if (nextRound >= 30) state.inheritance.completed = true;
+      remember(state, 'player', 'world', { kind: 'inheritance', valence: 3, text: `你通过了三王传承第${nextRound}轮，下一轮的门槛更高。`, facts: { lastInheritanceRound: nextRound } });
+      log(state, 'inheritance_round', `你通过三王传承第 ${nextRound} 轮。`, { result: 'success', round: nextRound, difficulty });
+    } else {
+      p.needs.energy -= 10; damageEntity(state, 'player', 4 + difficulty * 2, 'inheritance', 'inheritance_trial');
+      log(state, 'inheritance_round', `你在三王传承第 ${nextRound} 轮受挫，传承拒绝了这次推进。`, { result: 'failure', round: nextRound, difficulty });
+    }
+    Engine.emit(state, 'inheritance.round', { result: success ? 'success' : 'failure', round: nextRound, difficulty, attempts: state.inheritance.attempts });
+    advance(state, 4, 'inheritance_round');
+  }
+
+  function registerActionHandlers() {
+    Engine.registerAction('accept_contract', ({ state, command }) => acceptContract(state, command.contractId));
+    Engine.registerAction('complete_contract', ({ state, command }) => completeContract(state, command.contractId));
+    Engine.registerAction('arena_match', ({ state, p }) => performArenaMatch(state, p));
+    Engine.registerAction('inheritance_round', ({ state, p }) => performInheritanceRound(state, p));
+  }
+
   function relValence(state, npcId) {
     const rel = relation(state, npcId, 'player');
     return clamp(rel.trust + rel.affinity - rel.fear, -100, 100);
@@ -788,6 +838,8 @@
     const id = command.id;
     if (state.combat) throw new Error('冲突中只能选择攻击、防守、催动蛊术或脱身');
     if (state.events.active) throw new Error('请先处理当前世界事件');
+    const registered = Engine.runAction(id, { state, command, p });
+    if (registered.handled) return;
     if (id === 'wait') { advance(state, Number(command.hours) || 2, 'wait'); log(state, 'action', '你等待了一段时间，观察世界如何自行变化。'); return; }
     if (id === 'travel') {
       const target = command.location;
@@ -797,49 +849,6 @@
       remember(state, 'player', 'world', { kind: 'travel', text: `从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`, facts: { [target]: true } });
       log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);
       advance(state, 1, 'travel'); return;
-    }
-    if (id === 'accept_contract') { acceptContract(state, command.contractId); return; }
-    if (id === 'complete_contract') { completeContract(state, command.contractId); return; }
-    if (id === 'arena_match') {
-      if (p.position.location !== 'merchantCity' || !state.arena?.active) throw new Error('当前没有开放的商家城演武资格');
-      const opponentPower = 0.18 + Math.floor(state.arena.wins / 3) * 0.06 + random(state) * 0.16;
-      const playerPower = 0.28 + p.cultivation.rank * 0.08 + p.cultivation.insight * 0.008 + p.cultivation.aptitude * 0.08 + state.arena.streak * 0.015;
-      const win = random(state) < clamp(0.5 + playerPower - opponentPower, 0.12, 0.9);
-      state.arena.matches += 1;
-      if (win) {
-        state.arena.wins += 1; state.arena.streak += 1; state.arena.reputation += 3;
-        p.cultivation.progress += 4 + state.arena.streak * 0.4; state.factions.shang.influence += 0.4;
-        relation(state, 'player', 'weiyang').trust += 0.3;
-        remember(state, 'weiyang', 'player', { kind: 'arena', valence: 2, text: '你在演武场用连续胜利积累名声。' });
-        log(state, 'arena_match', `你在商家城演武场获胜，当前连胜 ${state.arena.streak} 场。`, { result: 'win', matches: state.arena.matches, wins: state.arena.wins });
-      } else {
-        state.arena.losses += 1; state.arena.streak = 0; state.arena.reputation = Math.max(0, state.arena.reputation - 1);
-        damageEntity(state, 'player', 3 + state.arena.losses * 0.4, 'arena', 'arena_strike'); p.needs.energy -= 8;
-        log(state, 'arena_match', '你在演武场落败，伤势和旁观者的判断一起留下。', { result: 'loss', matches: state.arena.matches, losses: state.arena.losses });
-      }
-      Engine.emit(state, 'arena.match', { result: win ? 'win' : 'loss', matches: state.arena.matches, wins: state.arena.wins, losses: state.arena.losses });
-      advance(state, 2, 'arena_match'); return;
-    }
-    if (id === 'inheritance_round') {
-      if (p.position.location !== 'threeForkMountain' || !state.inheritance?.active || state.inheritance.completed) throw new Error('当前没有可进入的三王传承');
-      const nextRound = state.inheritance.round + 1;
-      const difficulty = 1 + Math.floor((nextRound - 1) / 10) * 0.22 + state.inheritance.attempts * 0.015;
-      const power = 0.38 + p.cultivation.rank * 0.07 + p.cultivation.insight * 0.007 + p.cultivation.aptitude * 0.06;
-      const success = random(state) < clamp(0.72 + power - difficulty * 0.34, 0.08, 0.92);
-      state.inheritance.attempts += 1; state.inheritance.difficulty = difficulty;
-      if (success) {
-        state.inheritance.round = nextRound; state.inheritance.discoveries.push({ round: nextRound, clock: state.clock });
-        p.cultivation.progress += 3 + difficulty * 2; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + 1;
-        state.zones.threeForkMountain.activity += 5; state.facts.threeKingsAttempts = state.inheritance.attempts;
-        if (nextRound >= 30) state.inheritance.completed = true;
-        remember(state, 'player', 'world', { kind: 'inheritance', valence: 3, text: `你通过了三王传承第${nextRound}轮，下一轮的门槛更高。`, facts: { lastInheritanceRound: nextRound } });
-        log(state, 'inheritance_round', `你通过三王传承第 ${nextRound} 轮。`, { result: 'success', round: nextRound, difficulty });
-      } else {
-        p.needs.energy -= 10; damageEntity(state, 'player', 4 + difficulty * 2, 'inheritance', 'inheritance_trial');
-        log(state, 'inheritance_round', `你在三王传承第 ${nextRound} 轮受挫，传承拒绝了这次推进。`, { result: 'failure', round: nextRound, difficulty });
-      }
-      Engine.emit(state, 'inheritance.round', { result: success ? 'success' : 'failure', round: nextRound, difficulty, attempts: state.inheritance.attempts });
-      advance(state, 4, 'inheritance_round'); return;
     }
     if (id === 'cultivate') {
       const cost = Math.max(6, Math.round(p.cultivation.essenceMax * 0.18));
@@ -987,6 +996,7 @@
   registerGoalHandlers();
   registerInteractionHandlers();
   registerEventListeners();
+  registerActionHandlers();
   registerSystemHandlers();
   return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ZONE_BUILDER: ZoneBuilder, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

@@ -277,6 +277,8 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.interactions.includes('help'));
   assert.ok(snap.engine.registries.events.includes('wolfTide'));
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
+  assert.ok(snap.engine.registries.actions.includes('arena_match'));
+  assert.ok(snap.engine.registries.actions.includes('accept_contract'));
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
   assert.deepEqual(snap.engine.registries.systems.hour, ['playerNeeds', 'npcSimulation']);
   assert.deepEqual(snap.engine.registries.systems.day, ['worldDailyTick']);
