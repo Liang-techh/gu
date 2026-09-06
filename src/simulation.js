@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -13,6 +13,7 @@
   if (!Conversation) throw new Error('GuSimulationConversation must load before simulation.js');
   if (!Rumor) throw new Error('GuSimulationRumor must load before simulation.js');
   if (!ActionCatalog) throw new Error('GuSimulationActionCatalog must load before simulation.js');
+  if (!Director) throw new Error('GuSimulationDirector must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
   const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS } = Content;
@@ -205,17 +206,7 @@
   }
 
   function directorTick(state) {
-    const d = state.director;
-    if (state.events.active || state.clock - d.lastTick < 6) return;
-    const p = state.entities.player;
-    const candidate = Engine.findDirectorEvent(state);
-    if (candidate) {
-      state.events.active = candidate;
-      state.director.lastTick = state.clock;
-      state.director.thread.push(candidate.id);
-      Engine.emit(state, 'director.event_available', { eventId: candidate.id, location: p.position.location, pressure: d.pressure });
-      log(state, 'director_event', candidate.title, { eventId: candidate.id });
-    }
+    return Director.tick(state, { engine: Engine, day, log });
   }
 
   function registerDirectorRules() {
@@ -346,15 +337,7 @@
   }
 
   function resolveDirectorEvent(state, choice) {
-    const event = state.events.active;
-    if (!event) throw new Error('当前没有待处理事件');
-    const valid = event.choices.some(item => item.id === choice);
-    if (!valid) throw new Error('无效的事件选择');
-    state.events.active = null;
-    const handled = Engine.runEvent(event.id, { state, event, choice });
-    if (handled === false) throw new Error(`没有注册的事件处理器：${event.id}`);
-    if (event.id === 'openingRite') return handled;
-    advance(state, 1, event.id);
+    return Director.resolve(state, choice, { engine: Engine, advance });
   }
 
   function registerEventHandlers() {
@@ -1177,5 +1160,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });
