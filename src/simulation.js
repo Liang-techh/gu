@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -17,6 +17,7 @@
   if (!DefaultGoals) throw new Error('GuSimulationDefaultGoals must load before simulation.js');
   if (!Intent) throw new Error('GuSimulationIntent must load before simulation.js');
   if (!Ability) throw new Error('GuSimulationAbility must load before simulation.js');
+  if (!Condition) throw new Error('GuSimulationCondition must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
   const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS } = Content;
@@ -635,6 +636,7 @@
     state.central.lotsSold = Math.max(0, Number(state.central.lotsSold) || 0); state.central.auctionHeat = clamp(Number(state.central.auctionHeat) || 0, 0, 100); state.central.sectPressure = clamp(Number(state.central.sectPressure) || 0, 0, 100);
     state.worldWar.heat = clamp(Number(state.worldWar.heat) || 0, 0, 100);
     for (const entity of Engine.queryWith(state, 'cultivation')) {
+      Condition.ensure(entity);
       const c = entity.cultivation;
       c.rank = clamp(Number(c.rank) || 1, 1, 9);
       c.stage = clamp(Number(c.stage) || 0, 0, 3);
@@ -752,6 +754,7 @@
     });
     Engine.registerInteraction('threaten', ({ state, p, npc, relation: r }) => {
       r.fear += 9; r.trust -= 5;
+      Condition.apply(npc, 'afraid', { duration: 18, intensity: 1, source: p.id, clock: state.clock });
       if (npc.faction) affectFaction(state, npc.faction, -2, 2);
       state.director.pressure += 1;
       remember(state, npc.id, 'player', { kind: 'threat', valence: -8, text: `${p.identity.name}让你感到危险。` });
@@ -938,6 +941,10 @@
     Engine.registerAction('tower_floor', ({ state, p }) => performTowerFloor(state, p));
     Engine.registerAction('auction_lot', ({ state, command, p }) => performAuctionLot(state, p, command));
     Engine.registerAction('conversation', ({ state, command, p }) => performConversation(state, command, p));
+    Engine.registerActionHook('after', '*', 'actionMetrics', ({ state, command }) => {
+      state.facts.actionCounts ||= {};
+      state.facts.actionCounts[command.id] = (state.facts.actionCounts[command.id] || 0) + 1;
+    });
   }
 
   function relValence(state, npcId) {
@@ -995,6 +1002,12 @@
       p.cultivation.essence = Math.min(p.cultivation.essenceMax, p.cultivation.essence + 0.35 * p.cultivation.aptitude);
       if (p.needs.hunger > 85) p.cultivation.progress = Math.max(0, p.cultivation.progress - 0.2);
     }, 100);
+    Engine.registerSystem('hour', 'conditionTick', ({ state }) => {
+      for (const entity of Engine.queryWith(state, 'conditions')) {
+        const expired = Condition.tick(entity, 1);
+        for (const id of expired) Engine.emit(state, 'condition.expired', { entityId: entity.id, conditionId: id });
+      }
+    }, 110);
     Engine.registerSystem('hour', 'npcSimulation', ({ state }) => NpcAI.tick(state, { engine: Engine, locations: LOCATIONS, phase, hour, day, random, clamp, relation, remember, log, relValence }), 50);
     Engine.registerSystem('day', 'worldDailyTick', ({ state }) => dailyTick(state), 0);
   }
@@ -1030,6 +1043,7 @@
     target.body.limbs[limb] = clamp(target.body.limbs[limb] - Math.round(damage * 0.65), 0, 100);
     target.body.wounds.unshift({ clock: state.clock, sourceId, kind, limb, damage });
     target.body.wounds = target.body.wounds.slice(0, 12);
+    Condition.apply(target, 'wounded', { duration: 24, intensity: damage, source: sourceId, clock: state.clock });
     Engine.emit(state, 'combat.damage', { targetId, sourceId, kind, limb, damage });
     remember(state, targetId, sourceId, { kind: 'injury', valence: -damage, text: `你在${limb}处留下了伤势。` });
     log(state, 'damage', `${target.identity.name} 受到 ${damage} 点${kind === 'gu' ? '蛊术' : '伤害'}。`, { targetId, sourceId, limb, damage });
@@ -1239,5 +1253,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

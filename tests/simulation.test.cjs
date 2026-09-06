@@ -386,12 +386,22 @@ test('entity conflict uses body components, combat events and NPC memory', () =>
   state = ok(state, { type: 'combat', id: 'attack' });
   assert.ok(state.entities.fangzheng.body.health < before);
   assert.ok(state.entities.fangzheng.body.wounds.length > 0);
+  assert.ok(S.CONDITION.has(state.entities.fangzheng, 'wounded'));
   assert.ok(state.entities.fangzheng.memory.episodes.some(item => item.kind === 'injury'));
   state.entities.player.inventory.gu = { moonlight: { refined: true, progress: 100 } };
   state.entities.player.abilities.gu = ['moonlight'];
   state.entities.player.cultivation.essence = 20;
   state = ok(state, { type: 'combat', id: 'gu', guId: 'moonlight' });
   assert.ok(state.history.events.some(event => event.type === 'ability_used'));
+});
+
+test('runtime conditions affect NPC intent and expire through the hourly system', () => {
+  let state = open(S.newWorld({ seed: 'conditions' }), 'observe');
+  state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'threaten' });
+  assert.equal(S.CONDITION.has(state.entities.fangzheng, 'afraid'), true);
+  assert.equal(S.NPC_AI.selectGoal(state, state.entities.fangzheng, { day: S.day, relation: (world, a, b) => world.relationships[[a, b].sort().join('::')] || { trust: 0, fear: 0 } }), 'avoidPlayer');
+  state = ok(state, { type: 'action', id: 'wait', hours: 18 });
+  assert.equal(S.CONDITION.has(state.entities.fangzheng, 'afraid'), false);
 });
 
 test('invalid actions are rejected without mutating the original state', () => {
@@ -406,10 +416,12 @@ test('invalid actions are rejected without mutating the original state', () => {
 test('engine registries expose component queries, goal handlers, interactions and domain events', () => {
   let state = open(S.newWorld({ seed: 'engine-api' }), 'observe');
   assert.ok(S.ENGINE.COMPONENTS.includes('memory'));
+  assert.ok(S.ENGINE.COMPONENTS.includes('conditions'));
   assert.equal(typeof S.ENTITY.createEntity, 'function');
   assert.equal(typeof S.NPC_AI.selectGoal, 'function');
   assert.equal(typeof S.DEFAULT_GOALS.register, 'function');
   assert.equal(typeof S.ABILITY.activate, 'function');
+  assert.equal(typeof S.CONDITION.apply, 'function');
   assert.equal(typeof S.DIRECTOR.tick, 'function');
   assert.equal(typeof S.DIRECTOR.resolve, 'function');
   assert.ok(S.ENGINE.queryWith(state, 'identity', 'position', 'memory').length >= 10);
@@ -427,7 +439,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
-  assert.deepEqual(snap.engine.registries.systems.hour, ['playerNeeds', 'npcSimulation']);
+  assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'playerNeeds', 'npcSimulation']);
   assert.deepEqual(snap.engine.registries.systems.day, ['worldDailyTick']);
 });
 

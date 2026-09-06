@@ -17,6 +17,7 @@
 - 通用 NPC 目标处理器 [src/default-goals.js](<D:\Caves of Qud\gu-rpg\src\default-goals.js>)：人口表和关键人物使用的采集、巡逻、学习、调查、战争、疗伤等目标均有实际世界后果，不再静默 no-op；
 - 组件化蛊虫能力运行时 [src/ability.js](<D:\Caves of Qud\gu-rpg\src\ability.js>)：炼化、学习、真元消耗、能力发动和 `ability.used` 事件统一处理，不再把月光蛊逻辑写死在战斗分支中；
 - 独立实体/组件工厂 [src/entity.js](<D:\Caves of Qud\gu-rpg\src\entity.js>)：玩家、关键 NPC 和环境居民共用同一套组件默认值与校验入口；
+- 运行时组件与状态效果 [src/condition.js](<D:\Caves of Qud\gu-rpg\src\condition.js>)：恐惧、受伤等效果可以附着、刷新、过期，并被 NPC AI 和小时系统读取；引擎提供组件 attach/detach/patch 与动作前后钩子；
 - 内容驱动对话运行时 [src/conversation.js](<D:\Caves of Qud\gu-rpg\src\conversation.js>)：地点、旗标、信任门槛和对话选项后果统一写入关系、势力、记忆与历史；
 - 领域事件账本与传闻传播 [src/rumor.js](<D:\Caves of Qud\gu-rpg\src\rumor.js>)：事件不再只存在于待处理队列，同地点 NPC 和同势力关系网会根据交互、冲突、资源和战线事件形成带来源的二手记忆；
 - 独立行动目录 [src/action-catalog.js](<D:\Caves of Qud\gu-rpg\src\action-catalog.js>)：可用 command 根据当前世界状态生成，UI、自由意图解析和未来 AI 代理共享同一行动入口；

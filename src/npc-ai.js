@@ -7,6 +7,7 @@
   function selectGoal(state, npc, { day, relation }) {
     const rel = relation(state, npc.id, 'player');
     const faction = npc.faction ? state.factions[npc.faction] : null;
+    if (npc.conditions?.active?.some(condition => condition.id === 'afraid')) return 'avoidPlayer';
     if (rel.fear > 30) return 'avoidPlayer';
     if (npc.needs.hunger > 70) return 'findFood';
     if (faction?.tension > 70 && npc.goals.queue.includes('prepareWar')) return 'prepareWar';

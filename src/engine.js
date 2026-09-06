@@ -6,13 +6,14 @@
 
   const COMPONENTS = Object.freeze([
     'identity', 'position', 'faction', 'personality', 'cultivation', 'schedule',
-    'goals', 'needs', 'body', 'abilities', 'inventory', 'memory', 'alive'
+    'goals', 'needs', 'body', 'abilities', 'inventory', 'memory', 'conditions', 'alive'
   ]);
   const goalHandlers = new Map();
   const interactionHandlers = new Map();
   const eventHandlers = new Map();
   const eventListeners = new Map();
   const actionHandlers = new Map();
+  const actionHooks = new Map();
   const systemHandlers = new Map();
   const directorRules = [];
 
@@ -26,6 +27,26 @@
 
   function queryWith(state, ...components) {
     return query(state, entity => has(entity, ...components));
+  }
+
+  function attach(entity, component, value) {
+    if (!entity || !component) throw new Error('组件附着需要实体和名称');
+    entity[component] = value;
+    return value;
+  }
+
+  function detach(entity, component) {
+    if (!entity || !component) return undefined;
+    const previous = entity[component];
+    delete entity[component];
+    return previous;
+  }
+
+  function patchComponent(entity, component, patch) {
+    if (!entity || !component || !patch || typeof patch !== 'object') throw new Error('组件补丁无效');
+    if (!entity[component] || typeof entity[component] !== 'object') entity[component] = {};
+    Object.assign(entity[component], patch);
+    return entity[component];
   }
 
   function findPath(locations, from, to) {
@@ -119,9 +140,27 @@
     return handler;
   }
 
+  function registerActionHook(phase, actionId, id, handler) {
+    if (!['before', 'after'].includes(phase) || !actionId || !id || typeof handler !== 'function') throw new Error('动作钩子必须有阶段、动作、名称和函数');
+    const key = `${phase}:${actionId}`;
+    const hooks = actionHooks.get(key) || [];
+    const next = { id, handler };
+    const index = hooks.findIndex(hook => hook.id === id);
+    if (index >= 0) hooks[index] = next;
+    else hooks.push(next);
+    actionHooks.set(key, hooks);
+    return handler;
+  }
+
   function runAction(id, context) {
     const handler = actionHandlers.get(id);
-    return handler ? { handled: true, result: handler(context) } : { handled: false, result: false };
+    if (!handler) return { handled: false, result: false };
+    const before = [...(actionHooks.get(`before:${id}`) || []), ...(actionHooks.get('before:*') || [])];
+    for (const hook of before) if (hook.handler(context) === false) return { handled: true, result: false, blocked: true, blockedBy: hook.id };
+    const result = handler(context);
+    const after = [...(actionHooks.get(`after:${id}`) || []), ...(actionHooks.get('after:*') || [])];
+    for (const hook of after) hook.handler({ ...context, result });
+    return { handled: true, result };
   }
 
   function registerSystem(phase, id, handler, priority = 0) {
@@ -161,10 +200,11 @@
       events: [...eventHandlers.keys()],
       listeners: Object.fromEntries([...eventListeners.entries()].map(([type, listeners]) => [type, listeners.map(listener => listener.id)])),
       actions: [...actionHandlers.keys()],
+      actionHooks: Object.fromEntries([...actionHooks.entries()].map(([key, hooks]) => [key, hooks.map(hook => hook.id)])),
       systems: Object.fromEntries([...systemHandlers.entries()].map(([phase, systems]) => [phase, systems.map(system => system.id)])),
       directorRules: directorRules.map(rule => rule.id)
     };
   }
 
-  return { COMPONENTS, has, query, queryWith, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerAction, runAction, registerSystem, runSystems, registerDirectorRule, findDirectorEvent, registries };
+  return { COMPONENTS, has, query, queryWith, attach, detach, patchComponent, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerAction, registerActionHook, runAction, registerSystem, runSystems, registerDirectorRule, findDirectorEvent, registries };
 });

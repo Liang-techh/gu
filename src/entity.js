@@ -29,6 +29,7 @@
       abilities: { gu: [], skills: [] },
       inventory: {},
       memory: { facts: {}, episodes: [] },
+      conditions: { active: [] },
       alive: true
     };
   }

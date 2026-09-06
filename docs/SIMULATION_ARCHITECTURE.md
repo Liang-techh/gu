@@ -42,7 +42,9 @@ Projection / UI / 存档 / 日志
 
 ## 系统管线
 
-`src/engine.js` 还提供按阶段注册的 system registry。当前每个小时依次运行 `playerNeeds` 和 `npcSimulation`，跨过世界日时运行 `worldDailyTick`，再由导演观察完整的结算结果。系统有明确优先级，因而新增生产、疾病、天气、追捕或区域生态系统时，不必继续把规则塞进单一 `advance()` 分支；同一管线也能被测试、回放和未来的批量世界模拟调用。
+`src/engine.js` 还提供按阶段注册的 system registry。当前每个小时依次运行 `conditionTick`、`playerNeeds` 和 `npcSimulation`，跨过世界日时运行 `worldDailyTick`，再由导演观察完整的结算结果。系统有明确优先级，因而新增生产、疾病、天气、追捕或区域生态系统时，不必继续把规则塞进单一 `advance()` 分支；同一管线也能被测试、回放和未来的批量世界模拟调用。
+
+实体还可以拥有运行时 `conditions.active` 状态效果。`src/condition.js` 提供状态的附着、刷新、查询、移除和计时；当前威胁会附着 `afraid`，冲突会附着 `wounded`，小时系统负责过期事件，NPC 目标选择会优先响应恐惧。这是对 Qud Parts/Events 边界的轻量抽象：状态不是一次性文本，而是可以被多个系统观察的组件。
 
 动作也通过同一运行时注册。当前委托接受/交付、商家城演武、三王传承闯关、北原巡逻、真阳楼闯层和内容驱动对话已经由 Action Registry 调度；未迁移的基础动作仍走兼容分支。迁移策略是先把有独立资源、事件和失败后果的动作注册化，再逐步消除旧的条件链。
 
@@ -102,7 +104,7 @@ NPC 目标还必须产出世界侧结果：采集会改变资源与势力影响�
 - `director_event`：导演观察世界条件后生成的局势节点，例如竹林酒香、学堂竞争、商队消息。
 - `combat`：实体间的连续冲突；攻击写入身体部位、伤口、死亡和对方记忆。
 
-规则事件会写入带持久 `sequence` 的 `events.pending` 领域事件流，例如 `world.travel`、`npc.goal_action`、`social.interaction` 和 `combat.damage`。队列只保留最近窗口，但序列号不会回绕；外部导演、调试器或未来的回放系统可以消费这些事件，不需要解析 UI 日志。
+规则事件会写入带持久 `sequence` 的 `events.pending` 领域事件流，例如 `world.travel`、`npc.goal_action`、`social.interaction` 和 `combat.damage`。队列只保留最近窗口，但序列号不会回绕；外部导演、调试器或未来的回放系统可以消费这些事件，不需要解析 UI 日志。注册动作还支持 `before/after` hooks，当前用于记录动作指标，未来可以接入通用消耗、权限、冷却和反应规则。
 
 运行时还提供事件监听器注册表。事件发出后，监听器可以为区域活动、危险度或统计账本添加派生后果；例如移动事件由区域访问监听器结算，演武和传承事件由各自的区域压力监听器结算。监听器不替代持久事件队列，而是把 Qud 式事件边界变成可组合的规则扩展点。
 
