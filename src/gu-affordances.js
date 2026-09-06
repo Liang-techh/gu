@@ -10,6 +10,8 @@
   function register({ engine, locations, random, clamp, remember, log, consequence, damageEntity, advance, copy }) {
     const definitions = new Map();
     const locationTags = (state, p) => state.locations?.[p.position.location]?.tags || locations[p.position.location]?.tags || [];
+    const locationDefinition = (state, p) => state.locations?.[p.position.location] || locations[p.position.location] || {};
+    const locationSupports = (state, p, id) => locationDefinition(state, p).interactions?.includes(id) === true;
     const zoneFor = (state, p) => state.zones?.[p.position.location];
     const emit = (state, type, payload) => engine.emit(state, type, payload);
     const actorName = actor => actor.id === 'player' ? '你' : actor.identity?.name || actor.id;
@@ -46,7 +48,7 @@
     add('forage', {
       label: '采集区域资源',
       kind: 'environment',
-      when: ({ state, p }) => ['bambooForest', 'riverbank', 'cliffCave'].includes(p.position.location) && Boolean(zoneFor(state, p)),
+      when: ({ state, p }) => locationSupports(state, p, 'forage') && Boolean(zoneFor(state, p)),
       perform: context => {
         const { state, p } = context;
         const loc = p.position.location;
@@ -81,8 +83,7 @@
       kind: 'environment',
       when: ({ state, p }) => {
         const tags = locationTags(state, p);
-        const legacyRelicSite = ['bambooForest', 'riverbank', 'cliffCave'].includes(p.position.location);
-        return legacyRelicSite || tags.includes('relic') || tags.includes('inheritance') || tags.includes('hidden');
+        return locationSupports(state, p, 'searchRelic') || tags.includes('relic') || tags.includes('inheritance') || tags.includes('hidden');
       },
       perform: context => {
         const { state, p } = context;

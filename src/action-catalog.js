@@ -8,6 +8,10 @@
     return Object.values(state.pursuit?.teams || {}).some(team => team.status === 'active' && team.members?.some(agentId => state.entities?.[agentId]?.position?.location === here));
   }
 
+  function locationSupports(state, here, id) {
+    return state.locations?.[here]?.interactions?.includes(id) === true;
+  }
+
   const DEFINITIONS = Object.freeze([
     { id: 'cultivate', label: '修炼', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'cultivate' }) },
     { id: 'wait', label: '等待两小时', kind: 'action', when: () => true, command: () => ({ type: 'action', id: 'wait', hours: 2 }) },
@@ -37,10 +41,10 @@
     { id: 'pursuit_agent:mislead', label: '误导追捕队', kind: 'choice', when: ({ state, here }) => pursuitContactAvailable(state, here), command: () => ({ type: 'action', id: 'pursuit_agent', mode: 'mislead' }) },
     { id: 'pursuit_agent:confront', label: '警告追捕队', kind: 'choice', when: ({ state, here }) => pursuitContactAvailable(state, here), command: () => ({ type: 'action', id: 'pursuit_agent', mode: 'confront' }) },
     { id: 'study', label: '听课', kind: 'action', when: ({ here }) => here === 'academy', command: () => ({ type: 'action', id: 'study' }) },
-    { id: 'gather', label: '探索 / 采集', kind: 'action', when: ({ here }) => ['bambooForest', 'riverbank', 'cliffCave'].includes(here), command: () => ({ type: 'action', id: 'gather' }) },
+    { id: 'gather', label: '探索 / 采集', kind: 'action', when: ({ state, here }) => locationSupports(state, here, 'forage'), command: () => ({ type: 'action', id: 'gather' }) },
     { id: 'interact:observeZone', label: '观察区域', kind: 'choice', when: ({ state }) => Boolean(state.zones?.[state.entities?.player?.position?.location]), command: () => ({ type: 'action', id: 'interact', affordanceId: 'observeZone' }) },
-    { id: 'interact:forage', label: '采集区域资源', kind: 'choice', when: ({ state, here }) => ['bambooForest', 'riverbank', 'cliffCave'].includes(here) && Boolean(state.zones?.[here]), command: () => ({ type: 'action', id: 'interact', affordanceId: 'forage' }) },
-    { id: 'interact:searchRelic', label: '搜索遗藏痕迹', kind: 'choice', when: ({ state, here }) => ['cliffCave', 'threeForkMountain', 'heavenClimbMountain', 'shadowSectRuins', 'madDemonCave'].includes(here) && Boolean(state.zones?.[here]), command: () => ({ type: 'action', id: 'interact', affordanceId: 'searchRelic' }) },
+    { id: 'interact:forage', label: '采集区域资源', kind: 'choice', when: ({ state, here }) => locationSupports(state, here, 'forage') && Boolean(state.zones?.[here]), command: () => ({ type: 'action', id: 'interact', affordanceId: 'forage' }) },
+    { id: 'interact:searchRelic', label: '搜索遗藏痕迹', kind: 'choice', when: ({ state, here }) => locationSupports(state, here, 'searchRelic') && Boolean(state.zones?.[here]), command: () => ({ type: 'action', id: 'interact', affordanceId: 'searchRelic' }) },
     { id: 'interact:scoutZone', label: '侦查区域', kind: 'choice', when: ({ state, here }) => { const tags = state.locations?.[here]?.tags || []; return tags.includes('wild') || tags.includes('route') || tags.includes('war') || Object.values(state.worldWar?.fronts || {}).some(front => front.active && front.location === here); }, command: () => ({ type: 'action', id: 'interact', affordanceId: 'scoutZone' }) },
     { id: 'refine', label: '炼化月光蛊', kind: 'action', when: ({ here }) => ['academy', 'village'].includes(here), command: () => ({ type: 'action', id: 'refine', guId: 'moonlight' }) },
     { id: 'arena_match', label: '参加演武', kind: 'choice', when: ({ here, state }) => here === 'merchantCity' && state.arena?.active, command: ({ state }) => ({ type: 'action', id: 'arena_match', label: `参加演武（${state.arena.wins}胜/${state.arena.matches}场）` }) },

@@ -9,7 +9,6 @@
   // into world mutations registered at boot.
   function register({ engine, locations, clamp, relation, remember, log, factionPacts, affordances }) {
     engine.registerGoal('secureResources', ({ state, npc, faction }) => {
-      if (!['bambooForest', 'riverbank'].includes(npc.position.location)) return false;
       const result = affordances?.executeForActor('forage', state, npc);
       if (!result) return false;
       if (faction) faction.influence += 0.4;
@@ -18,7 +17,6 @@
       return true;
     });
     engine.registerGoal('findRelic', ({ state, npc }) => {
-      if (!['bambooForest', 'riverbank', 'cliffCave'].includes(npc.position.location)) return false;
       const result = affordances?.executeForActor('searchRelic', state, npc);
       if (!result) return false;
       state.facts.relicInterest = (state.facts.relicInterest || 0) + 1;

@@ -102,6 +102,18 @@ test('zone builder reconstructs content-driven zones without depending on the UI
   assert.equal(typeof S.ZONE_BUILDER.seedPopulation, 'function');
 });
 
+test('location content declares environment affordances consumed by catalog and runtime', () => {
+  assert.deepEqual(S.LOCATIONS.bambooForest.interactions, ['forage', 'searchRelic']);
+  assert.equal(S.LOCATIONS.academy.interactions, undefined);
+  let state = open(S.newWorld({ seed: 'content-affordances' }), 'observe');
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'bambooForest' });
+  assert.ok(S.ACTION_CATALOG.list(state, { locations: S.LOCATIONS }).some(action => action.id === 'interact:forage'));
+  state.locations.bambooForest.interactions = ['searchRelic'];
+  assert.equal(S.AFFORDANCES.available(state, state.entities.player).some(item => item.id === 'forage'), false);
+  assert.ok(S.AFFORDANCES.available(state, state.entities.player).some(item => item.id === 'searchRelic'));
+});
+
 test('zone runtime suspends, settles offline time and reactivates the player area', () => {
   let state = open(S.newWorld({ seed: 'zone-runtime' }), 'observe');
   assert.equal(state.zones.academy.runtime.active, true);

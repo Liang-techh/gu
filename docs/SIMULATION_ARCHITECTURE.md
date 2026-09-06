@@ -106,7 +106,7 @@ NPC 的 `prepareWar`、`protectClan`、`patrol` 和 `mediate` 目标也会识别
 
 动作也通过同一运行时注册。`src/gu-actions.js` 将委托接受/交付、商家城演武、三王传承闯关、北原巡逻、真阳楼闯层、内容驱动对话，以及等待、旅行、修炼、学习、采集、休息、炼蛊、装备、交谈、挑战和势力影响等基础动作注入 Action Registry；主 `action()` 只负责通用的冲突/世界事件门禁和调用注册表，不再维护一条按动作 ID 分叉的兼容链。动作前后钩子、行动目录和自然语言解析因此可以共享同一套世界规则。
 
-地点交互进一步拆成 `src/gu-affordances.js` 的 Interaction Registry。一个区域不只是可移动到的背景，而是根据标签、资源、危险度、战区和当前实体状态暴露一组可执行 affordance：`observeZone` 记录局部观察和知识，`forage` 改变资源供给并制造竞争传闻，`searchRelic` 以洞察、危险和随机状态决定线索质量，`scoutZone` 把局部侦查转成战区压力变化。Action Catalog、自然语言意图、NPC 的 `observe / secureResources / findRelic / patrol` 目标和未来 AI 代理都提交同样的 `interact + affordanceId` 语义；NPC 通过 `executeForActor` 执行时不会偷走玩家时间，但仍产生同样的领域事件、资源竞争、记忆和后果。处理器仍必须经过 simulation kernel 校验，并统一推进玩家时间、触发领域事件、更新记忆和留下失败后果。这对应 Qud 中“实体/区域提供可组合事件响应”的边界，也避免把“观察/采集/搜索”重新做成固定剧情分支。
+地点交互进一步拆成 `src/gu-affordances.js` 的 Interaction Registry。一个区域不只是可移动到的背景，而是根据内容包在 `LOCATIONS[*].interactions` 中声明的能力，再结合资源、危险度、战区和当前实体状态暴露一组可执行 affordance：`observeZone` 记录局部观察和知识，`forage` 改变资源供给并制造竞争传闻，`searchRelic` 以洞察、危险和随机状态决定线索质量，`scoutZone` 把局部侦查转成战区压力变化。Action Catalog、自然语言意图、NPC 的 `observe / secureResources / findRelic / patrol` 目标和未来 AI 代理都提交同样的 `interact + affordanceId` 语义；NPC 通过 `executeForActor` 执行时不会偷走玩家时间，但仍产生同样的领域事件、资源竞争、记忆和后果。处理器仍必须经过 simulation kernel 校验，并统一推进玩家时间、触发领域事件、更新记忆和留下失败后果。这对应 Qud 中“实体/区域提供可组合事件响应”的边界，也避免把“观察/采集/搜索”重新做成固定剧情分支。
 
 对话定义位于内容包的 `CONVERSATION_DEFS`，由 `src/conversation.js` 根据地点、旗标、时间和关系门槛筛选。选项后果不直接操作 UI，而是通过关系、势力、记忆和 History 账本写入世界状态。
 
