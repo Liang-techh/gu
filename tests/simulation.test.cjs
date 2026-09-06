@@ -14,11 +14,12 @@ function open(state, choice = 'observe') {
 
 test('world starts from novel-derived opening but resolves through an event contract', () => {
   const state = S.newWorld({ name: '测试者', aptitude: '乙等', seed: 'rain' });
-  assert.equal(state.content.id, 'gu-five-regions-v5');
+  assert.equal(state.content.id, 'gu-eternal-war-v6');
   assert.equal(S.CONTENT_INDEX.volumes[0].id, 'volume-1');
   assert.equal(S.CONTENT_INDEX.volumes[2].id, 'volume-3');
   assert.equal(S.CONTENT_INDEX.volumes[3].id, 'volume-4');
   assert.equal(S.CONTENT_INDEX.volumes[4].id, 'volume-5');
+  assert.equal(S.CONTENT_INDEX.volumes[5].id, 'volume-6');
   assert.equal(state.history.origin.contentId, state.content.id);
   assert.equal(state.events.active.id, 'openingRite');
   assert.equal(state.entities.fangyuan.identity.name, '古月方源');
@@ -354,6 +355,36 @@ test('free intent parser only returns commands; state changes remain rule-owned'
   assert.equal(S.interpret('去南疆', state).command.location, 'southernBorder');
   assert.equal(S.interpret('去西漠', state).command.location, 'westernDesert');
   assert.equal(S.interpret('去天庭', state).command.location, 'heavenlyCourt');
+  assert.equal(S.interpret('去神帝城', state).command.location, 'divineEmperorCity');
+  assert.equal(S.interpret('探索梦境', state).command.id, 'dream_dive');
+});
+
+test('volume six content models the eternal war as a late-world state machine', () => {
+  let state = open(S.newWorld({ seed: 'volume-six' }), 'observe');
+  const choices = { divineEmperorArrival: 'enter', twoHeavensConvergence: 'observe', madDemonCaveOpening: 'consult', dreamRealmSurge: 'enter', starHostPlan: 'defend' };
+  const trigger = (location, clock) => {
+    state.entities.player.position.location = location;
+    state.clock = clock; state.director.lastTick = 0; state.events.active = null;
+    state = ok(state, { type: 'action', id: 'wait', hours: 6 });
+    while (state.events.active) state = ok(state, { type: 'resolve_event', choice: choices[state.events.active.id] || state.events.active.choices[0].id });
+  };
+  state.flags.heavenlyCourtOpened = true; state.worldWar.heavenly = true;
+  trigger('divineEmperorCity', 200 * 24);
+  assert.equal(state.flags.divineEmperorOpened, true);
+  assert.equal(state.entities.qindingling.identity.name, '秦鼎菱');
+  trigger('bookMountain', 220 * 24);
+  assert.equal(state.flags.twoHeavensOpened, true);
+  trigger('madDemonCave', 235 * 24);
+  assert.equal(state.flags.madDemonCaveOpened, true);
+  assert.equal(state.entities.luweiyin.identity.name, '陆畏因');
+  trigger('dreamRealms', 245 * 24);
+  assert.equal(state.flags.dreamSurgeOpened, true);
+  state = ok(state, { type: 'action', id: 'dream_dive' });
+  assert.equal(state.eternalWar.dives, 1);
+  trigger('heavenlyCourt', 260 * 24);
+  assert.equal(state.flags.starHostPlanOpened, true);
+  assert.equal(state.eternalWar.starHost, true);
+  assert.ok(state.history.events.some(event => event.data?.source?.source?.endsWith('第300章.txt')));
 });
 
 test('save validation preserves components, memories, relationships and deterministic RNG', () => {

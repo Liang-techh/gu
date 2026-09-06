@@ -18,20 +18,27 @@
     merchantCity: { name: '商家城', type: 'metropolis', neighbors: ['whiteBoneMountain', 'threeForkMountain'], tags: ['safe', 'market', 'politics'], population: 'city' },
     threeForkMountain: { name: '三叉山', type: 'wilderness', neighbors: ['merchantCity', 'heavenClimbMountain'], tags: ['wild', 'inheritance', 'danger'], population: 'inheritance' },
     heavenClimbMountain: { name: '天梯山', type: 'sacred', neighbors: ['threeForkMountain', 'northernPlains'], tags: ['sacred', 'inheritance', 'danger'], population: 'heavenClimb' },
-    northernPlains: { name: '北原草原', type: 'wilderness', neighbors: ['heavenClimbMountain', 'blackTribeCamp', 'longLifeHeaven'], tags: ['wild', 'route', 'war'], population: 'northernRoad' },
+    northernPlains: { name: '北原草原', type: 'wilderness', neighbors: ['heavenClimbMountain', 'blackTribeCamp', 'longLifeHeaven', 'reverseFlowRiver'], tags: ['wild', 'route', 'war'], population: 'northernRoad' },
     blackTribeCamp: { name: '黑家大军营地', type: 'military', neighbors: ['northernPlains', 'imperialCourt'], tags: ['war', 'market', 'politics'], population: 'blackCamp' },
     imperialCourt: { name: '王庭福地', type: 'sacred', neighbors: ['blackTribeCamp', 'trueYangTower'], tags: ['sacred', 'safe', 'politics'], population: 'imperialCourt' },
     trueYangTower: { name: '八十八角真阳楼', type: 'ruin', neighbors: ['imperialCourt', 'foxFairyLand'], tags: ['inheritance', 'danger', 'tower'], population: 'trueYangTower' },
-    foxFairyLand: { name: '狐仙福地', type: 'blessedLand', neighbors: ['trueYangTower', 'centralContinent', 'shadowSectRuins'], tags: ['blessed', 'resource', 'portal'], population: 'foxFairyLand' },
-    centralContinent: { name: '中洲', type: 'continent', neighbors: ['foxFairyLand', 'immortalAuction', 'immortalCraneSect', 'southernBorder', 'westernDesert', 'easternSea', 'heavenlyCourt', 'longLifeHeaven', 'shadowSectRuins'], tags: ['politics', 'sect', 'route'], population: 'centralContinent' },
+    foxFairyLand: { name: '狐仙福地', type: 'blessedLand', neighbors: ['trueYangTower', 'centralContinent', 'shadowSectRuins', 'dreamRealms'], tags: ['blessed', 'resource', 'portal'], population: 'foxFairyLand' },
+    centralContinent: { name: '中洲', type: 'continent', neighbors: ['foxFairyLand', 'immortalAuction', 'immortalCraneSect', 'southernBorder', 'westernDesert', 'easternSea', 'heavenlyCourt', 'longLifeHeaven', 'shadowSectRuins', 'divineEmperorCity', 'reverseFlowRiver', 'dreamRealms', 'madDemonCave', 'primordialDesolateWorld'], tags: ['politics', 'sect', 'route'], population: 'centralContinent' },
     immortalAuction: { name: '中洲拍卖会', type: 'market', neighbors: ['centralContinent'], tags: ['market', 'politics', 'immortal'], population: 'immortalAuction' },
     immortalCraneSect: { name: '仙鹤门', type: 'sect', neighbors: ['centralContinent'], tags: ['sect', 'politics', 'safe'], population: 'immortalCraneSect' },
     southernBorder: { name: '南疆', type: 'continent', neighbors: ['centralContinent', 'westernDesert'], tags: ['politics', 'war', 'route'], population: 'southernBorder' },
-    westernDesert: { name: '西漠', type: 'continent', neighbors: ['centralContinent', 'southernBorder', 'easternSea'], tags: ['desert', 'trade', 'war'], population: 'westernDesert' },
+    westernDesert: { name: '西漠', type: 'continent', neighbors: ['centralContinent', 'southernBorder', 'easternSea', 'loessWorld'], tags: ['desert', 'trade', 'war'], population: 'westernDesert' },
     easternSea: { name: '东海', type: 'continent', neighbors: ['centralContinent', 'westernDesert', 'heavenlyCourt'], tags: ['sea', 'trade', 'immortal'], population: 'easternSea' },
-    heavenlyCourt: { name: '天庭', type: 'institution', neighbors: ['centralContinent', 'easternSea'], tags: ['sect', 'politics', 'war'], population: 'heavenlyCourt' },
+    heavenlyCourt: { name: '天庭', type: 'institution', neighbors: ['centralContinent', 'easternSea', 'divineEmperorCity', 'bookMountain'], tags: ['sect', 'politics', 'war'], population: 'heavenlyCourt' },
     longLifeHeaven: { name: '长生天', type: 'institution', neighbors: ['centralContinent', 'northernPlains'], tags: ['northern', 'politics', 'war'], population: 'longLifeHeaven' },
-    shadowSectRuins: { name: '影宗遗址', type: 'ruin', neighbors: ['foxFairyLand', 'centralContinent'], tags: ['shadow', 'ruin', 'secret'], population: 'shadowSectRuins' }
+    shadowSectRuins: { name: '影宗遗址', type: 'ruin', neighbors: ['foxFairyLand', 'centralContinent'], tags: ['shadow', 'ruin', 'secret'], population: 'shadowSectRuins' },
+    divineEmperorCity: { name: '神帝城', type: 'city', neighbors: ['centralContinent', 'heavenlyCourt', 'bookMountain'], tags: ['human', 'city', 'war'], population: 'divineEmperorCity' },
+    bookMountain: { name: '书山', type: 'sacred', neighbors: ['divineEmperorCity', 'heavenlyCourt', 'primordialDesolateWorld', 'loessWorld', 'madDemonCave'], tags: ['human', 'information', 'sacred'], population: 'bookMountain' },
+    primordialDesolateWorld: { name: '蛮荒大世界', type: 'continent', neighbors: ['bookMountain', 'centralContinent', 'dreamRealms'], tags: ['wild', 'war', 'twoHeavens'], population: 'primordialDesolateWorld' },
+    loessWorld: { name: '黄土大世界', type: 'continent', neighbors: ['bookMountain', 'westernDesert'], tags: ['desert', 'war', 'twoHeavens'], population: 'loessWorld' },
+    reverseFlowRiver: { name: '逆流河', type: 'wilderness', neighbors: ['northernPlains', 'centralContinent'], tags: ['wild', 'relic', 'survival'], population: 'reverseFlowRiver' },
+    dreamRealms: { name: '梦境战场', type: 'wilderness', neighbors: ['foxFairyLand', 'centralContinent', 'primordialDesolateWorld', 'madDemonCave'], tags: ['dream', 'danger', 'resource'], population: 'dreamRealms' },
+    madDemonCave: { name: '疯魔窟', type: 'ruin', neighbors: ['centralContinent', 'bookMountain', 'dreamRealms'], tags: ['ruin', 'secret', 'danger'], population: 'madDemonCave' }
   };
 
   const POPULATION_TABLES = {
@@ -59,7 +66,14 @@
     easternSea: [{ role: '东海散修', faction: 'easternSeaImmortals', goals: ['trade', 'collectRumors'], weight: 5 }, { role: '海上巡游蛊师', faction: 'easternSeaImmortals', goals: ['patrol', 'travel'], weight: 3 }],
     heavenlyCourt: [{ role: '天庭蛊仙', faction: 'heavenlyCourt', goals: ['maintainOrder', 'prepareWar'], weight: 5 }, { role: '天庭使者', faction: 'heavenlyCourt', goals: ['proveWorth', 'collectRumors'], weight: 2 }],
     longLifeHeaven: [{ role: '长生天使者', faction: 'longLifeHeaven', goals: ['prepareWar', 'collectRumors'], weight: 4 }, { role: '北原部族使者', faction: 'northernTribes', goals: ['protectClan', 'mediate'], weight: 3 }],
-    shadowSectRuins: [{ role: '影宗余党', faction: 'shadowSect', goals: ['rebuildShadow', 'collectRumors'], weight: 4 }, { role: '遗址窥探者', faction: 'demonic', goals: ['findRelic', 'avoidPlayer'], weight: 2 }]
+    shadowSectRuins: [{ role: '影宗余党', faction: 'shadowSect', goals: ['rebuildShadow', 'collectRumors'], weight: 4 }, { role: '遗址窥探者', faction: 'demonic', goals: ['findRelic', 'avoidPlayer'], weight: 2 }],
+    divineEmperorCity: [{ role: '神帝城守卫', faction: 'heavenlyCourt', goals: ['maintainOrder', 'patrol'], weight: 5 }, { role: '人道蛊师', faction: 'humanPathAlliance', goals: ['protectClan', 'collectRumors'], weight: 3 }],
+    bookMountain: [{ role: '书山记录者', faction: 'humanPathAlliance', goals: ['collectRumors', 'study'], weight: 5 }, { role: '天庭推算者', faction: 'heavenlyCourt', goals: ['observe', 'prepareWar'], weight: 3 }],
+    primordialDesolateWorld: [{ role: '蛮荒世界荒兽', faction: 'twoHeavensForces', goals: ['survive', 'hunt'], weight: 5 }, { role: '前线蛊仙', faction: 'heavenlyCourt', goals: ['prepareWar', 'patrol'], weight: 2 }],
+    loessWorld: [{ role: '黄土世界蛊仙', faction: 'twoHeavensForces', goals: ['survive', 'collectRumors'], weight: 4 }, { role: '西漠援军', faction: 'westernDesertFang', goals: ['protectClan', 'prepareWar'], weight: 3 }],
+    reverseFlowRiver: [{ role: '逆流河求生者', faction: 'demonic', goals: ['survive', 'avoidPlayer'], weight: 4 }, { role: '追河蛊仙', faction: 'centralSects', goals: ['findRelic', 'observe'], weight: 2 }],
+    dreamRealms: [{ role: '梦境探索者', faction: 'dreamPathForces', goals: ['study', 'survive'], weight: 4 }, { role: '梦境守卫', faction: 'centralSects', goals: ['patrol', 'observe'], weight: 3 }],
+    madDemonCave: [{ role: '疯魔窟探索者', faction: 'wujiLegacy', goals: ['findRelic', 'survive'], weight: 4 }, { role: '乐土道场来客', faction: 'humanPathAlliance', goals: ['observe', 'mediate'], weight: 2 }]
   };
 
   const FACTION_SEEDS = {
@@ -83,7 +97,11 @@
     westernDesertFang: { name: '西漠房家', color: '#c18d4e', influence: 61, tension: 42, attitude: 1 },
     easternSeaImmortals: { name: '东海诸仙与超级势力', color: '#5e9fa4', influence: 59, tension: 39, attitude: 3 },
     heavenlyCourt: { name: '天庭', color: '#d7c88e', influence: 92, tension: 44, attitude: -4 },
-    longLifeHeaven: { name: '长生天', color: '#b77b58', influence: 86, tension: 58, attitude: -6 }
+    longLifeHeaven: { name: '长生天', color: '#b77b58', influence: 86, tension: 58, attitude: -6 },
+    humanPathAlliance: { name: '人道联盟', color: '#d4b16b', influence: 70, tension: 48, attitude: 2 },
+    twoHeavensForces: { name: '两天异族势力', color: '#6d789c', influence: 64, tension: 74, attitude: -12 },
+    dreamPathForces: { name: '梦道势力', color: '#8b70b3', influence: 46, tension: 55, attitude: -2 },
+    wujiLegacy: { name: '无极遗产', color: '#65736c', influence: 58, tension: 78, attitude: -10 }
   };
 
   const GU_SEEDS = {
@@ -274,6 +292,27 @@
       cultivation: { rank: 7, stage: 2, aptitude: 0.94 },
       schedule: { morning: 'heavenlyCourt', afternoon: 'centralContinent', evening: 'heavenlyCourt', night: 'heavenlyCourt' },
       goals: ['collectRumors', 'prepareWar', 'maintainOrder']
+    },
+    qindingling: {
+      name: '秦鼎菱', role: '天庭战部蛊仙', faction: 'heavenlyCourt', location: 'divineEmperorCity', fromDay: 200,
+      personality: { ambition: 84, caution: 82, loyalty: 94, greed: 18, curiosity: 76 },
+      cultivation: { rank: 7, stage: 2, aptitude: 0.93 },
+      schedule: { morning: 'divineEmperorCity', afternoon: 'heavenlyCourt', evening: 'divineEmperorCity', night: 'divineEmperorCity' },
+      goals: ['maintainOrder', 'prepareWar', 'collectRumors']
+    },
+    luweiyin: {
+      name: '陆畏因', role: '人道传承者', faction: 'humanPathAlliance', location: 'madDemonCave', fromDay: 215,
+      personality: { ambition: 70, caution: 90, loyalty: 86, greed: 10, curiosity: 98 },
+      cultivation: { rank: 7, stage: 1, aptitude: 0.9 },
+      schedule: { morning: 'madDemonCave', afternoon: 'bookMountain', evening: 'madDemonCave', night: 'madDemonCave' },
+      goals: ['mediate', 'observe', 'protectClan']
+    },
+    fengya: {
+      name: '丰雅仙子', role: '才情蛊仙', faction: 'heavenlyCourt', location: 'bookMountain', fromDay: 225,
+      personality: { ambition: 78, caution: 88, loyalty: 82, greed: 8, curiosity: 99 },
+      cultivation: { rank: 7, stage: 2, aptitude: 0.95 },
+      schedule: { morning: 'bookMountain', afternoon: 'bookMountain', evening: 'heavenlyCourt', night: 'bookMountain' },
+      goals: ['study', 'prepareWar', 'observe']
     }
   };
 
@@ -301,12 +340,17 @@
     southernFront: { source: 'reference/novel/第5卷：魔王雄霸/第300章.txt', note: '南疆、武家、武遗海与乔家关系把超级家族、外交和边境战争连接起来。' },
     westernDesert: { source: 'reference/novel/第5卷：魔王雄霸/第500章.txt', note: '西漠房家以蛊屋闻名，智道传承和豆神宫构成沙漠势力的结构性玩法。' },
     heavenlyCourt: { source: 'reference/novel/第5卷：魔王雄霸/第700章.txt', note: '天庭、龙公与元莲真传展示了中洲最高层级势力如何把传承与战争合并。' },
-    fiveRegionsWar: { source: 'reference/novel/第5卷：魔王雄霸/第900章.txt', note: '中洲炼蛊大会、五域和方源的撤退，把区域事件升级为跨地图战争与情报博弈。' }
+    fiveRegionsWar: { source: 'reference/novel/第5卷：魔王雄霸/第900章.txt', note: '中洲炼蛊大会、五域和方源的撤退，把区域事件升级为跨地图战争与情报博弈。' },
+    divineEmperor: { source: 'reference/novel/第6卷：魔尊永生/第110章.txt', note: '神帝城作为天庭底牌和人道仙蛊屋，提供城市防御、情报与战争调度的原文依据。' },
+    madDemonCave: { source: 'reference/novel/第6卷：魔尊永生/第120章.txt', note: '疯魔窟、元境和无极魔尊的布置把探索从区域资源提升到天地奥秘与终局风险。' },
+    twoHeavens: { source: 'reference/novel/第6卷：魔尊永生/第200章.txt', note: '书山、蛮荒大世界、天庭与无极遗产构成两天战场和信息战的模拟锚点。' },
+    starHost: { source: 'reference/novel/第6卷：魔尊永生/第300章.txt', note: '两天混淆、天庭天脉节点和星宿安排让世界进入跨层级灾变结算。' },
+    reverseFlow: { source: 'reference/novel/第6卷：魔尊永生/第231章.txt', note: '逆流河与方源的求生线适合构造成持续危险、追逐和资源消耗系统。' }
   };
 
   const CONTENT_INDEX = {
-    id: 'gu-five-regions-v5',
-    title: '蛊真人 · 五域战争 simulation-first 内容包',
+    id: 'gu-eternal-war-v6',
+    title: '蛊真人 · 五域与两天终局 simulation-first 内容包',
     volumes: [{ id: 'volume-1', title: '第1卷：魔性不改', arcs: [
       { id: 'opening', chapters: ['第6章.txt', '第7章.txt', '第14章.txt'], sourceKeys: ['opening', 'academy', 'relic'] },
       { id: 'market-and-wolf', chapters: ['第109章.txt', '第110章.txt', '第112章.txt', '第123章.txt'], sourceKeys: ['market', 'auction', 'wolf'] },
@@ -330,6 +374,13 @@
       { id: 'western-desert', chapters: ['第500章.txt'], sourceKeys: ['westernDesert'] },
       { id: 'heavenly-court', chapters: ['第700章.txt'], sourceKeys: ['heavenlyCourt'] },
       { id: 'five-regions-war', chapters: ['第900章.txt'], sourceKeys: ['fiveRegionsWar'] }
+    ] },
+    { id: 'volume-6', title: '第6卷：魔尊永生', arcs: [
+      { id: 'divine-emperor', chapters: ['第100章.txt', '第110章.txt'], sourceKeys: ['divineEmperor'] },
+      { id: 'mad-demon-cave', chapters: ['第120章.txt', '第125章.txt'], sourceKeys: ['madDemonCave'] },
+      { id: 'two-heavens', chapters: ['第190章.txt', '第200章.txt'], sourceKeys: ['twoHeavens'] },
+      { id: 'star-host', chapters: ['第276章.txt', '第300章.txt'], sourceKeys: ['starHost'] },
+      { id: 'reverse-flow', chapters: ['第226章.txt', '第231章.txt'], sourceKeys: ['reverseFlow'] }
     ] }
   ]
   };
@@ -360,5 +411,5 @@
     ] }
   ];
 
-  return { CONTENT_VERSION: 5, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
+  return { CONTENT_VERSION: 6, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
 });

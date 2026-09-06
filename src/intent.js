@@ -11,7 +11,7 @@
     heavenClimbMountain: ['天梯山'], northernPlains: ['北原', '草原'], blackTribeCamp: ['黑家军营', '黑家大军营地'],
     imperialCourt: ['王庭福地'], trueYangTower: ['真阳楼', '八十八角真阳楼'], foxFairyLand: ['狐仙福地'],
     centralContinent: ['中洲'], immortalAuction: ['中洲拍卖会', '仙蛊拍卖', '拍卖大会'], immortalCraneSect: ['仙鹤门'],
-    southernBorder: ['南疆'], westernDesert: ['西漠'], easternSea: ['东海'], heavenlyCourt: ['天庭'], longLifeHeaven: ['长生天'], shadowSectRuins: ['影宗遗址', '影宗']
+    southernBorder: ['南疆'], westernDesert: ['西漠'], easternSea: ['东海'], heavenlyCourt: ['天庭'], longLifeHeaven: ['长生天'], shadowSectRuins: ['影宗遗址', '影宗'], divineEmperorCity: ['神帝城'], bookMountain: ['书山'], primordialDesolateWorld: ['蛮荒大世界', '蛮荒世界'], loessWorld: ['黄土大世界', '黄土世界'], reverseFlowRiver: ['逆流河'], dreamRealms: ['梦境战场', '梦境'], madDemonCave: ['疯魔窟', '元境']
   };
 
   function normalized(text) { return String(text || '').replace(/[，。！？、,.!?\s]/g, '').toLowerCase(); }
@@ -31,6 +31,7 @@
     if (/北原巡逻|军帐巡逻|侦察北原/.test(q)) return { ok: true, command: { type: 'action', id: 'frontier_patrol' }, label: '执行北原巡逻' };
     if (/真阳楼闯关|闯楼|登塔/.test(q)) return { ok: true, command: { type: 'action', id: 'tower_floor' }, label: '挑战真阳楼楼层' };
     if (/拍卖|竞拍|仙蛊/.test(q)) return { ok: true, command: { type: 'action', id: 'auction_lot', mode: /观察|看看/.test(q) ? 'observe' : /情报|传闻/.test(q) ? 'rumor' : 'bid' }, label: '处理一笔拍卖会交易' };
+    if (/梦境|入梦|梦道/.test(q)) return { ok: true, command: { type: 'action', id: 'dream_dive' }, label: '探索梦境' };
     if (/听课|学习/.test(q)) return { ok: true, command: { type: 'action', id: 'study' }, label: '听课' };
     if (/采集|采摘|取水|调查|探索|观察/.test(q)) return { ok: true, command: { type: 'action', id: 'gather' }, label: '探索并采集' };
     if (/休息|睡觉/.test(q)) return { ok: true, command: { type: 'action', id: 'rest' }, label: '休息' };

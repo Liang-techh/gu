@@ -158,7 +158,7 @@
       factions: {},
       relationships: {},
       facts: {},
-      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false, northernFrontierOpened: false, blackCampaign: false, imperialCourtOpened: false, trueYangTowerFormed: false, foxFairyLandOpened: false, centralContinentOpened: false, immortalAuctionOpened: false, sectPressureActive: false, shadowSectRebuilt: false, fiveRegionsWarOpened: false, southernFrontOpened: false, westernFrontOpened: false, heavenlyCourtOpened: false },
+      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false, northernFrontierOpened: false, blackCampaign: false, imperialCourtOpened: false, trueYangTowerFormed: false, foxFairyLandOpened: false, centralContinentOpened: false, immortalAuctionOpened: false, sectPressureActive: false, shadowSectRebuilt: false, fiveRegionsWarOpened: false, southernFrontOpened: false, westernFrontOpened: false, heavenlyCourtOpened: false, divineEmperorOpened: false, twoHeavensOpened: false, madDemonCaveOpened: false, dreamSurgeOpened: false, starHostPlanOpened: false },
       events: { active: null, pending: [], recent: [], history: [], sequence: 0 },
       combat: null,
       arena: { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 },
@@ -167,6 +167,7 @@
       tower: { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false },
       central: { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, auctionHeat: 0, sectPressure: 0 },
       worldWar: { shadowRebuilt: false, fiveRegions: false, southern: false, western: false, heavenly: false, heat: 0 },
+      eternalWar: { divineEmperor: false, twoHeavens: false, madDemonCave: false, dream: false, starHost: false, dreamPressure: 0, cosmicHeat: 0, dives: 0, successes: 0, failures: 0 },
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
       log: [],
       version: 1
@@ -339,6 +340,31 @@
       { id: 'infiltrate', label: '窥探天庭决策', hint: '获得高层情报，但会显著提高天庭敌意。' },
       { id: 'defend', label: '承认并利用天庭秩序', hint: '降低局部压力，换取天庭的暂时容纳。' },
       { id: 'observe', label: '保持距离观察', hint: '获得洞察，不立刻改变阵营关系。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'divineEmperorArrival', priority: 250, when: state => state.flags.heavenlyCourtOpened && !state.flags.divineEmperorOpened && day(state) >= 200 && ['centralContinent', 'divineEmperorCity', 'heavenlyCourt'].includes(state.entities.player.position.location), build: () => ({ id: 'divineEmperorArrival', type: 'human', title: '神帝城开始调度人道战线', text: '天庭的战争不只靠仙蛊和个人强者。神帝城像一座会移动的国家，把人道、情报、守城和前线调度压缩在同一件仙蛊屋里。', source: SOURCE_NOTES.divineEmperor, choices: [
+      { id: 'enter', label: '进入神帝城观察', hint: '获得人道与城市防御情报，接受天庭关注。' },
+      { id: 'trade', label: '交换五域战报', hint: '获得元石和洞察，让各方重新评估你。' },
+      { id: 'avoid', label: '避开人道战线', hint: '保持行动自由，但错过天庭的保护网络。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'twoHeavensConvergence', priority: 260, when: state => state.flags.divineEmperorOpened && !state.flags.twoHeavensOpened && day(state) >= 220 && ['bookMountain', 'primordialDesolateWorld', 'loessWorld'].includes(state.entities.player.position.location), build: () => ({ id: 'twoHeavensConvergence', type: 'cosmic', title: '两天战场开始重叠', text: '书山不断收集两大战场的情报，蛮荒大世界与黄土大世界不再是遥远的异域。天庭、异族和无极遗产把战线推进到世界结构本身。', source: SOURCE_NOTES.twoHeavens, choices: [
+      { id: 'support', label: '支援天庭前线', hint: '提高天庭影响，承受两天战场的直接风险。' },
+      { id: 'sabotage', label: '破坏两天补给', hint: '提升战争热度，换取异域资源与情报。' },
+      { id: 'observe', label: '记录两天结构', hint: '获得洞察，暂不站队。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'madDemonCaveOpening', priority: 270, when: state => state.flags.twoHeavensOpened && !state.flags.madDemonCaveOpened && day(state) >= 235 && state.entities.player.position.location === 'madDemonCave', build: () => ({ id: 'madDemonCaveOpening', type: 'relic', title: '疯魔窟的元境线索', text: '疯魔窟最底层的传闻把探索从资源争夺推向天地奥秘。元境、无极魔尊和九转衍化仙蛊的线索让每个进入者都必须重新计算风险。', source: SOURCE_NOTES.madDemonCave, choices: [
+      { id: 'descend', label: '向疯魔窟深处探索', hint: '开启高风险遗产探索，获得终局洞察。' },
+      { id: 'consult', label: '与人道传承者交换信息', hint: '降低部分危险，建立陆畏因的人情关系。' },
+      { id: 'seal', label: '封存入口', hint: '降低世界灾变压力，但会错过无极遗产。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'dreamRealmSurge', priority: 280, when: state => state.flags.twoHeavensOpened && !state.flags.dreamSurgeOpened && day(state) >= 245 && state.entities.player.position.location === 'dreamRealms', build: () => ({ id: 'dreamRealmSurge', type: 'dream', title: '梦境战场潮汐', text: '梦境开始与现实边界互相渗透。探索者、守卫和远方势力都在争夺梦道资源，而梦境里留下的选择会反过来改变现实中的关系。', source: SOURCE_NOTES.twoHeavens, choices: [
+      { id: 'enter', label: '进入梦境深层', hint: '获得洞察与梦道进度，承受精神风险。' },
+      { id: 'harvest', label: '收集梦道资源', hint: '获得资源，让梦境危险度上升。' },
+      { id: 'avoid', label: '避开梦境潮汐', hint: '保留安全，错过一次改变世界认知的窗口。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'starHostPlan', priority: 290, when: state => state.flags.madDemonCaveOpened && state.flags.dreamSurgeOpened && !state.flags.starHostPlanOpened && day(state) >= 260 && state.entities.player.position.location === 'heavenlyCourt', build: () => ({ id: 'starHostPlan', type: 'cosmic', title: '星宿安排与天脉节点', text: '两天混淆让天庭的天脉节点承受前所未有的压力。星宿意志留下的安排不再只是历史背景，而会成为所有势力必须回应的世界级计划。', source: SOURCE_NOTES.starHost, choices: [
+      { id: 'defend', label: '协助稳定天脉节点', hint: '降低宇宙热度，换取天庭的人道资源。' },
+      { id: 'break', label: '寻找安排中的破绽', hint: '获得终局情报，但让天庭与无极遗产同时关注你。' },
+      { id: 'wait', label: '等待两天混淆完成', hint: '保留实力，让其他势力先承担灾变。' }
     ] }) });
   }
 
@@ -617,6 +643,52 @@
       log(state, 'choice', `你处理了天庭的五域战争决策：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.heavenlyCourt });
       return true;
     });
+    Engine.registerEvent('divineEmperorArrival', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.divineEmperorOpened = true; state.eternalWar.divineEmperor = true; activateSeed(state, 'qindingling');
+      if (choice === 'enter') { p.cultivation.insight += 12; state.factions.humanPathAlliance.influence += 5; state.factions.heavenlyCourt.influence += 4; }
+      if (choice === 'trade') { p.inventory.stones += 7; p.cultivation.insight += 6; state.facts.divineEmperorIntel = true; state.factions.heavenlyCourt.tension += 3; }
+      if (choice === 'avoid') { state.director.pressure += 2; state.factions.heavenlyCourt.attitude -= 3; }
+      log(state, 'choice', `你处理了神帝城的人道战线：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.divineEmperor });
+      return true;
+    });
+    Engine.registerEvent('twoHeavensConvergence', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.twoHeavensOpened = true; state.eternalWar.twoHeavens = true; state.eternalWar.cosmicHeat += choice === 'sabotage' ? 12 : 6;
+      state.factions.twoHeavensForces.tension += choice === 'sabotage' ? 8 : 3; state.factions.heavenlyCourt.tension += 4;
+      if (choice === 'support') { state.factions.heavenlyCourt.influence += 8; p.inventory.stones = Math.max(0, p.inventory.stones - 2); }
+      if (choice === 'sabotage') { p.inventory.stones += 6; p.cultivation.insight += 8; state.facts.twoHeavensSabotage = true; }
+      if (choice === 'observe') { p.cultivation.insight += 14; state.facts.twoHeavensIntel = true; }
+      log(state, 'choice', `你处理了两天战场重叠：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.twoHeavens });
+      return true;
+    });
+    Engine.registerEvent('madDemonCaveOpening', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.madDemonCaveOpened = true; state.eternalWar.madDemonCave = true; activateSeed(state, 'luweiyin');
+      if (choice === 'descend') { p.cultivation.insight += 18; state.eternalWar.cosmicHeat += 10; state.facts.originSecret = true; }
+      if (choice === 'consult') { relation(state, 'player', 'luweiyin').trust += 8; p.cultivation.insight += 10; state.eternalWar.cosmicHeat = Math.max(0, state.eternalWar.cosmicHeat - 3); }
+      if (choice === 'seal') { state.eternalWar.cosmicHeat = Math.max(0, state.eternalWar.cosmicHeat - 8); state.director.pressure += 1; }
+      log(state, 'choice', `你处理了疯魔窟的元境线索：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.madDemonCave });
+      return true;
+    });
+    Engine.registerEvent('dreamRealmSurge', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.dreamSurgeOpened = true; state.eternalWar.dream = true;
+      if (choice === 'enter') { p.cultivation.insight += 16; state.eternalWar.dreamPressure += 10; state.facts.dreamDepth = (state.facts.dreamDepth || 0) + 1; }
+      if (choice === 'harvest') { p.inventory.stones += 5; state.eternalWar.dreamPressure += 14; state.factions.dreamPathForces.influence += 6; }
+      if (choice === 'avoid') { state.eternalWar.dreamPressure = Math.max(0, state.eternalWar.dreamPressure - 5); state.director.pressure += 1; }
+      log(state, 'choice', `你处理了梦境战场潮汐：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.twoHeavens });
+      return true;
+    });
+    Engine.registerEvent('starHostPlan', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.starHostPlanOpened = true; state.eternalWar.starHost = true;
+      if (choice === 'defend') { state.eternalWar.cosmicHeat = Math.max(0, state.eternalWar.cosmicHeat - 12); state.factions.heavenlyCourt.influence += 8; }
+      if (choice === 'break') { p.cultivation.insight += 22; state.eternalWar.cosmicHeat += 15; state.facts.starHostWeakness = true; state.factions.heavenlyCourt.tension += 10; }
+      if (choice === 'wait') { p.needs.energy = Math.min(100, p.needs.energy + 20); state.eternalWar.cosmicHeat += 4; }
+      log(state, 'choice', `你处理了星宿安排与天脉节点：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.starHost });
+      return true;
+    });
   }
 
   function normalize(state) {
@@ -629,12 +701,18 @@
     state.tower ||= { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false };
     state.central ||= { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, auctionHeat: 0, sectPressure: 0 };
     state.worldWar ||= { shadowRebuilt: false, fiveRegions: false, southern: false, western: false, heavenly: false, heat: 0 };
+    state.eternalWar ||= { divineEmperor: false, twoHeavens: false, madDemonCave: false, dream: false, starHost: false, dreamPressure: 0, cosmicHeat: 0, dives: 0, successes: 0, failures: 0 };
     state.arena.matches = Math.max(0, Number(state.arena.matches) || 0); state.arena.wins = Math.max(0, Number(state.arena.wins) || 0); state.arena.losses = Math.max(0, Number(state.arena.losses) || 0); state.arena.streak = Math.max(0, Number(state.arena.streak) || 0); state.arena.reputation = Math.max(0, Number(state.arena.reputation) || 0);
     state.inheritance.attempts = Math.max(0, Number(state.inheritance.attempts) || 0); state.inheritance.round = Math.max(0, Number(state.inheritance.round) || 0); state.inheritance.difficulty = Math.max(1, Number(state.inheritance.difficulty) || 1); state.inheritance.discoveries ||= [];
     state.frontier.supply = clamp(Number(state.frontier.supply) || 0, 0, 100); state.frontier.campaignPressure = clamp(Number(state.frontier.campaignPressure) || 0, 0, 100); state.frontier.battles = Math.max(0, Number(state.frontier.battles) || 0); state.frontier.casualties = Math.max(0, Number(state.frontier.casualties) || 0);
     state.tower.floors = Math.max(0, Number(state.tower.floors) || 0); state.tower.attempts = Math.max(0, Number(state.tower.attempts) || 0); state.tower.discoveries ||= [];
     state.central.lotsSold = Math.max(0, Number(state.central.lotsSold) || 0); state.central.auctionHeat = clamp(Number(state.central.auctionHeat) || 0, 0, 100); state.central.sectPressure = clamp(Number(state.central.sectPressure) || 0, 0, 100);
     state.worldWar.heat = clamp(Number(state.worldWar.heat) || 0, 0, 100);
+    state.eternalWar.dreamPressure = clamp(Number(state.eternalWar.dreamPressure) || 0, 0, 100);
+    state.eternalWar.cosmicHeat = clamp(Number(state.eternalWar.cosmicHeat) || 0, 0, 100);
+    state.eternalWar.dives = Math.max(0, Number(state.eternalWar.dives) || 0);
+    state.eternalWar.successes = Math.max(0, Number(state.eternalWar.successes) || 0);
+    state.eternalWar.failures = Math.max(0, Number(state.eternalWar.failures) || 0);
     for (const entity of Engine.queryWith(state, 'cultivation')) {
       Condition.ensure(entity);
       const c = entity.cultivation;
@@ -812,6 +890,11 @@
       if (zone) zone.activity += event.payload.result === 'bid' ? 8 : 4;
       if (state.factions.auctionImmortals) state.factions.auctionImmortals.tension += event.payload.result === 'bid' ? 0.8 : 0.2;
     });
+    Engine.registerEventListener('dream.dive', 'dreamRealmPressure', ({ state, event }) => {
+      const zone = state.zones.dreamRealms;
+      if (zone) { zone.activity += event.payload.result === 'success' ? 8 : 12; zone.danger += event.payload.result === 'success' ? 1 : 3; }
+      if (state.factions.dreamPathForces) state.factions.dreamPathForces.tension += event.payload.result === 'success' ? 0.4 : 1.2;
+    });
   }
 
   function performArenaMatch(state, p) {
@@ -924,6 +1007,30 @@
     advance(state, 2, 'auction_lot');
   }
 
+  function performDreamDive(state, p) {
+    if (p.position.location !== 'dreamRealms' || !state.eternalWar?.dream) throw new Error('梦境战场当前没有开放探索窗口');
+    const pressure = state.eternalWar.dreamPressure;
+    const power = 0.38 + p.cultivation.rank * 0.075 + p.cultivation.insight * 0.006 + p.cultivation.aptitude * 0.08;
+    const success = random(state) < clamp(0.72 + power - pressure * 0.004, 0.1, 0.94);
+    state.eternalWar.dives += 1;
+    if (success) {
+      state.eternalWar.successes += 1;
+      state.eternalWar.dreamPressure = clamp(pressure + 4, 0, 100);
+      p.cultivation.insight += 5; p.cultivation.progress += 6;
+      state.facts.dreamDepth = (state.facts.dreamDepth || 0) + 1;
+      remember(state, 'player', 'world', { kind: 'dream', valence: 3, text: '你从梦境深处带回了一段不属于现实的认知。', facts: { dreamDepth: state.facts.dreamDepth } });
+      log(state, 'dream_dive', `你在梦境战场中取得一次突破，梦境深度达到 ${state.facts.dreamDepth}。`, { result: 'success', depth: state.facts.dreamDepth, pressure: state.eternalWar.dreamPressure });
+    } else {
+      state.eternalWar.failures += 1;
+      state.eternalWar.dreamPressure = clamp(pressure + 10, 0, 100);
+      damageEntity(state, 'player', 4 + pressure * 0.05, 'dreamRealms', 'dream_backlash');
+      p.needs.energy -= 10;
+      log(state, 'dream_dive', '梦境反噬把你从深层认知中强行拖回现实。', { result: 'failure', pressure: state.eternalWar.dreamPressure });
+    }
+    Engine.emit(state, 'dream.dive', { actorId: p.id, result: success ? 'success' : 'failure', pressure: state.eternalWar.dreamPressure, dives: state.eternalWar.dives });
+    advance(state, 4, 'dream_dive');
+  }
+
   function performConversation(state, command, p) {
     const npc = requireSameLocation(state, command.target);
     const result = Conversation.resolve(CONVERSATION_DEFS, state, command, { day, relation, remember, log, affectFaction });
@@ -940,6 +1047,7 @@
     Engine.registerAction('frontier_patrol', ({ state, p }) => performFrontierPatrol(state, p));
     Engine.registerAction('tower_floor', ({ state, p }) => performTowerFloor(state, p));
     Engine.registerAction('auction_lot', ({ state, command, p }) => performAuctionLot(state, p, command));
+    Engine.registerAction('dream_dive', ({ state, p }) => performDreamDive(state, p));
     Engine.registerAction('conversation', ({ state, command, p }) => performConversation(state, command, p));
     Engine.registerActionHook('after', '*', 'actionMetrics', ({ state, command }) => {
       state.facts.actionCounts ||= {};
@@ -988,6 +1096,12 @@
       if (state.factions.longLifeHeaven) state.factions.longLifeHeaven.tension += 0.2;
       if (state.factions.southernSuperClans && state.worldWar.southern) state.factions.southernSuperClans.tension += 0.15;
       if (state.factions.westernDesertFang && state.worldWar.western) state.factions.westernDesertFang.tension += 0.15;
+    }
+    if (state.eternalWar?.twoHeavens) {
+      state.eternalWar.cosmicHeat = clamp(state.eternalWar.cosmicHeat + 0.3, 0, 100);
+      state.eternalWar.dreamPressure = clamp(state.eternalWar.dreamPressure + (state.eternalWar.dream ? 0.2 : 0), 0, 100);
+      if (state.factions.twoHeavensForces) state.factions.twoHeavensForces.tension += 0.2;
+      if (state.eternalWar.cosmicHeat > 60 && state.factions.heavenlyCourt) state.factions.heavenlyCourt.tension += 0.25;
     }
     Engine.emit(state, 'world.day_tick', { day: day(state), pressure: state.director.pressure });
     log(state, 'day_tick', `第${day(state)}日结束，山寨、势力与人物各自推进了一步。`, { pressure: state.director.pressure });
@@ -1241,7 +1355,7 @@
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), worldWar: copy(state.worldWar), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), domainEvents: copy(state.events.recent || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), worldWar: copy(state.worldWar), eternalWar: copy(state.eternalWar), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), domainEvents: copy(state.events.recent || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
   }
 

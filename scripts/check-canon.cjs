@@ -28,7 +28,12 @@ const checks = [
   ['southernFront', ['南疆', '武遗海', '武家', '乔丝柳']],
   ['westernDesert', ['房家', '西漠', '蛊屋', '豆神宫']],
   ['heavenlyCourt', ['天庭', '龙公', '元莲真传', '紫薇仙子']],
-  ['fiveRegionsWar', ['中洲炼蛊大会', '五域', '方源']]
+  ['fiveRegionsWar', ['中洲炼蛊大会', '五域', '方源']],
+  ['divineEmperor', ['神帝城', '天庭', '方源']],
+  ['madDemonCave', ['元境', '疯魔窟', '人祖传', '无极魔尊']],
+  ['twoHeavens', ['书山', '无极魔尊', '天庭', '蛮荒大世界']],
+  ['starHost', ['星宿安排', '两天混淆', '天庭', '天脉节点']],
+  ['reverseFlow', ['逆流河', '方源']]
 ];
 const failures = [];
 let total = 0;

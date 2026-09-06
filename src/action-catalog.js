@@ -15,7 +15,8 @@
     { id: 'inheritance_round', label: '挑战传承', kind: 'choice', when: ({ here, state }) => here === 'threeForkMountain' && state.inheritance?.active && !state.inheritance.completed, command: ({ state }) => ({ type: 'action', id: 'inheritance_round', label: `挑战传承第${state.inheritance.round + 1}轮` }) },
     { id: 'frontier_patrol', label: '北原巡逻', kind: 'choice', when: ({ here, state }) => ['northernPlains', 'blackTribeCamp'].includes(here) && state.frontier?.opened, command: ({ state }) => ({ type: 'action', id: 'frontier_patrol', label: `北原巡逻（补给 ${Math.round(state.frontier.supply)}）` }) },
     { id: 'tower_floor', label: '闯真阳楼', kind: 'choice', when: ({ here, state }) => here === 'trueYangTower' && state.tower?.active, command: ({ state }) => ({ type: 'action', id: 'tower_floor', label: `闯真阳楼第${state.tower.floors + 1}层` }) },
-    { id: 'auction_lot', label: '参加仙蛊拍卖', kind: 'choice', when: ({ here, state }) => here === 'immortalAuction' && state.central?.auctionActive, command: ({ state }) => ({ type: 'action', id: 'auction_lot', mode: 'bid', label: `参加仙蛊拍卖（已成交 ${state.central.lotsSold} 笔）` }) }
+    { id: 'auction_lot', label: '参加仙蛊拍卖', kind: 'choice', when: ({ here, state }) => here === 'immortalAuction' && state.central?.auctionActive, command: ({ state }) => ({ type: 'action', id: 'auction_lot', mode: 'bid', label: `参加仙蛊拍卖（已成交 ${state.central.lotsSold} 笔）` }) },
+    { id: 'dream_dive', label: '探索梦境', kind: 'choice', when: ({ here, state }) => here === 'dreamRealms' && state.eternalWar?.dream, command: ({ state }) => ({ type: 'action', id: 'dream_dive', label: `探索梦境（深度 ${state.facts?.dreamDepth || 0}）` }) }
   ]);
 
   function list(state, { locations } = {}) {
