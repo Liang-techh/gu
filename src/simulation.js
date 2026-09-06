@@ -294,7 +294,7 @@
   });
   GuSystems.register({
     engine: Engine, history: History, zoneRuntime: ZoneRuntime, npcAI: NpcAI, brain: Brain,
-    social: socialRuntime, combat: combatRuntime, market: marketRuntime, pursuit: pursuitRuntime,
+    social: socialRuntime, combat: combatRuntime, market: marketRuntime, pursuit: pursuitRuntime, knowledge: Knowledge,
     agency: agencyRuntime, condition: Condition, effect: Effect, locations: LOCATIONS, phase,
     hour, day, random, clamp, relation, remember, log, relValence, consequence: Consequence.record,
     damageEntity, factionPacts: FactionPacts

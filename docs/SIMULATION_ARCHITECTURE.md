@@ -96,7 +96,7 @@ NPC 的 `prepareWar`、`protectClan`、`patrol` 和 `mediate` 目标也会识别
 
 在此之上，`src/effect.js` 提供 Qud `EffectRack` 的通用实例层：效果拥有独立 `kind/id`、持续时间、强度、来源、叠加策略、数据载荷和 `onApply/onRefresh/onTick/onExpire/onRemove` 生命周期。当前冲突会给每次命中附着可叠加的 `wound` 效果，小时系统逐实体推进并发出 `effect.expired` 领域事件；因此“伤势”“中毒”“蛊虫反噬”“临时增益”可以共用同一运行时，而不必继续扩张条件或战斗专用分支。`src/combat.js` 是统一战斗解析器：玩家攻击/蛊术/防守/脱身回合、环境伤害、离线冲突和活跃 NPC 伏击都经由同一个 `damage/exchange` 入口，自动写入部位、伤势、死亡、记忆、事件 provenance 和持久后果；NPC 额外使用 pair cooldown，避免同一小时重复交换。战斗回合由 Action Registry 注册，`simulation.js` 不再保留玩家战斗分支。
 
-`src/knowledge.js` 把记忆中的事实进一步结构化为 `value / confidence / kind / clock / source / provenance`，并维护每个实体对其他实体的 `suspicion` 与身份 `masks`。传闻默认低置信度，亲历观察和秘密线索置信度更高；怀疑度达到阈值后，NPC AI 会优先调查、观察或避开玩家。这样“谁知道什么”成为世界状态，而不只是日志文本。
+`src/knowledge.js` 把记忆中的事实进一步结构化为 `value / confidence / originConfidence / kind / clock / source / provenance`，并维护每个实体对其他实体的 `suspicion` 与身份 `masks`。传闻默认低置信度，亲历观察和秘密线索置信度更高；知识按世界时间衰减但不会立即抹除，强观察可以重新提高其置信度。`observeZone` 将资源、危险和观察时刻写入实体所在地点的知识槽，NPC 的目标评分再读取这些带时效的信息决定是否重新观察、采集遗藏或巡逻。怀疑度达到阈值后，NPC AI 会优先调查、观察或避开玩家。这样“谁知道什么”成为世界状态，而不只是日志文本。
 
 `src/social.js` 把交互从玩家 UI 回调提升为可复用的 Social Interaction runtime。帮助、施压、交易、交谈和调停都通过同一个 resolver 更新关系、记忆、状态效果、势力和事件账本；NPC-NPC 行动也调用同一入口。普通自治交谈保留在局部记忆，威胁/调停和玩家行为才升级为传闻传播，形成“局部交互 → 社会事件 → 势力情报”的分层成本模型。自治交互还带有行动者冷却，避免高人口区域在每个 AI tick 重复刷同一对话。
 

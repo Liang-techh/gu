@@ -4,15 +4,32 @@
 })(globalThis, function () {
   'use strict';
 
+  function knownFact(npc, location, fact) {
+    const entry = npc.knowledge?.facts?.[location]?.[fact];
+    return entry && typeof entry === 'object' && typeof entry.confidence === 'number' ? entry : null;
+  }
+
+  function knowledgeAge(state, entry) {
+    return entry ? Math.max(0, state.clock - Number(entry.clock || 0)) : Infinity;
+  }
+
   function goalScore(state, npc, goal, { day, relation }) {
     const rel = relation(state, npc.id, 'player');
     const faction = npc.faction ? state.factions[npc.faction] : null;
     const queueIndex = npc.goals.queue.indexOf(goal);
     const personality = npc.personality || {};
+    const ambition = Number(personality.ambition || 0);
+    const curiosity = Number(personality.curiosity || 0);
+    const loyalty = Number(personality.loyalty || 0);
+    const greed = Number(personality.greed || 0);
     const suspicion = Number(npc.knowledge?.suspicion?.player?.value || 0);
     const caseState = state.intel?.cases?.player;
     const factionCase = npc.faction ? caseState?.factions?.[npc.faction] : null;
     const casePressure = Number(factionCase?.pressure || 0);
+    const location = npc.position?.location;
+    const observed = knownFact(npc, location, 'observedResources');
+    const observedDanger = knownFact(npc, location, 'observedDanger');
+    const relicClue = knownFact(npc, location, 'relicClue');
     let score = queueIndex >= 0 ? 2.2 - queueIndex * 0.18 : 0.05;
     if (goal === 'avoidPlayer') score += rel.fear * 0.06 + (faction?.attitude < -25 ? 3 : 0);
     if (goal === 'avoidPlayer') score += suspicion * 0.045;
@@ -20,13 +37,21 @@
     if (goal === 'survive' || goal === 'returnHome') score += Math.max(0, 65 - npc.needs.safety) * 0.05;
     if (goal === 'prepareWar' || goal === 'patrol' || goal === 'ambush') score += (faction?.tension || 0) * 0.055;
     if (goal === 'maintainOrder' || goal === 'mediate') score += (faction?.tension || 0) * 0.035;
-    if (goal === 'gainRecognition' || goal === 'proveWorth') score += personality.ambition * 0.035 + state.director.pressure * 0.4;
-    if (goal === 'collectRumors' || goal === 'investigate' || goal === 'observe') score += personality.curiosity * 0.025;
+    if (goal === 'gainRecognition' || goal === 'proveWorth') score += ambition * 0.035 + state.director.pressure * 0.4;
+    if (goal === 'collectRumors' || goal === 'investigate' || goal === 'observe') score += curiosity * 0.025;
     if (goal === 'collectRumors' || goal === 'investigate' || goal === 'observe') score += suspicion * 0.035;
     if (goal === 'collectRumors' || goal === 'investigate') score += casePressure * 0.06;
     if (goal === 'ambush' || goal === 'patrol') score += casePressure * 0.04;
-    if (goal === 'protectClan' || goal === 'protectBrother' || goal === 'protectFather' || goal === 'protectDaughter') score += personality.loyalty * 0.025;
-    if (goal === 'trade' || goal === 'auction') score += personality.greed * 0.018;
+    if (goal === 'observe') score += observed ? Math.min(1.4, knowledgeAge(state, observed) / 96) : 0.9;
+    if (goal === 'findRelic') score += relicClue ? Math.max(0, relicClue.confidence * 0.8 - 0.2) : 0.35;
+    if (goal === 'secureResources' || goal === 'forage') {
+      const resources = observed?.value && typeof observed.value === 'object' ? observed.value : {};
+      const knownSupply = Object.values(resources).reduce((sum, value) => sum + Number(value || 0), 0);
+      score += Math.min(1.2, knownSupply * 0.03) * (observed ? observed.confidence : 0.25);
+    }
+    if (goal === 'patrol' && observedDanger) score += Math.min(1.1, Number(observedDanger.value || 0) * 0.012) * observedDanger.confidence;
+    if (goal === 'protectClan' || goal === 'protectBrother' || goal === 'protectFather' || goal === 'protectDaughter') score += loyalty * 0.025;
+    if (goal === 'trade' || goal === 'auction') score += greed * 0.018;
     const recent = (npc.goals.history || []).filter(item => item.goal === goal && day(state) - item.day <= 1).length;
     score -= recent * 0.35;
     score += ((day(state) + npc.id.length + goal.length) % 7) * 0.01;

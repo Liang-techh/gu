@@ -8,7 +8,7 @@
   // only supplies Gu-specific state transitions through the same registry.
   function register({
     engine, history, zoneRuntime, npcAI, brain, social, combat, market, pursuit, agency,
-    condition, effect, locations, phase, hour, day, random, clamp, relation, remember,
+    condition, effect, knowledge, locations, phase, hour, day, random, clamp, relation, remember,
     log, relValence, consequence, damageEntity, factionPacts
   }) {
     engine.registerSystem('hour', 'conditionTick', ({ state }) => {
@@ -60,6 +60,7 @@
         npc.needs.energy = clamp(npc.needs.energy + 35, 0, 100);
         npc.needs.hunger = clamp(npc.needs.hunger - 25, 0, 100);
         for (const episode of npc.memory.episodes) episode.valence *= 0.985;
+        knowledge?.decay(npc, state.clock);
       }
     }, 90);
 

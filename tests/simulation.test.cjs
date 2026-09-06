@@ -299,6 +299,25 @@ test('NPC brains persist perception, scored decisions and a hierarchical next-st
   assert.equal(typeof S.BRAIN.perceive, 'function');
 });
 
+test('NPC knowledge is confidence-weighted, decays with world time and feeds back into goal utility', () => {
+  const state = S.newWorld({ seed: 'knowledge-feedback' });
+  const npc = S.ENTITY.createEntity('knowledge-feedback-npc', { name: '知识反馈者', location: 'bambooForest', goals: ['observe', 'secureResources'] });
+  state.entities[npc.id] = npc;
+  const relation = (world, a, b) => world.relationships[[a, b].sort().join('::')] || { trust: 0, fear: 0 };
+  const before = S.NPC_AI.goalScore(state, npc, 'observe', { day: S.day, relation });
+  assert.ok(S.ENGINE.runGoal('observe', { state, npc }));
+  const observation = S.KNOWLEDGE.get(npc, 'bambooForest', 'observedResources');
+  assert.ok(observation);
+  assert.equal(observation.confidence, 0.82);
+  const informed = S.NPC_AI.goalScore(state, npc, 'secureResources', { day: S.day, relation });
+  assert.ok(informed > 0.05);
+  state.clock += 240;
+  const changed = S.KNOWLEDGE.decay(npc, state.clock);
+  assert.ok(changed >= 1);
+  assert.ok(S.KNOWLEDGE.get(npc, 'bambooForest', 'observedResources').confidence < 0.82);
+  assert.ok(S.NPC_AI.goalScore(state, npc, 'observe', { day: S.day, relation }) > before);
+});
+
 test('goal handler supports resumable parent and child goals', () => {
   const brain = { stack: [] };
   const root = S.GOAL_HANDLER.pushGoal(brain, 'investigate', { createdClock: 3 });

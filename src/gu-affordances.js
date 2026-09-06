@@ -37,7 +37,7 @@
         zone.activity = (zone.activity || 0) + 2;
         p.cultivation.insight += 1 + (zone.danger > 60 ? 1 : 0);
         state.facts.observationCount = (state.facts.observationCount || 0) + 1;
-        remember(state, p.id, 'world', { kind: 'zone-observation', valence: 1, text: `${actorName(p)}观察了${locations[p.position.location].name}的资源、危险与活动痕迹。`, facts: { observedLocation: p.position.location, danger: zone.danger, resources: copy(zone.resources) } });
+        remember(state, p.id, p.position.location, { kind: 'observation', valence: 1, confidence: 0.82, text: `${actorName(p)}观察了${locations[p.position.location].name}的资源、危险与活动痕迹。`, facts: { observedLocation: p.position.location, observedDanger: zone.danger, observedResources: copy(zone.resources), observedAt: state.clock } });
         emit(state, 'zone.observed', { actorId: p.id, location: p.position.location, danger: zone.danger, activity: zone.activity, resources: copy(zone.resources) });
         log(state, 'zone_observation', `${actorName(p)}观察了${locations[p.position.location].name}，把这里的资源与危险写入自己的判断。`, { actorId: p.id, location: p.position.location, danger: zone.danger, resources: copy(zone.resources) });
         advanceIfRequested(state, context, 1, 'observe_zone');
@@ -94,9 +94,9 @@
         zone.activity += 8; zone.visits = (zone.visits || 0) + 1; p.needs.energy -= 5; p.needs.safety -= zone.danger > 55 ? 4 : 1;
         if (found) {
           p.cultivation.insight += 3; state.facts.relicInterest = (state.facts.relicInterest || 0) + 1; state.facts[`relicClue:${loc}`] = (state.facts[`relicClue:${loc}`] || 0) + 1;
-          remember(state, p.id, 'world', { kind: 'relic-clue', valence: 3, confidence: quality, text: `${actorName(p)}在${locations[loc].name}找到一段尚未完整的遗藏线索。`, facts: { relicClue: true, relicLocation: loc, confidence: quality } });
+          remember(state, p.id, loc, { kind: 'relic-clue', valence: 3, confidence: quality, text: `${actorName(p)}在${locations[loc].name}找到一段尚未完整的遗藏线索。`, facts: { relicClue: true, relicLocation: loc, relicConfidence: quality } });
         } else {
-          remember(state, p.id, 'world', { kind: 'failed-search', valence: -1, confidence: 0.45, text: `${actorName(p)}在${locations[loc].name}搜索无果，但确认这里的痕迹并非自然形成。`, facts: { failedRelicSearch: true, relicLocation: loc } });
+          remember(state, p.id, loc, { kind: 'failed-search', valence: -1, confidence: 0.45, text: `${actorName(p)}在${locations[loc].name}搜索无果，但确认这里的痕迹并非自然形成。`, facts: { failedRelicSearch: true, relicLocation: loc } });
           consequence(state, { kind: 'failed_relic_search', actorId: p.id, source: 'searchRelic', location: loc, reason: '搜索遗藏失败留下时间与暴露成本，后来者可能从活动痕迹中推断你的目标。', data: { location: loc, quality, danger: zone.danger }, tension: 0.5, pressure: 0.08 });
         }
         emit(state, 'zone.relic_search', { actorId: p.id, location: loc, found, quality, activity: zone.activity });

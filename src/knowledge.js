@@ -34,7 +34,7 @@
     const certainty = Math.max(0, Math.min(1, Number(confidence ?? CONFIDENCE_BY_KIND[kind] ?? 0.6)));
     for (const [fact, value] of Object.entries(facts)) {
       const previous = knowledge.facts[subjectId][fact];
-      const incoming = { value, confidence: certainty, kind, clock, source, provenance: Array.isArray(provenance) ? provenance.slice(-8) : [] };
+      const incoming = { value, confidence: certainty, originConfidence: certainty, kind, clock, source, provenance: Array.isArray(provenance) ? provenance.slice(-8) : [] };
       if (!previous || typeof previous !== 'object' || !Object.prototype.hasOwnProperty.call(previous, 'confidence')) {
         knowledge.facts[subjectId][fact] = incoming;
         continue;
@@ -43,7 +43,7 @@
       const alternatives = Array.isArray(previous.alternatives) ? previous.alternatives.slice(-5) : [];
       if (!sameValue) alternatives.push({ value: previous.value, confidence: previous.confidence, kind: previous.kind, clock: previous.clock, source: previous.source, provenance: previous.provenance || [] });
       if (sameValue || certainty >= previous.confidence) {
-        knowledge.facts[subjectId][fact] = { ...incoming, confidence: Math.max(previous.confidence, certainty), alternatives };
+        knowledge.facts[subjectId][fact] = { ...incoming, confidence: Math.max(previous.confidence, certainty), originConfidence: Math.max(previous.originConfidence || previous.confidence, certainty), alternatives };
       } else {
         knowledge.facts[subjectId][fact] = { ...previous, alternatives: [...alternatives, { value, confidence: certainty, kind, clock, source, provenance: incoming.provenance }].slice(-6) };
       }
@@ -80,6 +80,23 @@
     return [...(get(entity, subjectId, fact)?.alternatives || [])];
   }
 
+  function decay(entity, clock, { halfLifeHours = 240, floor = 0.08 } = {}) {
+    if (!entity) return 0;
+    const knowledge = ensure(entity);
+    let changed = 0;
+    for (const facts of Object.values(knowledge.facts || {})) {
+      for (const entry of Object.values(facts || {})) {
+        if (!entry || typeof entry !== 'object' || typeof entry.confidence !== 'number' || !Number.isFinite(entry.clock)) continue;
+        const age = Math.max(0, Number(clock) - Number(entry.clock));
+        if (!age) continue;
+        const origin = Number(entry.originConfidence ?? entry.confidence);
+        const next = Math.max(floor, Math.min(1, origin * Math.pow(0.5, age / halfLifeHours)));
+        if (Math.abs(next - entry.confidence) > 1e-9) { entry.confidence = next; changed += 1; }
+      }
+    }
+    return changed;
+  }
+
   function setMask(entity, maskId, patch = {}) {
     if (!entity || !maskId) return null;
     const knowledge = ensure(entity);
@@ -87,5 +104,5 @@
     return knowledge.masks[maskId];
   }
 
-  return { CONFIDENCE_BY_KIND, ensure, record, get, knows, alternatives, raiseSuspicion, suspicion, setMask };
+  return { CONFIDENCE_BY_KIND, ensure, record, get, knows, alternatives, decay, raiseSuspicion, suspicion, setMask };
 });

@@ -19,7 +19,7 @@
 - 组件化蛊虫能力运行时 [src/ability.js](<D:\Caves of Qud\gu-rpg\src\ability.js>)：炼化、学习、真元消耗、能力发动和 `ability.used` 事件统一处理，不再把月光蛊逻辑写死在战斗分支中；
 - 独立实体/组件工厂 [src/entity.js](<D:\Caves of Qud\gu-rpg\src\entity.js>)：玩家、关键 NPC 和环境居民共用同一套组件默认值与校验入口；
 - 运行时组件与状态效果 [src/condition.js](<D:\Caves of Qud\gu-rpg\src\condition.js>)：恐惧、受伤等效果可以附着、刷新、过期，并被 NPC AI 和小时系统读取；引擎提供组件 attach/detach/patch 与动作前后钩子；
-- 信息与怀疑组件 [src/knowledge.js](<D:\Caves of Qud\gu-rpg\src\knowledge.js>)：事实带置信度、来源和时间，NPC 对玩家的怀疑会影响调查、观察和回避目标，支持身份伪装与反转；
+- 信息与怀疑组件 [src/knowledge.js](<D:\Caves of Qud\gu-rpg\src\knowledge.js>)：事实带置信度、来源和时间，知识会随世界时间衰减，NPC 对玩家的怀疑以及对区域资源/危险的观察会反过来影响调查、采集、侦查和回避目标，支持身份伪装与反转；
 - 身份面具组件 [src/identity.js](<D:\Caves of Qud\gu-rpg\src\identity.js>)：公开标签、面具强度、主动切换、指定 NPC 摊牌和交易痕迹都进入同一份世界状态；
 - 内容驱动对话运行时 [src/conversation.js](<D:\Caves of Qud\gu-rpg\src\conversation.js>)：地点、旗标、信任门槛和对话选项后果统一写入关系、势力、记忆与历史；
 - 独立委托运行时 [src/contracts.js](<D:\Caves of Qud\gu-rpg\src\contracts.js>)：委托发现、目标判定、接受、交付和奖励不再混在主模拟器中；
