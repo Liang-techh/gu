@@ -83,6 +83,9 @@ test('domain events persist as a ledger and spread local rumors to uninvolved NP
   assert.ok(S.snapshot(state).domainEvents.some(event => event.type === 'social.interaction'));
   assert.ok(state.entities[uninvolved.id].memory.episodes.some(item => item.kind === 'rumor-social'));
   assert.equal(state.entities[uninvolved.id].memory.facts.fangzheng.heardInteraction !== undefined, true);
+  const factionObserver = Object.values(state.entities).find(entity => entity.id !== 'player' && entity.id !== 'fangzheng' && entity.faction === 'guYue' && entity.position.location !== 'academy');
+  assert.ok(factionObserver);
+  assert.ok(state.entities[factionObserver.id].memory.episodes.some(item => item.kind === 'faction-rumor'));
 });
 
 test('content-driven NPC contracts persist through acceptance, objective progress and delivery', () => {

@@ -41,6 +41,7 @@
     const payload = event.payload || {};
     const excluded = new Set([payload.actorId, payload.sourceId, payload.targetId].filter(Boolean));
     let count = 0;
+    const localAudience = new Set();
     for (const listener of query(state, entity => entity.alive && entity.position?.location === location && !excluded.has(entity.id))) {
       remember(state, listener.id, subjectId, {
         kind: rule.kind,
@@ -48,10 +49,22 @@
         text,
         facts: { [rule.fact]: event.id }
       });
+      localAudience.add(listener.id);
       count += 1;
     }
+    const subjectFactions = new Set([subject?.faction, state.entities[payload.actorId]?.faction].filter(Boolean));
+    let factionCount = 0;
+    for (const listener of query(state, entity => entity.alive && !excluded.has(entity.id) && !localAudience.has(entity.id) && subjectFactions.has(entity.faction))) {
+      remember(state, listener.id, subjectId, {
+        kind: 'faction-rumor',
+        valence: rule.valence * 0.5,
+        text: `你从${state.factions[listener.faction]?.name || '所属势力'}的关系网中听到：${text}`,
+        facts: { heardFactionNews: event.id }
+      });
+      factionCount += 1;
+    }
     state.facts.rumors ||= [];
-    state.facts.rumors.unshift({ eventId: event.id, type: event.type, location, subjectId, heardBy: count });
+    state.facts.rumors.unshift({ eventId: event.id, type: event.type, location, subjectId, heardBy: count, factionHeardBy: factionCount });
     state.facts.rumors = state.facts.rumors.slice(0, 128);
     return count;
   }
