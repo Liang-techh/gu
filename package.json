@@ -1,10 +1,10 @@
 {
-  "name": "gu-qingmao-immersive-sandbox",
-  "version": "0.4.0",
+  "name": "gu-nine-rank-mud",
+  "version": "1.0.0",
   "private": true,
-  "description": "角色立绘、沉浸场景、原文术语、条件分支与延迟后果的蛊真人同人沙盒",
+  "description": "选项驱动的蛊真人背景 MUD：九转、空窍、蛊虫融合、仙蛊、装备、副本、福地、杀招、成就与多结局",
   "scripts": {
-    "test": "node --check src/visual-ui.js && node --check src/app.js && node --test tests/*.test.cjs",
+    "test": "node --check mud/data.js && node --check mud/engine.js && node --check mud/portraits.js && node --check mud/app.js && node --check src/visual-ui.js && node --check src/app.js && node --test tests/*.test.cjs",
     "check:canon": "node scripts/check-canon.cjs"
   },
   "engines": {"node": ">=18"}

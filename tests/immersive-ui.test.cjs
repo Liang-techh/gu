@@ -6,14 +6,14 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('0.4 entry loads immersive layer after core engine',()=>{
-  const html=read('index.html');
+test('legacy entry still loads immersive layer after core engine',()=>{
+  const html=read('legacy.html');
   assert.match(html,/assets\/immersive-v4\.css/);
   assert.match(html,/src="src\/visual-ui\.js"/);
   assert.ok(html.indexOf('src/engine.js')<html.indexOf('src/visual-ui.js'));
 });
 
-test('immersive adapter preserves engine authority',()=>{
+test('legacy immersive adapter preserves engine authority',()=>{
   const js=read('src/visual-ui.js');
   assert.match(js,/data-cmd/);
   assert.doesNotMatch(js,/E\.dispatch\s*\(/);
@@ -35,4 +35,12 @@ test('immersive stylesheet makes world and character primary',()=>{
   for(const token of ['.v4-player','.v4-dialogue','.v4-world','.v4-dock','.v4-setup-cinematic'])assert.ok(css.includes(token),token);
   assert.match(css,/\.layout>\.character/);
   assert.match(css,/display:none!important/);
+});
+
+test('root entry is now the choice-driven MUD',()=>{
+  const html=read('index.html');
+  assert.match(html,/assets\/mud\.css/);
+  assert.match(html,/mud\/data\.js/);
+  assert.match(html,/mud\/engine\.js/);
+  assert.match(html,/mud\/app\.js/);
 });
