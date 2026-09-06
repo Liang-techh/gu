@@ -20,6 +20,7 @@
 - 独立实体/组件工厂 [src/entity.js](<D:\Caves of Qud\gu-rpg\src\entity.js>)：玩家、关键 NPC 和环境居民共用同一套组件默认值与校验入口；
 - 运行时组件与状态效果 [src/condition.js](<D:\Caves of Qud\gu-rpg\src\condition.js>)：恐惧、受伤等效果可以附着、刷新、过期，并被 NPC AI 和小时系统读取；引擎提供组件 attach/detach/patch 与动作前后钩子；
 - 内容驱动对话运行时 [src/conversation.js](<D:\Caves of Qud\gu-rpg\src\conversation.js>)：地点、旗标、信任门槛和对话选项后果统一写入关系、势力、记忆与历史；
+- 独立委托运行时 [src/contracts.js](<D:\Caves of Qud\gu-rpg\src\contracts.js>)：委托发现、目标判定、接受、交付和奖励不再混在主模拟器中；
 - 领域事件账本与传闻传播 [src/rumor.js](<D:\Caves of Qud\gu-rpg\src\rumor.js>)：事件不再只存在于待处理队列，同地点 NPC 和同势力关系网会根据交互、冲突、资源和战线事件形成带来源的二手记忆；
 - 独立行动目录 [src/action-catalog.js](<D:\Caves of Qud\gu-rpg\src\action-catalog.js>)：可用 command 根据当前世界状态生成，UI、自由意图解析和未来 AI 代理共享同一行动入口；
 - 独立导演运行时 [src/director.js](<D:\Caves of Qud\gu-rpg\src\director.js>)：候选事件发现、选择校验、事件处理器调用和时间推进与小说内容规则分离；

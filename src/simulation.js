@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'), require('./rumor.js'), require('./action-catalog.js'), require('./director.js'), require('./default-goals.js'), require('./intent.js'), require('./ability.js'), require('./condition.js'), require('./contracts.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation, root.GuSimulationRumor, root.GuSimulationActionCatalog, root.GuSimulationDirector, root.GuSimulationDefaultGoals, root.GuSimulationIntent, root.GuSimulationAbility, root.GuSimulationCondition, root.GuSimulationContracts);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation, Rumor, ActionCatalog, Director, DefaultGoals, Intent, Ability, Condition, Contracts) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -18,6 +18,7 @@
   if (!Intent) throw new Error('GuSimulationIntent must load before simulation.js');
   if (!Ability) throw new Error('GuSimulationAbility must load before simulation.js');
   if (!Condition) throw new Error('GuSimulationCondition must load before simulation.js');
+  if (!Contracts) throw new Error('GuSimulationContracts must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
   const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS } = Content;
@@ -87,58 +88,7 @@
     return entity;
   }
 
-  function contractDef(id) { return CONTRACT_DEFS.find(definition => definition.id === id); }
-
-  function refreshContracts(state) {
-    state.contracts ||= { available: [], active: {}, completed: [] };
-    state.contracts.available ||= []; state.contracts.active ||= {}; state.contracts.completed ||= [];
-    for (const definition of CONTRACT_DEFS) {
-      if (state.contracts.completed.some(item => item.id === definition.id) || state.contracts.active[definition.id] || state.contracts.available.includes(definition.id)) continue;
-      if (day(state) < definition.availableFromDay) continue;
-      if ((definition.flags || []).some(flag => !state.flags[flag])) continue;
-      if (!state.entities[definition.giver]?.alive) continue;
-      state.contracts.available.push(definition.id);
-    }
-  }
-
-  function contractObjectiveSatisfied(state, definition) {
-    const objective = definition.objective;
-    const p = state.entities.player;
-    if (objective.type === 'helpTalk') return !!state.entities[objective.target]?.memory.facts.player?.helped;
-    if (objective.type === 'investigationLeverage') return !!p.memory.facts.world.investigationLeverage;
-    if (objective.type === 'arenaWins') return state.arena.wins >= objective.count;
-    if (objective.type === 'inheritanceRound') return state.inheritance.round >= objective.count;
-    return false;
-  }
-
-  function acceptContract(state, id) {
-    refreshContracts(state);
-    const definition = contractDef(id);
-    if (!definition || !state.contracts.available.includes(id)) throw new Error('当前没有这份委托');
-    const p = state.entities.player; const giver = state.entities[definition.giver];
-    if (!giver || giver.position.location !== p.position.location || !definition.locations.includes(p.position.location)) throw new Error('委托人不在当前位置');
-    state.contracts.available = state.contracts.available.filter(item => item !== id);
-    state.contracts.active[id] = { id, giver: definition.giver, acceptedClock: state.clock, objective: copy(definition.objective) };
-    remember(state, definition.giver, 'player', { kind: 'contract', valence: 2, text: `你接受了委托“${definition.title}”。`, facts: { contractAccepted: id } });
-    log(state, 'contract', `你接受了委托：${definition.title}。`, { contractId: id, phase: 'accepted' });
-    advance(state, 1, 'contract');
-  }
-
-  function completeContract(state, id) {
-    refreshContracts(state);
-    const definition = contractDef(id); const active = state.contracts.active[id];
-    if (!definition || !active) throw new Error('你没有接受这份委托');
-    if (!contractObjectiveSatisfied(state, definition)) throw new Error('委托目标尚未完成');
-    const p = state.entities.player; const reward = definition.reward || {};
-    if (reward.insight) p.cultivation.insight += reward.insight;
-    if (reward.stones) p.inventory.stones = (p.inventory.stones || 0) + reward.stones;
-    if (reward.reputation) state.arena.reputation += reward.reputation;
-    if (reward.trust) relation(state, 'player', reward.trust.target).trust += reward.trust.amount;
-    if (reward.faction) affectFaction(state, reward.faction.id, reward.faction.attitude || 0, reward.faction.tension || 0);
-    delete state.contracts.active[id]; state.contracts.completed.push({ id, completedClock: state.clock });
-    log(state, 'contract', `你完成了委托：${definition.title}。`, { contractId: id, phase: 'completed', reward });
-    advance(state, 1, 'contract');
-  }
+  let contractRuntime;
 
   function newWorld(options = {}) {
     const seed = String(options.seed ?? '青茅山');
@@ -1042,8 +992,8 @@
   }
 
   function registerActionHandlers() {
-    Engine.registerAction('accept_contract', ({ state, command }) => acceptContract(state, command.contractId));
-    Engine.registerAction('complete_contract', ({ state, command }) => completeContract(state, command.contractId));
+    Engine.registerAction('accept_contract', ({ state, command }) => contractRuntime.accept(state, command.contractId));
+    Engine.registerAction('complete_contract', ({ state, command }) => contractRuntime.complete(state, command.contractId));
     Engine.registerAction('arena_match', ({ state, p }) => performArenaMatch(state, p));
     Engine.registerAction('inheritance_round', ({ state, p }) => performInheritanceRound(state, p));
     Engine.registerAction('frontier_patrol', ({ state, p }) => performFrontierPatrol(state, p));
@@ -1137,7 +1087,7 @@
     }
     directorTick(state);
     normalize(state);
-    refreshContracts(state);
+    contractRuntime.refresh(state);
     if (cause !== 'npc') state.director.lastTick = Math.min(state.director.lastTick, state.clock);
   }
 
@@ -1361,6 +1311,7 @@
     };
   }
 
+  contractRuntime = Contracts.createRuntime({ definitions: CONTRACT_DEFS, day, copy, relation, affectFaction, remember, log, advance });
   registerDirectorRules();
   registerEventHandlers();
   registerGoalHandlers();
@@ -1369,5 +1320,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, CONTRACTS: contractRuntime, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

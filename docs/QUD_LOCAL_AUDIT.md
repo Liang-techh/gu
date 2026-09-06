@@ -31,7 +31,7 @@
 | Event types / before-after events | `dispatch → action/resolve_event → action hooks + event queue + recent ledger/listeners → log/events.history` | 所有状态变化可追踪、可回放、可保存，动作前后钩子与派生区域后果/传闻记忆由监听器组合 |
 | GoalHandlers | `src/npc-ai.js` + NPC `goals.active/queue/history` + `schedule` | 日程只是默认偏好，效用评分会读取记忆、恐惧、需求、性格和世界压力；目标执行仍由运行时注册 |
 | Factions.xml | `factions` + `relationships` | 势力拥有影响力、紧张度、态度，玩家行为会改变关系图 |
-| Conversations + Parts | `src/conversation.js` + `CONVERSATION_DEFS` + `talk` 兼容模式 + NPC memory | 对话条件、选项和后果可组合，对话是交互结果，不是唯一的剧情分支入口 |
+| Conversations + Parts | `src/conversation.js` + `CONVERSATION_DEFS` + `src/contracts.js` + NPC memory | 对话/委托条件、选项和后果可组合，交互结果不是唯一的剧情分支入口 |
 | HistoryKit / HistorySpice | `SOURCE_NOTES` + `history` 账本 + 导演历史 | 小说因果作为可追溯素材，不能直接变成固定结局；导演和世界事件保留有限可回放依据 |
 | Zone / Population / RPM | `locations` + `src/zone-builder.js` + 人口表 | 地点提供标签和邻接关系，区域资源与环境居民可由内容状态重建 |
 
