@@ -486,11 +486,13 @@
       const target = npc.schedule[currentPhase] || npc.position.location;
       const goal = npcGoal(state, npc);
       npc.goals.active = goal;
-      if (target !== npc.position.location && LOCATIONS[npc.position.location].neighbors.includes(target)) {
+      const route = Engine.findPath(state.locations, npc.position.location, target);
+      const nextStep = route[1];
+      if (nextStep) {
         const previous = npc.position.location;
-        npc.position.location = target;
-        Engine.emit(state, 'npc.moved', { npcId: npc.id, from: previous, to: target, goal });
-        log(state, 'npc_move', `${npc.identity.name} 从${LOCATIONS[previous].name}前往${LOCATIONS[target].name}。`, { npcId: npc.id, goal });
+        npc.position.location = nextStep;
+        Engine.emit(state, 'npc.moved', { npcId: npc.id, from: previous, to: nextStep, destination: target, goal });
+        log(state, 'npc_move', `${npc.identity.name} 从${LOCATIONS[previous].name}前往${LOCATIONS[nextStep].name}。`, { npcId: npc.id, goal, destination: target });
       }
       if (hour(state) % 4 === 0) npcDoGoal(state, npc, goal);
       if (npc.position.location === state.entities.player.position.location && random(state) < 0.12) {

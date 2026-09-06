@@ -25,6 +25,28 @@
     return query(state, entity => has(entity, ...components));
   }
 
+  function findPath(locations, from, to) {
+    if (!locations?.[from] || !locations?.[to]) return [];
+    if (from === to) return [from];
+    const queue = [from];
+    const previous = { [from]: null };
+    while (queue.length) {
+      const current = queue.shift();
+      for (const next of locations[current].neighbors || []) {
+        if (previous[next] !== undefined) continue;
+        previous[next] = current;
+        if (next === to) {
+          const path = [to];
+          let cursor = to;
+          while (previous[cursor] !== null) { cursor = previous[cursor]; path.unshift(cursor); }
+          return path;
+        }
+        queue.push(next);
+      }
+    }
+    return [];
+  }
+
   function emit(state, type, payload = {}) {
     state.events ||= { active: null, pending: [], history: [] };
     state.events.pending ||= [];
@@ -96,5 +118,5 @@
     };
   }
 
-  return { COMPONENTS, has, query, queryWith, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerDirectorRule, findDirectorEvent, registries };
+  return { COMPONENTS, has, query, queryWith, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerDirectorRule, findDirectorEvent, registries };
 });

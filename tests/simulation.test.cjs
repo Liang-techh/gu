@@ -71,6 +71,12 @@ test('NPCs run schedules while the player waits instead of freezing the world', 
   assert.ok(state.log.some(entry => entry.type === 'npc_move') || state.entities.fangyuan.position.location !== start);
 });
 
+test('NPC navigation follows a multi-zone route instead of requiring direct adjacency', () => {
+  const state = S.newWorld({ seed: 'pathfinding' });
+  assert.deepEqual(S.ENGINE.findPath(state.locations, 'bambooForest', 'academy'), ['bambooForest', 'village', 'academy']);
+  assert.deepEqual(S.ENGINE.findPath(state.locations, 'cliffCave', 'academy'), ['cliffCave', 'riverbank', 'bambooForest', 'village', 'academy']);
+});
+
 test('NPC goals produce world-side consequences, not only text', () => {
   let state = open(S.newWorld({ seed: 'npc-goals' }), 'observe');
   const before = state.facts.marketActivity || 0;

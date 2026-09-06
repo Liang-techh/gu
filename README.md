@@ -14,6 +14,7 @@
 - `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
 - 事件历史、导演事件和统一 `dispatch` 结算入口；
 - NPC 日程、目标选择、移动、饥饿/精力和同场遭遇记忆；
+- 基于地点图的多区域导航；NPC 不会因为目的地不与当前位置直连而冻结；
 - NPC 目标会实际改变资源、秘密事实、商路活动和势力压力；
 - 人物关系中的信任、畏惧、人情和持久事实；
 - 古月、白家、熊家、商队、魔道游修等动态势力；
@@ -49,7 +50,7 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       15/15 passing
+npm test       16/16 passing
 npm run check:canon  20/20 term/source checks
 ```
 
