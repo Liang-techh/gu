@@ -159,6 +159,36 @@
       advance(state, mode === 'intelligence' ? 3 : 4, `front_${mode}`);
     }
 
+    function shadowNetworkAction(state, command, p) {
+      const network = state.shadowNetwork;
+      const node = Object.values(network?.nodes || {}).find(item => item.active && item.location === p.position.location);
+      if (!network?.active || !node) throw new Error('当前位置没有可接触的影宗暗线');
+      const mode = command.mode || 'intel';
+      if (mode === 'recruit') {
+        if ((p.inventory.stones || 0) < 1) throw new Error('招募暗线至少需要一枚元石');
+        p.inventory.stones -= 1; network.recruits += 1; network.resources += 3; network.cohesion += 2; network.exposure += 3; node.contacts += 1; node.control += 3;
+        if (state.entities.yingwuxie) { relation(state, 'player', 'yingwuxie').trust += 1; remember(state, 'yingwuxie', 'player', { kind: 'secret', valence: 1, text: '你为影宗暗线补充了一个可以承担风险的人。', facts: { shadowRecruit: true, nodeId: node.id } }); }
+        log(state, 'shadow_network_recruit', `你在${locations[node.location].name}招募了一名暗线，网络扩大但暴露风险上升。`, { nodeId: node.id, recruits: network.recruits, exposure: network.exposure });
+      } else if (mode === 'intel') {
+        if (p.cultivation.insight < 2) throw new Error('整理影宗情报至少需要两点洞察');
+        p.cultivation.insight -= 2; network.intelligence += 3; network.exposure += 4; node.secrecy = Math.max(0, node.secrecy - 3); state.facts.shadowIntel = true;
+        remember(state, 'player', 'world', { kind: 'shadow-intel', confidence: 0.62, text: `你从${locations[node.location].name}的暗线中整理出一段尚未核验的情报。`, facts: { shadowIntel: true, nodeId: node.id, confidence: 0.62 } });
+        log(state, 'shadow_network_intel', '你整理了影宗暗线情报，获得优势的同时也让自己成为网络的一部分。', { nodeId: node.id, intelligence: network.intelligence });
+      } else if (mode === 'conceal') {
+        if ((p.inventory.stones || 0) < 2) throw new Error('隐藏暗线至少需要两枚元石');
+        p.inventory.stones -= 2; network.visibility = Math.max(0, network.visibility - 9); network.exposure = Math.max(0, network.exposure - 12); node.secrecy = Math.min(100, node.secrecy + 12); network.resources = Math.max(0, network.resources - 2);
+        log(state, 'shadow_network_conceal', `你为${locations[node.location].name}的暗线抹去痕迹，暂时延缓了宗门追查。`, { nodeId: node.id, secrecy: node.secrecy, exposure: network.exposure });
+      } else if (mode === 'betray') {
+        if (network.intelligence < 2) throw new Error('出卖暗线前至少需要两点可交易情报');
+        network.intelligence -= 2; network.resources += 6; network.exposure += 14; network.cohesion = Math.max(0, network.cohesion - 8); network.betrayals += 1; node.control = Math.max(0, node.control - 10); state.factions.centralSects.influence += 2; state.factions.shadowSect.tension += 5;
+        consequence(state, { kind: 'shadow_network_betrayal', actorId: p.id, factionId: 'shadowSect', source: 'shadowNetworkAction', location: node.location, reason: '你把影宗暗线情报卖给中洲势力，获得短期资源并破坏网络信任。', data: { nodeId: node.id, exposure: network.exposure, betrayals: network.betrayals }, tension: 3, pressure: 0.4 });
+        log(state, 'shadow_network_betray', '你出卖了一段影宗暗线，元石到账，但影宗会记住这次背叛。', { nodeId: node.id, exposure: network.exposure, betrayals: network.betrayals });
+      } else throw new Error('未知的影宗暗线行动');
+      network.visibility = Math.max(0, Math.min(100, network.visibility)); network.cohesion = Math.max(0, Math.min(100, network.cohesion)); network.resources = Math.max(0, Math.min(200, network.resources)); network.exposure = Math.max(0, Math.min(100, network.exposure)); node.control = Math.max(0, Math.min(100, node.control)); node.secrecy = Math.max(0, Math.min(100, node.secrecy));
+      engine.emit(state, 'shadow-network.action', { actorId: p.id, nodeId: node.id, mode, location: node.location, resources: network.resources, intelligence: network.intelligence, exposure: network.exposure });
+      advance(state, mode === 'conceal' ? 2 : 3, `shadow_network_${mode}`);
+    }
+
     engine.registerAction('wait', ({ state, command }) => {
       advance(state, Number(command.hours) || 2, 'wait');
       log(state, 'action', '你等待了一段时间，观察世界如何自行变化。');
@@ -168,6 +198,7 @@
     engine.registerAction('market_shock_action', ({ state, command, p }) => marketShockAction(state, command, p));
     engine.registerAction('blessed_land_action', ({ state, command, p }) => blessedLandAction(state, command, p));
     engine.registerAction('front_action', ({ state, command, p }) => frontAction(state, command, p));
+    engine.registerAction('shadow_network_action', ({ state, command, p }) => shadowNetworkAction(state, command, p));
     engine.registerAction('travel', ({ state, command, p }) => {
       const target = command.location;
       if (!locations[target] || !locations[p.position.location].neighbors.includes(target)) throw new Error('这里无法直接到达该地点');

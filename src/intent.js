@@ -35,6 +35,10 @@
     if (/三王传承|传承闯关|进入传承/.test(q)) return { ok: true, command: { type: 'action', id: 'inheritance_round' }, label: '挑战传承轮次' };
     if (/北原巡逻|军帐巡逻|侦察北原/.test(q)) return { ok: true, command: { type: 'action', id: 'frontier_patrol' }, label: '执行北原巡逻' };
     if (/真阳楼闯关|闯楼|登塔/.test(q)) return { ok: true, command: { type: 'action', id: 'tower_floor' }, label: '挑战真阳楼楼层' };
+    if (/招募暗线|扩张影宗|招募影宗/.test(q)) return { ok: true, command: { type: 'action', id: 'shadow_network_action', mode: 'recruit' }, label: '扩张影宗暗线' };
+    if (/整理影宗情报|影宗情报|整理暗线/.test(q)) return { ok: true, command: { type: 'action', id: 'shadow_network_action', mode: 'intel' }, label: '整理影宗情报' };
+    if (/隐藏影宗|隐藏暗线|抹去暗线/.test(q)) return { ok: true, command: { type: 'action', id: 'shadow_network_action', mode: 'conceal' }, label: '隐藏影宗暗线' };
+    if (/出卖影宗|出卖暗线|卖掉影宗情报/.test(q)) return { ok: true, command: { type: 'action', id: 'shadow_network_action', mode: 'betray' }, label: '出卖影宗情报' };
     if (/拍卖|竞拍|仙蛊|抬价|抵押|借元石|核验情报|验证情报/.test(q)) {
       const mode = /抬价|抬高|加价/.test(q) ? 'raise' : /抵押|借元石|借钱/.test(q) ? 'mortgage' : /核验|验证|查证/.test(q) ? 'verify' : /观察|看看/.test(q) ? 'observe' : /情报|传闻/.test(q) ? 'rumor' : 'bid';
       return { ok: true, command: { type: 'action', id: 'auction_lot', mode }, label: `处理一笔拍卖会${mode === 'bid' ? '竞拍' : mode === 'observe' ? '行情观察' : mode === 'rumor' ? '情报交易' : mode === 'raise' ? '抬价' : mode === 'mortgage' ? '信用借贷' : '情报核验'}` };

@@ -247,12 +247,13 @@
       engine.registerEvent('shadowSectRebuild', ({ state, choice, event }) => {
         const p = state.entities.player;
         state.flags.shadowSectRebuilt = true; state.worldWar.shadowRebuilt = true;
+        state.shadowNetwork.active = true; state.shadowNetwork.lastTickDay = day(state); state.shadowNetwork.nodes.ruins.active = true; state.shadowNetwork.nodes.ruins.control += 12; state.shadowNetwork.nodes.ruins.supply += 8; state.shadowNetwork.cohesion += 8; state.shadowNetwork.resources += 6; state.shadowNetwork.intelligence += 2;
         activateSeed(state, 'yingwuxie');
         state.factions.shadowSect.influence += choice === 'ally' ? 8 : 3;
         state.factions.centralSects.tension += choice === 'rebuild' ? 4 : 1;
-        if (choice === 'rebuild') { p.cultivation.insight += 10; state.facts.shadowIntel = true; }
-        if (choice === 'ally') { relation(state, 'player', 'yingwuxie').trust += 5; state.director.pressure += 3; }
-        if (choice === 'hide') { p.cultivation.insight += 5; state.director.pressure = Math.max(0, state.director.pressure - 1); }
+        if (choice === 'rebuild') { p.cultivation.insight += 10; state.shadowNetwork.nodes.central.active = true; state.shadowNetwork.nodes.central.contacts += 1; state.shadowNetwork.visibility += 6; state.facts.shadowIntel = true; }
+        if (choice === 'ally') { relation(state, 'player', 'yingwuxie').trust += 5; state.shadowNetwork.recruits += 2; state.shadowNetwork.cohesion += 6; state.shadowNetwork.visibility += 4; state.director.pressure += 3; }
+        if (choice === 'hide') { p.cultivation.insight += 5; state.shadowNetwork.visibility = Math.max(0, state.shadowNetwork.visibility - 8); state.shadowNetwork.exposure = Math.max(0, state.shadowNetwork.exposure - 6); state.director.pressure = Math.max(0, state.director.pressure - 1); }
         log(state, 'choice', `你处理了影宗残脉重新结网：${event.choices.find(c => c.id === choice).label}。`, { source: sourceNotes.shadowRebuild });
         return true;
       });

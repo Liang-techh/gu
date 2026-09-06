@@ -143,6 +143,46 @@
       engine.emit(state, 'blessed-land.tick', { day: day(state), resources: base.resources, defense: base.defense, soulReserve: base.soulReserve, residents: base.residents, sectPressure: base.sectPressure, maintenance });
     }, 76);
 
+    engine.registerSystem('day', 'shadowNetworkTick', ({ state }) => {
+      const network = state.shadowNetwork;
+      if (!network?.active) return;
+      const activeNodes = Object.values(network.nodes || {}).filter(node => node.active);
+      if (!activeNodes.length) { network.active = false; return; }
+      const sectPressure = state.central?.sectPressure || 0;
+      const shadowFaction = state.factions.shadowSect;
+      const centralFaction = state.factions.centralSects;
+      const maintenance = activeNodes.length * 0.9 + network.recruits * 0.06;
+      network.lastTickDay = day(state);
+      network.resources = clamp(network.resources + (shadowFaction?.influence || 0) * 0.008 - maintenance, 0, 200);
+      network.intelligence += activeNodes.length * 0.22 + network.cohesion * 0.004;
+      network.exposure = clamp(network.exposure + sectPressure * 0.012 + network.visibility * 0.01 - activeNodes.reduce((sum, node) => sum + node.secrecy, 0) * 0.002, 0, 100);
+      network.visibility = clamp(network.visibility + activeNodes.length * 0.12 - network.exposure * 0.004, 0, 100);
+      network.cohesion = clamp(network.cohesion + Math.min(0.7, network.resources * 0.01) - network.exposure * 0.018 - (network.resources < 12 ? 1.2 : 0), 0, 100);
+      for (const node of activeNodes) {
+        node.supply = clamp(node.supply - 0.55 - network.exposure * 0.004 + network.cohesion * 0.003, 0, 100);
+        node.control = clamp(node.control + (network.cohesion > 45 ? 0.25 : -0.18) - (node.supply < 12 ? 0.8 : 0), 0, 100);
+        node.secrecy = clamp(node.secrecy - network.visibility * 0.006 + (network.cohesion > 60 ? 0.1 : 0), 0, 100);
+        if (node.supply <= 3 || node.secrecy <= 5) {
+          node.active = false; network.cohesion = Math.max(0, network.cohesion - 5); network.betrayals += 1;
+          consequence(state, { kind: 'shadow_node_collapse', actorId: 'yingwuxie', factionId: 'shadowSect', source: 'shadowNetworkTick', location: node.location, reason: '影宗节点补给或隐蔽性崩溃，残脉被迫放弃一条暗线。', data: { nodeId: node.id, supply: node.supply, secrecy: node.secrecy, betrayals: network.betrayals }, tension: 1, pressure: 0.28 });
+        }
+      }
+      if (network.nodes.blessedLand?.active && state.blessedLand?.active) { state.blessedLand.resources = Math.max(0, state.blessedLand.resources - 0.3); network.resources = Math.min(200, network.resources + 0.5); }
+      if (network.nodes.central?.active) { state.central.sectPressure = clamp(state.central.sectPressure + 0.18, 0, 100); if (centralFaction) centralFaction.tension += 0.15; }
+      if (day(state) % 5 === 0 && network.intelligence >= 1 && activeNodes.length >= 1) {
+        network.sequence += 1; network.intelligence = Math.max(0, network.intelligence - 1); network.resources = Math.max(0, network.resources - 1.5); network.exposure = clamp(network.exposure + 1.5, 0, 100);
+        const node = activeNodes.sort((a, b) => b.control - a.control)[0];
+        const operation = { id: `shadow-${network.sequence}`, kind: 'intelligence_exchange', day: day(state), nodeId: node.id, location: node.location, exposure: network.exposure, intelligence: network.intelligence };
+        network.operations.push(operation); network.operations = network.operations.slice(-128);
+        if (shadowFaction) shadowFaction.influence = clamp(shadowFaction.influence + 0.5, 0, 100);
+        if (node.location === 'centralContinent' && centralFaction) centralFaction.tension += 0.8;
+        if (state.entities.yingwuxie) remember(state, 'yingwuxie', 'world', { kind: 'shadow-operation', valence: 1, text: `影宗通过${locations[node.location]?.name || node.location}交换了一条情报，代价是留下新的暴露痕迹。`, facts: { operationId: operation.id, nodeId: node.id, exposure: network.exposure } });
+        engine.emit(state, 'shadow-network.operation', operation);
+      }
+      if (network.exposure > 75) { network.cohesion = Math.max(0, network.cohesion - 0.8); if (centralFaction) centralFaction.tension += 0.4; state.director.pressure = clamp(state.director.pressure + 0.15, 0, 10); }
+      engine.emit(state, 'shadow-network.tick', { day: day(state), activeNodes: activeNodes.map(node => node.id), resources: network.resources, cohesion: network.cohesion, intelligence: network.intelligence, visibility: network.visibility, exposure: network.exposure, betrayals: network.betrayals });
+    }, 74);
+
     engine.registerSystem('day', 'wolfCrisisTick', ({ state }) => {
       const crisis = state.wolfCrisis;
       if (!crisis?.active || crisis.phase === 'aftermath' || crisis.phase === 'resolved') return;

@@ -465,6 +465,33 @@ test('five regions use persistent war fronts with autonomous logistics and playe
   assert.ok(state.consequences.records.some(record => record.kind === 'war_front_battle'));
 });
 
+test('shadow sect rebuild becomes a secret network with NPC operations, exposure and betrayal choices', () => {
+  let state = open(S.newWorld({ seed: 'shadow-network' }), 'observe');
+  state.entities.player.position.location = 'shadowSectRuins';
+  state.shadowNetwork.active = true;
+  state.shadowNetwork.nodes.ruins.active = true;
+  state.shadowNetwork.cohesion = 58;
+  state.shadowNetwork.intelligence = 1;
+  const shadowNpc = S.ENTITY.createEntity('shadow-network-worker', { name: '暗线重建者', faction: 'shadowSect', location: 'shadowSectRuins', goals: ['rebuildShadow'] });
+  state.entities[shadowNpc.id] = shadowNpc;
+  const resourcesBefore = state.shadowNetwork.resources;
+  S.ENGINE.runGoal('rebuildShadow', { state, npc: shadowNpc, faction: state.factions.shadowSect });
+  assert.ok(state.shadowNetwork.resources > resourcesBefore);
+  assert.ok(state.events.recent.some(event => event.type === 'npc.shadow_reconstruction'));
+  assert.equal(S.INTENT.parse('整理影宗情报', state, { locations: S.LOCATIONS, entities: state.entities }).command.id, 'shadow_network_action');
+  state = ok(state, { type: 'action', id: 'shadow_network_action', mode: 'intel' });
+  state = ok(state, { type: 'action', id: 'shadow_network_action', mode: 'recruit' });
+  assert.ok(state.shadowNetwork.recruits >= 2);
+  state = ok(state, { type: 'action', id: 'wait', hours: 120 });
+  assert.ok(state.shadowNetwork.lastTickDay >= 5);
+  assert.ok(state.shadowNetwork.operations.some(operation => operation.kind === 'intelligence_exchange'));
+  const intelligenceBeforeBetrayal = state.shadowNetwork.intelligence;
+  state = ok(state, { type: 'action', id: 'shadow_network_action', mode: 'betray' });
+  assert.ok(state.shadowNetwork.betrayals >= 1);
+  assert.ok(state.shadowNetwork.intelligence < intelligenceBeforeBetrayal);
+  assert.ok(state.consequences.records.some(record => record.kind === 'shadow_network_betrayal'));
+});
+
 test('NPC knowledge keeps conflicting rumor alternatives until a stronger observation arrives', () => {
   const npc = S.ENTITY.createEntity('knowledge-audit', { name: '知识审计者', location: 'village' });
   S.KNOWLEDGE.record(npc, 'target', { location: 'village' }, { kind: 'rumor', confidence: 0.3, source: 'rumor:test' });
@@ -1054,12 +1081,12 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.deepEqual(snap.engine.registries.listeners['world.travel'], ['zoneVisitAccounting']);
   assert.ok(snap.engine.registries.actions.includes('arena_match'));
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
-  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
+  for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
   assert.deepEqual(snap.engine.registries.systems.hour, ['conditionTick', 'effectTick', 'playerNeeds', 'pursuitSimulation', 'npcSimulation', 'agencySimulation']);
-  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'marketShockTick', 'blessedLandTick', 'wolfCrisisTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
+  assert.deepEqual(snap.engine.registries.systems.day, ['marketDailyTick', 'npcDailyRecovery', 'zoneDailyTick', 'marketShockTick', 'blessedLandTick', 'wolfCrisisTick', 'shadowNetworkTick', 'clanPressureTick', 'frontierSupplyTick', 'worldWarTick', 'eternalWarTick', 'worldDaySummary']);
 });
 
 test('action catalog derives available commands from world state instead of UI conditionals', () => {
