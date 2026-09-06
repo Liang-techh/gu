@@ -10,6 +10,9 @@
     const queueIndex = npc.goals.queue.indexOf(goal);
     const personality = npc.personality || {};
     const suspicion = Number(npc.knowledge?.suspicion?.player?.value || 0);
+    const caseState = state.intel?.cases?.player;
+    const factionCase = npc.faction ? caseState?.factions?.[npc.faction] : null;
+    const casePressure = Number(factionCase?.pressure || 0);
     let score = queueIndex >= 0 ? 2.2 - queueIndex * 0.18 : 0.05;
     if (goal === 'avoidPlayer') score += rel.fear * 0.06 + (faction?.attitude < -25 ? 3 : 0);
     if (goal === 'avoidPlayer') score += suspicion * 0.045;
@@ -20,6 +23,8 @@
     if (goal === 'gainRecognition' || goal === 'proveWorth') score += personality.ambition * 0.035 + state.director.pressure * 0.4;
     if (goal === 'collectRumors' || goal === 'investigate' || goal === 'observe') score += personality.curiosity * 0.025;
     if (goal === 'collectRumors' || goal === 'investigate' || goal === 'observe') score += suspicion * 0.035;
+    if (goal === 'collectRumors' || goal === 'investigate') score += casePressure * 0.06;
+    if (goal === 'ambush' || goal === 'patrol') score += casePressure * 0.04;
     if (goal === 'protectClan' || goal === 'protectBrother' || goal === 'protectFather' || goal === 'protectDaughter') score += personality.loyalty * 0.025;
     if (goal === 'trade' || goal === 'auction') score += personality.greed * 0.018;
     const recent = (npc.goals.history || []).filter(item => item.goal === goal && day(state) - item.day <= 1).length;
@@ -31,10 +36,14 @@
   function selectGoal(state, npc, { day, relation }) {
     const rel = relation(state, npc.id, 'player');
     const faction = npc.faction ? state.factions[npc.faction] : null;
+    const casePressure = Number(state.intel?.cases?.player?.factions?.[npc.faction]?.pressure || 0);
     if (npc.conditions?.active?.some(condition => condition.id === 'afraid')) return 'avoidPlayer';
     if (rel.fear > 30) return 'avoidPlayer';
     if (Number(npc.knowledge?.suspicion?.player?.value || 0) >= 78 && faction?.attitude < 0) return 'avoidPlayer';
+    if (casePressure >= 12 && faction?.attitude >= -25) return 'investigate';
     const candidates = [...new Set([...(npc.goals.queue || []), 'findFood', 'avoidPlayer', 'survive', 'gainRecognition'])];
+    if (casePressure > 0 || Number(npc.knowledge?.suspicion?.player?.value || 0) > 10) candidates.push('collectRumors', 'investigate');
+    if (casePressure >= 12 && faction?.attitude < 0) candidates.push('ambush');
     if (npc.needs.hunger <= 70) candidates.splice(candidates.indexOf('findFood'), 1);
     if (rel.fear <= 30 && !npc.goals.queue.includes('avoidPlayer') && faction?.attitude >= -25) candidates.splice(candidates.indexOf('avoidPlayer'), 1);
     const scored = candidates.map(goal => ({ goal, score: goalScore(state, npc, goal, { day, relation }) }));

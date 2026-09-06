@@ -91,6 +91,20 @@ test('domain events persist as a ledger and spread local rumors to uninvolved NP
   const factionObserver = Object.values(state.entities).find(entity => entity.id !== 'player' && entity.id !== 'fangzheng' && entity.faction === 'guYue' && entity.position.location !== 'academy');
   assert.ok(factionObserver);
   assert.ok(state.entities[factionObserver.id].memory.episodes.some(item => item.kind === 'faction-rumor'));
+  assert.ok(state.intel.leads.some(lead => lead.type === 'social.interaction'));
+  assert.ok(state.intel.cases.player.pressure > 0);
+  assert.ok(state.entities[uninvolved.id].knowledge.facts.fangzheng.heardInteraction.provenance.length > 0);
+});
+
+test('faction cases make investigation a real NPC utility, not just a text rumor', () => {
+  let state = open(S.newWorld({ seed: 'intel-network' }), 'observe');
+  state.intel.cases.player = { pressure: 18, lastClock: state.clock, events: 2, factions: { guYue: { pressure: 18, confidence: 0.7, reports: 0, lastClock: state.clock } } };
+  const npc = state.entities.fangzheng;
+  npc.goals.queue = ['observe'];
+  const relation = (world, a, b) => world.relationships[[a, b].sort().join('::')] || { trust: 0, fear: 0 };
+  assert.ok(['investigate', 'observe', 'avoidPlayer'].includes(S.NPC_AI.selectGoal(state, npc, { day: S.day, relation })));
+  state = ok(state, { type: 'action', id: 'wait', hours: 4 });
+  assert.ok(state.facts.investigationActivity > 0 || state.intel.cases.player.factions.guYue.reports > 0);
 });
 
 test('content-driven NPC contracts persist through acceptance, objective progress and delivery', () => {

@@ -175,7 +175,7 @@ NPC记忆、势力反应、区域变化 ← 反转/追捕/新的机会窗口
 
 | 系统 | 主要状态变量 | 触发条件 | 失败/忽略后果 | 可组合交互 |
 |---|---|---|---|---|
-| 隐藏与身份 | `identity`、`knowledge.masks`、NPC `memory`、`relationships.*.fear/trust`、`suspicion` | 玩家使用伪装、跨域旅行、公开高阶蛊术、交易高价值物品，或被高阶观察者接触 | 怀疑增长；交易链可追溯；NPC 可能停止援助、报告势力或提前设伏；摊牌只对指定知情者生效 | 伪装 + 拍卖匿名 + 情报出售；伪装 + 演武公开名声；身份暴露 + 势力制裁/招揽；追踪压力 + 导演调查 |
+| 隐藏与身份 | `identity`、`knowledge.masks`、NPC `memory`、`intel.leads/cases`、`relationships.*.fear/trust`、`suspicion` | 玩家使用伪装、跨域旅行、公开高阶蛊术、交易高价值物品，或被高阶观察者接触 | 怀疑增长；交易链可追溯；情报沿势力关系网传播；NPC 可能停止援助、报告势力或提前设伏；摊牌只对指定知情者生效 | 伪装 + 拍卖匿名 + 情报出售；伪装 + 演武公开名声；身份暴露 + 势力制裁/招揽；追踪压力 + 导演调查；案件压力 + NPC 调查/伏击 |
 | 资源经营 | `inventory`、`zones.resources/activity/danger/visits`、`cultivation.essence`、`needs` | 采集、炼蛊、拍卖、抵押、经营、公共危机 | 缺元石/材料；饥饿、伤势、炼蛊失败；区域资源枯竭或价格上涨 | 采集 + 市场囤货；炼蛊 + 传承资格；区域枯竭 + NPC 迁移 + 势力紧张 |
 | 演武与挑战 | `arena.matches/wins/losses/streak/reputation`、身体伤势、关系记忆 | `arena.active` 且玩家在商家城；可扩展下注、观察、情报 | 连胜中断、伤势、名声下降；对手获得玩家能力资料 | 连胜 + 商家影响；失败 + 借贷/治疗；情报出售 + 对手难度变化 |
 | 传承探索 | `inheritance.round/attempts/difficulty/discoveries/completed`、`facts`、`director.pressure` | 传承窗口开启、位置正确、资格/线索满足 | 受伤、精力下降、错过奖励、改变传承路线；其他队伍先推进 | 侦查 + 降低首次风险；贿赂/交易 + 改变竞争者；贪取超额奖励 + 后续隐藏奖励消失 |

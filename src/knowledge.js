@@ -27,7 +27,7 @@
     return entity.knowledge;
   }
 
-  function record(entity, subjectId, facts, { kind = 'observation', clock = 0, source = 'memory', confidence } = {}) {
+  function record(entity, subjectId, facts, { kind = 'observation', clock = 0, source = 'memory', confidence, provenance = [] } = {}) {
     if (!entity || !subjectId || !facts || typeof facts !== 'object') return;
     const knowledge = ensure(entity);
     knowledge.facts[subjectId] ||= {};
@@ -39,10 +39,11 @@
         confidence: previous ? Math.max(previous.confidence, certainty) : certainty,
         kind,
         clock,
-        source
+        source,
+        provenance: Array.isArray(provenance) ? provenance.slice(-8) : []
       };
     }
-    knowledge.sources.unshift({ subjectId, kind, clock, source, confidence: certainty });
+    knowledge.sources.unshift({ subjectId, kind, clock, source, confidence: certainty, provenance: Array.isArray(provenance) ? provenance.slice(-8) : [] });
     knowledge.sources = knowledge.sources.slice(0, 64);
   }
 
