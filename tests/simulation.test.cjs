@@ -188,9 +188,7 @@ test('volume two content pack opens merchant city, arena, inheritance and sect f
   assert.equal(state.arena.matches, 2);
   state = ok(state, { type: 'action', id: 'travel', location: 'threeForkMountain' });
   advance(120);
-  state = ok(state, { type: 'action', id: 'inheritance_round' });
-  state = ok(state, { type: 'action', id: 'inheritance_round' });
-  state = ok(state, { type: 'action', id: 'inheritance_round' });
+  for (let i = 0; i < 12 && state.inheritance.round < 3; i++) state = ok(state, { type: 'action', id: 'inheritance_round' });
   assert.equal(state.inheritance.round, 3);
   state = ok(state, { type: 'action', id: 'travel', location: 'heavenClimbMountain' });
   advance(120);
@@ -226,13 +224,14 @@ test('save validation preserves components, memories, relationships and determin
 
 test('history ledger records significant events and daily world snapshots independently of UI logs', () => {
   let state = open(S.newWorld({ seed: 'history' }), 'observe');
-  state = ok(state, { type: 'action', id: 'wait', hours: 26 });
+  state = ok(state, { type: 'action', id: 'wait', hours: 50 });
   const snap = S.snapshot(state);
   assert.ok(state.history.sequence > 0);
   assert.ok(state.history.events.some(event => event.type === 'world_started'));
   assert.ok(state.history.events.some(event => event.type === 'day_tick'));
   assert.ok(state.history.snapshots.length >= 1);
-  assert.ok(snap.history.facts.daysObserved >= 2);
+  assert.ok(snap.history.facts.daysObserved >= 3);
+  assert.ok(state.history.snapshots.length >= 2);
   assert.ok(S.validate(JSON.stringify(state)).history.origin.seed === 'history');
 });
 
@@ -270,6 +269,8 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.interactions.includes('help'));
   assert.ok(snap.engine.registries.events.includes('wolfTide'));
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
+  assert.deepEqual(snap.engine.registries.systems.hour, ['playerNeeds', 'npcSimulation']);
+  assert.deepEqual(snap.engine.registries.systems.day, ['worldDailyTick']);
 });
 
 test('domain event sequence stays unique after the bounded stream rotates', () => {

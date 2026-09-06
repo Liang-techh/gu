@@ -699,18 +699,25 @@
     History.snapshot(state);
   }
 
-  function advance(state, hours, cause = 'action') {
-    const oldDay = day(state);
-    for (let i = 0; i < hours; i++) {
-      state.clock += 1;
+  function registerSystemHandlers() {
+    Engine.registerSystem('hour', 'playerNeeds', ({ state }) => {
       const p = state.entities.player;
       p.needs.energy -= 0.7;
       p.needs.hunger += 0.55;
       p.cultivation.essence = Math.min(p.cultivation.essenceMax, p.cultivation.essence + 0.35 * p.cultivation.aptitude);
-      simulateNpcHour(state);
       if (p.needs.hunger > 85) p.cultivation.progress = Math.max(0, p.cultivation.progress - 0.2);
+    }, 100);
+    Engine.registerSystem('hour', 'npcSimulation', ({ state }) => simulateNpcHour(state), 50);
+    Engine.registerSystem('day', 'worldDailyTick', ({ state }) => dailyTick(state), 0);
+  }
+
+  function advance(state, hours, cause = 'action') {
+    for (let i = 0; i < hours; i++) {
+      const oldDay = day(state);
+      state.clock += 1;
+      Engine.runSystems('hour', { state, cause });
+      if (day(state) !== oldDay) Engine.runSystems('day', { state, cause });
     }
-    if (day(state) !== oldDay) dailyTick(state);
     directorTick(state);
     normalize(state);
     refreshContracts(state);
@@ -999,5 +1006,6 @@
   registerEventHandlers();
   registerGoalHandlers();
   registerInteractionHandlers();
+  registerSystemHandlers();
   return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

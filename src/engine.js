@@ -11,6 +11,7 @@
   const goalHandlers = new Map();
   const interactionHandlers = new Map();
   const eventHandlers = new Map();
+  const systemHandlers = new Map();
   const directorRules = [];
 
   function has(entity, ...names) {
@@ -95,6 +96,22 @@
     return handler ? handler(context) : false;
   }
 
+  function registerSystem(phase, id, handler, priority = 0) {
+    if (!phase || !id || typeof handler !== 'function') throw new Error('系统必须有 phase、id 和函数');
+    const systems = systemHandlers.get(phase) || [];
+    const next = { id, handler, priority };
+    const index = systems.findIndex(system => system.id === id);
+    if (index >= 0) systems[index] = next;
+    else systems.push(next);
+    systems.sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
+    systemHandlers.set(phase, systems);
+    return handler;
+  }
+
+  function runSystems(phase, context) {
+    return (systemHandlers.get(phase) || []).map(system => ({ id: system.id, result: system.handler(context) }));
+  }
+
   function registerDirectorRule(rule) {
     if (!rule?.id || typeof rule.when !== 'function' || typeof rule.build !== 'function') throw new Error('导演规则必须有 id、when 和 build');
     const index = directorRules.findIndex(item => item.id === rule.id);
@@ -114,9 +131,10 @@
       goals: [...goalHandlers.keys()],
       interactions: [...interactionHandlers.keys()],
       events: [...eventHandlers.keys()],
+      systems: Object.fromEntries([...systemHandlers.entries()].map(([phase, systems]) => [phase, systems.map(system => system.id)])),
       directorRules: directorRules.map(rule => rule.id)
     };
   }
 
-  return { COMPONENTS, has, query, queryWith, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerDirectorRule, findDirectorEvent, registries };
+  return { COMPONENTS, has, query, queryWith, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerSystem, runSystems, registerDirectorRule, findDirectorEvent, registries };
 });
