@@ -10,6 +10,7 @@
 
 - 确定性世界时钟与小时级推进；
 - 玩家/NPC 共用的组件式实体模型；
+- 独立运行时内核：组件查询、领域事件流、GoalHandler 注册表和 Conversation/Interaction 注册表；
 - `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
 - 事件历史、导演事件和统一 `dispatch` 结算入口；
 - NPC 日程、目标选择、移动、饥饿/精力和同场遭遇记忆；
@@ -48,7 +49,7 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       12/12 passing
+npm test       14/14 passing
 npm run check:canon  20/20 term/source checks
 ```
 

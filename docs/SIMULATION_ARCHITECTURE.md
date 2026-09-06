@@ -20,7 +20,9 @@ Projection / UI / 存档 / 日志
 
 ## 状态模型
 
-`entities[id]` 是统一实体表。玩家和 NPC 都使用相同的组件形状：
+`entities[id]` 是统一实体表。玩家和 NPC 都使用相同的组件形状。`src/engine.js` 提供类似 Qud `Parts` 的组件查询、类似 `Events` 的领域事件流，以及可注册的 GoalHandler 和 InteractionHandler；`simulation.js` 只是当前世界规则的一个实现，而不是把扩展点锁死在 UI 或剧情文本里。
+
+玩家和 NPC 都使用相同的组件形状：
 
 - `identity`：名字、角色、标签。
 - `position`：地点。
@@ -59,6 +61,8 @@ NPC 目标还必须产出世界侧结果：采集会改变资源与势力影响�
 - `action`：玩家提出的明确动作，由规则验证并结算。
 - `director_event`：导演观察世界条件后生成的局势节点，例如竹林酒香、学堂竞争、商队消息。
 - `combat`：实体间的连续冲突；攻击写入身体部位、伤口、死亡和对方记忆。
+
+规则事件会写入 `events.pending` 的领域事件流，例如 `world.travel`、`npc.goal_action`、`social.interaction` 和 `combat.damage`。外部导演、调试器或未来的回放系统可以订阅/消费这些事件，不需要解析 UI 日志。
 
 导演不能直接写玩家数值。它只能从世界状态中提出有条件的事件选择；`resolve_event` 仍经过同一个状态结算入口。当前导演已经覆盖遗藏线索、学堂竞争、商队进入、贾富拍卖会、三寨议事和狼潮逼近；这些事件由时间、地点、势力紧张度、资源压力共同触发，而不是按章节顺序强制播放。将来接入语言模型时，模型只能生成候选意图/文案，不能绕过 `dispatch`。
 

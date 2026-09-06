@@ -162,3 +162,18 @@ test('invalid actions are rejected without mutating the original state', () => {
   assert.equal(result.state, state);
   assert.equal(JSON.stringify(state), before);
 });
+
+test('engine registries expose component queries, goal handlers, interactions and domain events', () => {
+  let state = open(S.newWorld({ seed: 'engine-api' }), 'observe');
+  assert.ok(S.ENGINE.COMPONENTS.includes('memory'));
+  assert.ok(S.ENGINE.queryWith(state, 'identity', 'position', 'memory').length >= 10);
+  const before = S.snapshot(state).eventStream.length;
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  const snap = S.snapshot(state);
+  assert.ok(snap.eventStream.length > before);
+  assert.ok(snap.eventStream.some(event => event.type === 'world.travel'));
+  assert.ok(snap.engine.registries.goals.includes('secureResources'));
+  assert.ok(snap.engine.registries.interactions.includes('help'));
+  assert.ok(snap.engine.registries.events.includes('wolfTide'));
+  assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));
+});

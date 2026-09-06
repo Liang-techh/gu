@@ -1,8 +1,10 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.GuSimulation = factory();
-})(globalThis, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine);
+})(globalThis, function (Engine) {
   'use strict';
+
+  if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -295,51 +297,47 @@
     const d = state.director;
     if (state.events.active || state.clock - d.lastTick < 6) return;
     const p = state.entities.player;
-    const guYue = state.factions.guYue;
-    let candidate = null;
-    if (!state.flags.moonlightRumor && day(state) >= 2 && p.position.location === 'bambooForest') {
-      candidate = { id: 'moonlightRumor', type: 'rumor', title: '竹林里的酒香', text: '雨停之后，竹叶间传来一缕不属于山泉的酒香。有人先你一步来过。', choices: [
-        { id: 'follow', label: '沿着痕迹跟下去', hint: '打开花酒遗藏的调查线。' },
-        { id: 'report', label: '把消息交给家老', hint: '获得家族信用，但线索不再只属于你。' },
-        { id: 'ignore', label: '记在心里，先做自己的事', hint: '保留秘密，等待更有利的时机。' }
-        ], source: SOURCE_NOTES.relic };
-    } else if (day(state) >= 3 && guYue.tension >= 32 && p.position.location === 'academy') {
-      candidate = { id: 'academyRivalry', type: 'social', title: '学堂里的较量', text: '漠北和赤城在草人前争夺一次演示机会，方正被推到了两人之间。', choices: [
-        { id: 'mediate', label: '替方正把争执压下去', hint: '方正会记住你的帮助。' },
-        { id: 'join', label: '加入竞争，证明自己的月刃', hint: '提高个人名望，也增加敌意。' },
-        { id: 'watch', label: '旁观并记下每个人的弱点', hint: '获得知识，关系保持不变。' }
-        ], source: SOURCE_NOTES.academy };
-    } else if (!state.flags.marketArrived && day(state) >= 5 && ['village', 'caravanCamp'].includes(p.position.location)) {
-      candidate = { id: 'marketArrival', type: 'market', title: '商队提前进入青茅山', text: '商队的旗帜穿过雨幕，贾富和江牙把外界的货物、消息与价格一起带进山寨。', source: SOURCE_NOTES.market, choices: [
-        { id: 'trade', label: '用元石换取资源', hint: '得到水、花瓣和商路信用。' },
-        { id: 'listen', label: '只听消息不表态', hint: '获得白家、熊家和北方商路的情报。' },
-        { id: 'scheme', label: '让商队替你散布传闻', hint: '增加市场活动，也会提高势力紧张度。' }
-      ] };
-    } else if (state.flags.marketArrived && !state.flags.auctionHeld && day(state) >= 7 && ['village', 'caravanCamp'].includes(p.position.location)) {
-      candidate = { id: 'auction', type: 'market', title: '贾富的拍卖会', text: '贾富把一批外来蛊材摆上台面。价格只是表面，真正的较量是山寨成员是否愿意为稀缺资源彼此抬价。', source: SOURCE_NOTES.auction, choices: [
-        { id: 'buy', label: '出价购买蛊材', hint: '消耗元石，换取稀缺资源和商队信用。' },
-        { id: 'sell', label: '出售手中资源', hint: '把当前资源压力转化为元石。' },
-        { id: 'observe', label: '观察竞价与人群', hint: '获得对贾富和山寨势力的情报。' }
-      ] };
-    } else if (!state.flags.allianceCouncil && day(state) >= 8 && (guYue.tension >= 35 || d.pressure >= 5) && ['village', 'ancestralHall'].includes(p.position.location)) {
-      candidate = { id: 'allianceCouncil', type: 'politics', title: '三寨联盟的利益分配', text: '狼群的阴影还在远方，古月、白家与熊家却已经开始争论：若要结盟，谁来出人，谁来让利，谁来承担最危险的防线？', source: SOURCE_NOTES.wolf, choices: [
-        { id: 'aid', label: '推动共同防线', hint: '改善三族关系，消耗古月的资源影响。' },
-        { id: 'hoard', label: '优先保住古月山寨', hint: '提高本族防御，却让联盟更难谈成。' },
-        { id: 'spy', label: '记录各族的底牌', hint: '获得情报和个人洞察，留下政治记忆。' }
-      ] };
-    } else if (!state.flags.wolfTide && day(state) >= 12 && ['village', 'bambooForest', 'riverbank'].includes(p.position.location) && (d.pressure >= 4 || guYue.tension >= 42)) {
-      candidate = { id: 'wolfTide', type: 'crisis', title: '狼潮正在逼近', text: '山林里的猎物突然减少，远处传来群狼试探性的嚎叫。狼潮还没有攻入山寨，但资源、巡逻和每个家族的判断已经开始改变。', source: SOURCE_NOTES.wolf, choices: [
-        { id: 'mobilize', label: '加入巡逻与布防', hint: '降低当前区域危险，提升古月影响。' },
-        { id: 'hunt', label: '趁混乱深入山林', hint: '获得资源和线索，但承担更高伤害风险。' },
-        { id: 'secure', label: '囤积资源等待变化', hint: '提高个人储备，让野外区域更危险。' }
-      ] };
-    }
+    const candidate = Engine.findDirectorEvent(state);
     if (candidate) {
       state.events.active = candidate;
       state.director.lastTick = state.clock;
       state.director.thread.push(candidate.id);
+      Engine.emit(state, 'director.event_available', { eventId: candidate.id, location: p.position.location, pressure: d.pressure });
       log(state, 'director_event', candidate.title, { eventId: candidate.id });
     }
+  }
+
+  function registerDirectorRules() {
+    Engine.registerDirectorRule({ id: 'moonlightRumor', priority: 10, when: state => !state.flags.moonlightRumor && day(state) >= 2 && state.entities.player.position.location === 'bambooForest', build: () => ({ id: 'moonlightRumor', type: 'rumor', title: '竹林里的酒香', text: '雨停之后，竹叶间传来一缕不属于山泉的酒香。有人先你一步来过。', choices: [
+      { id: 'follow', label: '沿着痕迹跟下去', hint: '打开花酒遗藏的调查线。' },
+      { id: 'report', label: '把消息交给家老', hint: '获得家族信用，但线索不再只属于你。' },
+      { id: 'ignore', label: '记在心里，先做自己的事', hint: '保留秘密，等待更有利的时机。' }
+    ], source: SOURCE_NOTES.relic }) });
+    Engine.registerDirectorRule({ id: 'academyRivalry', priority: 20, when: state => day(state) >= 3 && state.factions.guYue.tension >= 32 && state.entities.player.position.location === 'academy', build: () => ({ id: 'academyRivalry', type: 'social', title: '学堂里的较量', text: '漠北和赤城在草人前争夺一次演示机会，方正被推到了两人之间。', choices: [
+      { id: 'mediate', label: '替方正把争执压下去', hint: '方正会记住你的帮助。' },
+      { id: 'join', label: '加入竞争，证明自己的月刃', hint: '提高个人名望，也增加敌意。' },
+      { id: 'watch', label: '旁观并记下每个人的弱点', hint: '获得知识，关系保持不变。' }
+    ], source: SOURCE_NOTES.academy }) });
+    Engine.registerDirectorRule({ id: 'marketArrival', priority: 30, when: state => !state.flags.marketArrived && day(state) >= 5 && ['village', 'caravanCamp'].includes(state.entities.player.position.location), build: () => ({ id: 'marketArrival', type: 'market', title: '商队提前进入青茅山', text: '商队的旗帜穿过雨幕，贾富和江牙把外界的货物、消息与价格一起带进山寨。', source: SOURCE_NOTES.market, choices: [
+      { id: 'trade', label: '用元石换取资源', hint: '得到水、花瓣和商路信用。' },
+      { id: 'listen', label: '只听消息不表态', hint: '获得白家、熊家和北方商路的情报。' },
+      { id: 'scheme', label: '让商队替你散布传闻', hint: '增加市场活动，也会提高势力紧张度。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'auction', priority: 35, when: state => state.flags.marketArrived && !state.flags.auctionHeld && day(state) >= 7 && ['village', 'caravanCamp'].includes(state.entities.player.position.location), build: () => ({ id: 'auction', type: 'market', title: '贾富的拍卖会', text: '贾富把一批外来蛊材摆上台面。价格只是表面，真正的较量是山寨成员是否愿意为稀缺资源彼此抬价。', source: SOURCE_NOTES.auction, choices: [
+      { id: 'buy', label: '出价购买蛊材', hint: '消耗元石，换取稀缺资源和商队信用。' },
+      { id: 'sell', label: '出售手中资源', hint: '把当前资源压力转化为元石。' },
+      { id: 'observe', label: '观察竞价与人群', hint: '获得对贾富和山寨势力的情报。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'allianceCouncil', priority: 40, when: state => !state.flags.allianceCouncil && day(state) >= 8 && (state.factions.guYue.tension >= 35 || state.director.pressure >= 5) && ['village', 'ancestralHall'].includes(state.entities.player.position.location), build: () => ({ id: 'allianceCouncil', type: 'politics', title: '三寨联盟的利益分配', text: '狼群的阴影还在远方，古月、白家与熊家却已经开始争论：若要结盟，谁来出人，谁来让利，谁来承担最危险的防线？', source: SOURCE_NOTES.wolf, choices: [
+      { id: 'aid', label: '推动共同防线', hint: '改善三族关系，消耗古月的资源影响。' },
+      { id: 'hoard', label: '优先保住古月山寨', hint: '提高本族防御，却让联盟更难谈成。' },
+      { id: 'spy', label: '记录各族的底牌', hint: '获得情报和个人洞察，留下政治记忆。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'wolfTide', priority: 50, when: state => !state.flags.wolfTide && day(state) >= 12 && ['village', 'bambooForest', 'riverbank'].includes(state.entities.player.position.location) && (state.director.pressure >= 4 || state.factions.guYue.tension >= 42), build: () => ({ id: 'wolfTide', type: 'crisis', title: '狼潮正在逼近', text: '山林里的猎物突然减少，远处传来群狼试探性的嚎叫。狼潮还没有攻入山寨，但资源、巡逻和每个家族的判断已经开始改变。', source: SOURCE_NOTES.wolf, choices: [
+      { id: 'mobilize', label: '加入巡逻与布防', hint: '降低当前区域危险，提升古月影响。' },
+      { id: 'hunt', label: '趁混乱深入山林', hint: '获得资源和线索，但承担更高伤害风险。' },
+      { id: 'secure', label: '囤积资源等待变化', hint: '提高个人储备，让野外区域更危险。' }
+    ] }) });
   }
 
   function applyOpening(state, choice) {
@@ -371,54 +369,71 @@
     if (!event) throw new Error('当前没有待处理事件');
     const valid = event.choices.some(item => item.id === choice);
     if (!valid) throw new Error('无效的事件选择');
-    if (event.id === 'openingRite') return applyOpening(state, choice);
     state.events.active = null;
-    const p = state.entities.player;
-    if (event.id === 'moonlightRumor') {
+    const handled = Engine.runEvent(event.id, { state, event, choice });
+    if (handled === false) throw new Error(`没有注册的事件处理器：${event.id}`);
+    if (event.id === 'openingRite') return handled;
+    advance(state, 1, event.id);
+  }
+
+  function registerEventHandlers() {
+    Engine.registerEvent('openingRite', ({ state, choice }) => applyOpening(state, choice));
+    Engine.registerEvent('moonlightRumor', ({ state, choice, event }) => {
+      const p = state.entities.player;
       state.flags.moonlightRumor = true;
       if (choice === 'follow') { p.memory.facts.world.relicLead = true; state.director.pressure += 2; }
       if (choice === 'report') { relation(state, 'player', 'guYue').trust += 8; p.memory.facts.world.relicLead = 'shared'; }
       if (choice === 'ignore') { p.cultivation.insight += 2; p.memory.facts.world.relicLead = 'withheld'; }
       log(state, 'choice', `你处理了“竹林里的酒香”：${event.choices.find(c => c.id === choice).label}。`);
-    } else if (event.id === 'academyRivalry') {
+      return true;
+    });
+    Engine.registerEvent('academyRivalry', ({ state, choice, event }) => {
+      const p = state.entities.player;
       if (choice === 'mediate') { relation(state, 'player', 'fangzheng').trust += 12; state.director.pressure -= 1; }
       if (choice === 'join') { relation(state, 'player', 'mobei').fear += 8; relation(state, 'player', 'chicheng').fear += 8; p.cultivation.progress += 8; }
       if (choice === 'watch') { p.cultivation.insight += 5; remember(state, 'player', 'mobei', { kind: 'secret', valence: 2, text: '漠北在公开竞争时会先看家老的脸色。' }); }
       log(state, 'choice', `你处理了学堂较量：${event.choices.find(c => c.id === choice).label}。`);
-    } else if (event.id === 'marketArrival') {
-      state.flags.marketArrived = true;
-      state.facts.marketActivity = (state.facts.marketActivity || 0) + 3;
-      state.zones.village.resources.food += 2;
-      state.zones.caravanCamp.resources.food += 2;
+      return true;
+    });
+    Engine.registerEvent('marketArrival', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.marketArrived = true; state.facts.marketActivity = (state.facts.marketActivity || 0) + 3;
+      state.zones.village.resources.food += 2; state.zones.caravanCamp.resources.food += 2;
       if (choice === 'trade') { p.inventory.water += 2; p.inventory.moonPetal += 2; p.inventory.stones = Math.max(0, p.inventory.stones - 2); relation(state, 'player', 'caravans').trust += 6; state.factions.caravans.influence += 3; }
       if (choice === 'listen') { p.cultivation.insight += 7; remember(state, 'player', 'world', { kind: 'rumor', valence: 1, text: '白家寨和熊家寨的边界冲突正在推高货价。', facts: { marketRumor: true } }); }
       if (choice === 'scheme') { state.factions.caravans.tension += 8; state.factions.bai.tension += 3; state.factions.xiong.tension += 3; state.director.pressure += 2; remember(state, 'jiafu', 'player', { kind: 'rumor', valence: -2, text: '这个人会利用商路影响山寨里的判断。' }); }
       log(state, 'choice', `你处理了商队进入：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.market });
-    } else if (event.id === 'auction') {
-      state.flags.auctionHeld = true;
-      state.facts.marketActivity = (state.facts.marketActivity || 0) + 2;
-      if (choice === 'buy') { if ((p.inventory.stones || 0) < 2) { p.cultivation.insight += 2; } else { p.inventory.stones -= 2; p.inventory.moonPetal += 3; relation(state, 'player', 'jiafu').trust += 5; } }
+      return true;
+    });
+    Engine.registerEvent('auction', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.auctionHeld = true; state.facts.marketActivity = (state.facts.marketActivity || 0) + 2;
+      if (choice === 'buy') { if ((p.inventory.stones || 0) < 2) p.cultivation.insight += 2; else { p.inventory.stones -= 2; p.inventory.moonPetal += 3; relation(state, 'player', 'jiafu').trust += 5; } }
       if (choice === 'sell') { p.inventory.stones += Math.min(4, p.inventory.moonPetal || 0); p.inventory.moonPetal = Math.max(0, (p.inventory.moonPetal || 0) - 4); relation(state, 'player', 'jiafu').debt += 1; }
       if (choice === 'observe') { p.cultivation.insight += 6; remember(state, 'player', 'jiafu', { kind: 'market', valence: 2, text: '贾富会先用低价聚拢人气，再让稀缺资源成为势力之间的筹码。', facts: { auctionObserved: true } }); }
       log(state, 'choice', `你处理了贾富的拍卖会：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.auction });
-    } else if (event.id === 'allianceCouncil') {
+      return true;
+    });
+    Engine.registerEvent('allianceCouncil', ({ state, choice, event }) => {
+      const p = state.entities.player;
       state.flags.allianceCouncil = true;
       if (choice === 'aid') { state.factions.guYue.influence -= 4; state.factions.guYue.tension -= 4; state.factions.bai.tension -= 5; state.factions.xiong.tension -= 5; state.factions.guYue.relations.bai += 8; state.factions.guYue.relations.xiong += 8; remember(state, 'guyuebo', 'player', { kind: 'politics', valence: 6, text: '你在三寨利益分配前支持共同防线。' }); }
       if (choice === 'hoard') { state.factions.guYue.influence += 4; state.factions.guYue.tension += 5; state.factions.bai.tension += 4; state.factions.xiong.tension += 4; state.director.pressure += 1; remember(state, 'guyuebo', 'player', { kind: 'politics', valence: 1, text: '你首先考虑古月山寨的存续。' }); }
       if (choice === 'spy') { p.cultivation.insight += 8; remember(state, 'player', 'world', { kind: 'secret', valence: 3, text: '三寨联盟真正困难的不是是否结盟，而是谁承担最危险的防线。', facts: { allianceIntel: true } }); }
       log(state, 'choice', `你处理了三寨议事：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.wolf });
-    } else if (event.id === 'wolfTide') {
-      state.flags.wolfTide = true;
-      state.director.pressure = clamp(state.director.pressure + 2, 0, 10);
+      return true;
+    });
+    Engine.registerEvent('wolfTide', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.wolfTide = true; state.director.pressure = clamp(state.director.pressure + 2, 0, 10);
       for (const locationId of ['bambooForest', 'riverbank', 'cliffCave']) state.zones[locationId].danger += 12;
-      state.zones.village.resources.food = Math.max(0, state.zones.village.resources.food - 2);
-      state.factions.guYue.tension += 6;
+      state.zones.village.resources.food = Math.max(0, state.zones.village.resources.food - 2); state.factions.guYue.tension += 6;
       if (choice === 'mobilize') { state.zones.village.danger = Math.max(0, state.zones.village.danger - 8); state.factions.guYue.influence += 5; state.factions.guYue.tension -= 3; remember(state, 'guyuebo', 'player', { kind: 'crisis', valence: 8, text: '你在狼潮逼近前参与了巡逻与布防。' }); }
-      if (choice === 'hunt') { p.inventory.food = (p.inventory.food || 0) + 2; p.needs.safety -= 12; p.cultivation.insight += 3; remember(state, 'player', 'bainingbing', { kind: 'crisis', valence: 2, text: '你在狼潮逼近时选择深入山林。' }); }
+      if (choice === 'hunt') { p.inventory.food = (p.inventory.food || 0) + 2; p.needs.safety -= 12; p.cultivation.insight += 3; remember(state, 'bainingbing', 'player', { kind: 'crisis', valence: 2, text: '你在狼潮逼近时选择深入山林。' }); }
       if (choice === 'secure') { p.inventory.water += 3; p.inventory.food = (p.inventory.food || 0) + 3; state.zones.bambooForest.danger += 8; state.director.pressure += 1; }
       log(state, 'choice', `你面对狼潮逼近作出决定：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.wolf });
-    }
-    advance(state, 1, event.id);
+      return true;
+    });
   }
 
   function normalize(state) {
@@ -433,7 +448,7 @@
     p.body.maxHealth = Math.max(1, Number(p.body.maxHealth) || 78);
     p.body.health = clamp(Number(p.body.health) || 0, 0, p.body.maxHealth);
     p.cultivation.vitality = clamp((p.body.health / p.body.maxHealth) * 100, 0, 100);
-    for (const entity of Object.values(state.entities)) if (entity.body) {
+    for (const entity of Engine.queryWith(state, 'body', 'alive')) {
       entity.body.maxHealth = Math.max(1, Number(entity.body.maxHealth) || 1);
       entity.body.health = clamp(Number(entity.body.health) || 0, 0, entity.body.maxHealth);
       if (entity.body.health <= 0) entity.alive = false;
@@ -463,7 +478,7 @@
 
   function simulateNpcHour(state) {
     const currentPhase = phase(state);
-    for (const npc of Object.values(state.entities)) {
+    for (const npc of Engine.queryWith(state, 'identity', 'position', 'needs', 'goals', 'schedule')) {
       if (npc.id === 'player' || !npc.alive) continue;
       npc.needs.energy = clamp(npc.needs.energy - 0.8, 0, 100);
       npc.needs.hunger = clamp(npc.needs.hunger + 0.6, 0, 100);
@@ -474,6 +489,7 @@
       if (target !== npc.position.location && LOCATIONS[npc.position.location].neighbors.includes(target)) {
         const previous = npc.position.location;
         npc.position.location = target;
+        Engine.emit(state, 'npc.moved', { npcId: npc.id, from: previous, to: target, goal });
         log(state, 'npc_move', `${npc.identity.name} 从${LOCATIONS[previous].name}前往${LOCATIONS[target].name}。`, { npcId: npc.id, goal });
       }
       if (hour(state) % 4 === 0) npcDoGoal(state, npc, goal);
@@ -484,33 +500,106 @@
   }
 
   function npcDoGoal(state, npc, goal) {
-    const faction = npc.faction && state.factions[npc.faction];
-    if (goal === 'secureResources' && ['bambooForest', 'riverbank'].includes(npc.position.location)) {
+    Engine.runGoal(goal, { state, npc, faction: npc.faction && state.factions[npc.faction] });
+  }
+
+  function registerGoalHandlers() {
+    Engine.registerGoal('secureResources', ({ state, npc, faction }) => {
+      if (!['bambooForest', 'riverbank'].includes(npc.position.location)) return false;
       const zone = state.zones[npc.position.location];
       if (zone?.resources.moonPetal > 0) { zone.resources.moonPetal -= 1; npc.inventory.moonPetal = (npc.inventory.moonPetal || 0) + 1; }
       if (zone) zone.activity += 4;
       if (faction) faction.influence += 0.4;
-      log(state, 'npc_goal_action', `${npc.identity.name}为了资源在${LOCATIONS[npc.position.location].name}搜寻。`, { npcId: npc.id, goal });
-    } else if (goal === 'findRelic' && ['bambooForest', 'riverbank', 'cliffCave'].includes(npc.position.location)) {
+      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'secureResources', location: npc.position.location, faction: npc.faction });
+      log(state, 'npc_goal_action', `${npc.identity.name}为了资源在${LOCATIONS[npc.position.location].name}搜寻。`, { npcId: npc.id, goal: 'secureResources' });
+      return true;
+    });
+    Engine.registerGoal('findRelic', ({ state, npc }) => {
+      if (!['bambooForest', 'riverbank', 'cliffCave'].includes(npc.position.location)) return false;
       state.facts.relicInterest = (state.facts.relicInterest || 0) + 1;
       state.director.pressure = clamp(state.director.pressure + 0.4, 0, 10);
       remember(state, npc.id, 'world', { kind: 'secret', valence: 2, text: '竹林深处的遗藏并不只吸引一个人。', facts: { relicInterest: true } });
-      log(state, 'npc_goal_action', `${npc.identity.name}在追查一条关于遗藏的线索。`, { npcId: npc.id, goal });
-    } else if (goal === 'winRivalry' && npc.position.location === 'academy') {
+      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'findRelic', location: npc.position.location, fact: 'relicInterest' });
+      log(state, 'npc_goal_action', `${npc.identity.name}在追查一条关于遗藏的线索。`, { npcId: npc.id, goal: 'findRelic' });
+      return true;
+    });
+    Engine.registerGoal('winRivalry', ({ state, npc }) => {
+      if (npc.position.location !== 'academy') return false;
       state.factions.guYue.tension += 0.7;
       relation(state, npc.id, 'fangzheng').affinity -= 1;
-      log(state, 'npc_goal_action', `${npc.identity.name}在学堂争取表现，竞争压力上升。`, { npcId: npc.id, goal });
-    } else if (goal === 'trade' && ['caravanCamp', 'village'].includes(npc.position.location)) {
+      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'winRivalry', location: npc.position.location, faction: npc.faction });
+      log(state, 'npc_goal_action', `${npc.identity.name}在学堂争取表现，竞争压力上升。`, { npcId: npc.id, goal: 'winRivalry' });
+      return true;
+    });
+    Engine.registerGoal('trade', ({ state, npc, faction }) => {
+      if (!['caravanCamp', 'village'].includes(npc.position.location)) return false;
       if (faction) faction.influence += 0.6;
       state.facts.marketActivity = (state.facts.marketActivity || 0) + 1;
-      log(state, 'npc_goal_action', `${npc.identity.name}完成了一次交易，商路继续流动。`, { npcId: npc.id, goal });
-    } else if (goal === 'protectBrother') {
+      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'trade', location: npc.position.location, faction: npc.faction });
+      log(state, 'npc_goal_action', `${npc.identity.name}完成了一次交易，商路继续流动。`, { npcId: npc.id, goal: 'trade' });
+      return true;
+    });
+    Engine.registerGoal('protectBrother', ({ state }) => {
       relation(state, 'fangzheng', 'fangyuan').trust += 0.4;
       remember(state, 'fangzheng', 'fangyuan', { kind: 'family', valence: 1, text: '你仍然把方源视作需要证明自己的兄长。' });
-    } else if (goal === 'avoidPlayer') {
+      return true;
+    });
+    Engine.registerGoal('avoidPlayer', ({ state, npc }) => {
       npc.needs.safety = clamp(npc.needs.safety + 2, 0, 100);
       remember(state, npc.id, 'player', { kind: 'avoidance', valence: -1, text: '你暂时不想和这个人再次碰面。' });
-    }
+      return true;
+    });
+    Engine.registerGoal('findFood', ({ state, npc }) => {
+      const zone = state.zones[npc.position.location];
+      if (!zone?.resources.food) return false;
+      zone.resources.food -= 1;
+      npc.needs.hunger = clamp(npc.needs.hunger - 18, 0, 100);
+      zone.activity += 2;
+      Engine.emit(state, 'npc.goal_action', { npcId: npc.id, goal: 'findFood', location: npc.position.location });
+      return true;
+    });
+    Engine.registerGoal('gainRecognition', ({ state, npc, faction }) => {
+      if (faction) faction.influence += 0.3;
+      state.director.pressure = clamp(state.director.pressure + 0.1, 0, 10);
+      remember(state, npc.id, 'world', { kind: 'ambition', valence: 1, text: `${npc.identity.name}在压力上升时选择争取存在感。` });
+      return true;
+    });
+    Engine.registerGoal('prepareAlliance', ({ state, npc }) => {
+      state.facts.allianceInterest = (state.facts.allianceInterest || 0) + 1;
+      if (npc.faction === 'guYue') state.factions.guYue.relations.bai += 0.2;
+      return true;
+    });
+  }
+
+  function registerInteractionHandlers() {
+    Engine.registerInteraction('help', ({ state, p, npc, relation: r, memoryBoost }) => {
+      r.trust += 7 + memoryBoost; r.debt += 1;
+      if (npc.faction) affectFaction(state, npc.faction, 2, -0.5);
+      remember(state, npc.id, 'player', { kind: 'help', valence: 10, text: `${p.identity.name}曾在关键时刻帮助过你。`, facts: { helped: true } });
+      log(state, 'social', `${npc.identity.name}接受了你的帮助，人情被记在账上。`);
+      return true;
+    });
+    Engine.registerInteraction('threaten', ({ state, p, npc, relation: r }) => {
+      r.fear += 9; r.trust -= 5;
+      if (npc.faction) affectFaction(state, npc.faction, -2, 2);
+      state.director.pressure += 1;
+      remember(state, npc.id, 'player', { kind: 'threat', valence: -8, text: `${p.identity.name}让你感到危险。` });
+      log(state, 'social', `你向${npc.identity.name}施压，短期得到让步，长期留下阴影。`);
+      return true;
+    });
+    Engine.registerInteraction('trade', ({ state, p, npc, relation: r }) => {
+      if ((p.inventory.stones || 0) < 1) throw new Error('元石不足');
+      p.inventory.stones -= 1; p.inventory.water += 1; r.trust += 2;
+      if (npc.faction) affectFaction(state, npc.faction, 1, 0);
+      log(state, 'social', `你与${npc.identity.name}完成了一次小交易。`);
+      return true;
+    });
+    Engine.registerInteraction('listen', ({ state, p, npc, relation: r, memoryBoost }) => {
+      r.trust += 1 + memoryBoost * 0.2; p.cultivation.insight += 1;
+      remember(state, npc.id, 'player', { kind: 'conversation', valence: 2, text: `你和${p.identity.name}谈过一次。` });
+      log(state, 'social', `你与${npc.identity.name}交谈，双方更新了对彼此的判断。`);
+      return true;
+    });
   }
 
   function relValence(state, npcId) {
@@ -519,7 +608,7 @@
   }
 
   function dailyTick(state) {
-    for (const npc of Object.values(state.entities)) {
+    for (const npc of Engine.queryWith(state, 'needs', 'memory')) {
       if (npc.id === 'player') continue;
       npc.needs.energy = clamp(npc.needs.energy + 35, 0, 100);
       npc.needs.hunger = clamp(npc.needs.hunger - 25, 0, 100);
@@ -542,6 +631,7 @@
     state.factions.guYue.relations.xiong = clamp((state.factions.guYue.relations.xiong || 0) - (state.factions.guYue.tension > 55 ? 1 : 0), -100, 100);
     state.factions.caravans.relations.guYue = clamp((state.factions.caravans.relations.guYue || 0) + (state.facts.marketActivity ? 1 : 0), -100, 100);
     state.director.pressure = clamp(state.director.pressure + (p.needs.hunger > 65 ? 2 : 0) + (rel.trust < 0 ? 1 : 0), 0, 10);
+    Engine.emit(state, 'world.day_tick', { day: day(state), pressure: state.director.pressure });
     log(state, 'day_tick', `第${day(state)}日结束，山寨、势力与人物各自推进了一步。`, { pressure: state.director.pressure });
   }
 
@@ -580,6 +670,7 @@
     target.body.limbs[limb] = clamp(target.body.limbs[limb] - Math.round(damage * 0.65), 0, 100);
     target.body.wounds.unshift({ clock: state.clock, sourceId, kind, limb, damage });
     target.body.wounds = target.body.wounds.slice(0, 12);
+    Engine.emit(state, 'combat.damage', { targetId, sourceId, kind, limb, damage });
     remember(state, targetId, sourceId, { kind: 'injury', valence: -damage, text: `你在${limb}处留下了伤势。` });
     log(state, 'damage', `${target.identity.name} 受到 ${damage} 点${kind === 'gu' ? '蛊术' : '伤害'}。`, { targetId, sourceId, limb, damage });
     if (target.body.health <= 0) {
@@ -595,6 +686,7 @@
     const target = requireSameLocation(state, targetId);
     if (targetId === state.playerId) throw new Error('不能与自己交锋');
     state.combat = { kind, attacker: 'player', defender: targetId, round: 1, guard: false, startedAt: state.clock };
+    Engine.emit(state, 'combat.started', { attackerId: 'player', defenderId: targetId, kind, location: p.position.location });
     relation(state, 'player', targetId).fear += 2;
     remember(state, targetId, 'player', { kind: 'conflict', valence: -10, text: `${p.identity.name}主动把关系推向了冲突。` });
     log(state, 'combat_start', `你与${target.identity.name}在${LOCATIONS[p.position.location].name}交锋。`, { targetId, kind });
@@ -649,6 +741,7 @@
       const from = p.position.location; p.position.location = target;
       state.zones[target].visits += 1;
       state.zones[target].activity += 2;
+      Engine.emit(state, 'world.travel', { actorId: 'player', from, to: target });
       remember(state, 'player', 'world', { kind: 'travel', text: `从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`, facts: { [target]: true } });
       log(state, 'travel', `你从${LOCATIONS[from].name}前往${LOCATIONS[target].name}。`);
       advance(state, 1, 'travel'); return;
@@ -692,6 +785,7 @@
         zone.resources.relicFragment -= fragment; p.inventory.relicFragment = (p.inventory.relicFragment || 0) + fragment; state.flags.relicDiscovered = true;
       }
       zone.activity += 12; zone.visits += 1;
+      Engine.emit(state, 'world.resource_gathered', { actorId: 'player', location: loc, resources: copy(p.inventory) });
       if (random(state) < zone.danger / 260) { damageEntity(state, 'player', 4 + zone.danger * 0.08, 'world', 'environment'); p.needs.safety -= 8; }
       p.cultivation.insight += random(state) < 0.35 ? 1 : 0;
       log(state, 'action', `你在${LOCATIONS[loc].name}进行采集，资源与线索都发生了变化。`);
@@ -719,10 +813,8 @@
       const r = relation(state, 'player', npc.id);
       const mode = command.mode || 'listen';
       const memoryBoost = (p.memory.facts[npc.id]?.helped ? 6 : 0) + (r.trust > 20 ? 3 : 0);
-      if (mode === 'help') { r.trust += 7 + memoryBoost; r.debt += 1; if (npc.faction) affectFaction(state, npc.faction, 2, -0.5); remember(state, npc.id, 'player', { kind: 'help', valence: 10, text: `${p.identity.name}曾在关键时刻帮助过你。`, facts: { helped: true } }); log(state, 'social', `${npc.identity.name}接受了你的帮助，人情被记在账上。`); }
-      else if (mode === 'threaten') { r.fear += 9; r.trust -= 5; if (npc.faction) affectFaction(state, npc.faction, -2, 2); state.director.pressure += 1; remember(state, npc.id, 'player', { kind: 'threat', valence: -8, text: `${p.identity.name}让你感到危险。` }); log(state, 'social', `你向${npc.identity.name}施压，短期得到让步，长期留下阴影。`); }
-      else if (mode === 'trade') { if ((p.inventory.stones || 0) < 1) throw new Error('元石不足'); p.inventory.stones -= 1; p.inventory.water += 1; r.trust += 2; if (npc.faction) affectFaction(state, npc.faction, 1, 0); log(state, 'social', `你与${npc.identity.name}完成了一次小交易。`); }
-      else { r.trust += 1 + memoryBoost * 0.2; p.cultivation.insight += 1; remember(state, npc.id, 'player', { kind: 'conversation', valence: 2, text: `你和${p.identity.name}谈过一次。` }); log(state, 'social', `你与${npc.identity.name}交谈，双方更新了对彼此的判断。`); }
+      if (!Engine.runInteraction(mode, { state, p, npc, relation: r, memoryBoost })) Engine.runInteraction('listen', { state, p, npc, relation: r, memoryBoost });
+      Engine.emit(state, 'social.interaction', { actorId: 'player', targetId: npc.id, mode });
       r.lastSeen = state.clock; advance(state, 1, 'talk'); return;
     }
     if (id === 'influence') {
@@ -786,11 +878,15 @@
       day: day(state), hour: hour(state), phase: phase(state), location: p.position.location,
       player: { ...p.cultivation, name: p.identity.name, inventory: copy(p.inventory), needs: copy(p.needs) },
       combat: copy(state.combat || null),
-      nearby: Object.values(state.entities).filter(e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
+      nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, log: state.log.slice(0, 20).map(copy)
     };
   }
 
-  return { SCHEMA_VERSION, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  registerDirectorRules();
+  registerEventHandlers();
+  registerGoalHandlers();
+  registerInteractionHandlers();
+  return { SCHEMA_VERSION, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });
