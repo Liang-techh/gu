@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -9,6 +9,7 @@
   if (!History) throw new Error('GuSimulationHistory must load before simulation.js');
   if (!ZoneBuilder) throw new Error('GuSimulationZoneBuilder must load before simulation.js');
   if (!NpcAI) throw new Error('GuSimulationNpcAI must load before simulation.js');
+  if (!Entity) throw new Error('GuSimulationEntity must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
   const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS } = Content;
@@ -66,31 +67,11 @@
     owner.memory.episodes = owner.memory.episodes.slice(0, 24);
   }
 
-  function createEntity(id, seed) {
-    const maxHealth = 60 + ((seed.cultivation?.rank || 1) * 18);
-    return {
-      id,
-      identity: { name: seed.name, role: seed.role || '居民', tags: seed.tags || [] },
-      position: { location: seed.location },
-      faction: seed.faction || null,
-      personality: seed.personality || {},
-      cultivation: seed.cultivation || null,
-      schedule: seed.schedule || {},
-      goals: { active: seed.goals?.[0] || 'idle', queue: seed.goals || [] },
-      needs: { energy: 100, hunger: 0, safety: 80 },
-      body: { maxHealth, health: maxHealth, wounds: [], limbs: { head: 100, torso: 100, leftArm: 100, rightArm: 100, leftLeg: 100, rightLeg: 100 } },
-      abilities: { gu: [], skills: [] },
-      inventory: {},
-      memory: { facts: {}, episodes: [] },
-      alive: true
-    };
-  }
-
   function activateSeed(state, id) {
     if (state.entities[id]) return state.entities[id];
     const seed = NPC_SEEDS[id];
     if (!seed) throw new Error(`内容包中不存在 NPC：${id}`);
-    const entity = createEntity(id, seed);
+    const entity = Entity.createEntity(id, seed);
     state.entities[id] = entity;
     if (state.facts.latentNpcs) delete state.facts.latentNpcs[id];
     remember(state, id, 'world', { kind: 'arrival', text: `${seed.name}进入了青茅山的公共视野。`, facts: { arrivedDay: day(state) } });
@@ -181,7 +162,7 @@
       version: 1
     };
     for (const [id, faction] of Object.entries(FACTION_SEEDS)) state.factions[id] = { id, ...copy(faction), relations: {} };
-    state.entities.player = createEntity('player', {
+    state.entities.player = Entity.createEntity('player', {
       name: String(options.name || '古月族人').slice(0, 20), role: '玩家', faction: 'guYue', location: 'academy',
       cultivation: { rank: 1, stage: 0, aptitude: APTITUDE[aptitudeName], aptitudeName, progress: 0, essence: 32, essenceMax: 50, vitality: 100, insight: 8 },
       schedule: {}, goals: ['survive', 'grow']
@@ -191,10 +172,10 @@
     state.entities.player.needs = { energy: 92, hunger: 8, safety: 70 };
     for (const [id, seedData] of Object.entries(NPC_SEEDS)) {
       if (seedData.fromDay && seedData.fromDay > day(state)) { state.facts.latentNpcs ||= {}; state.facts.latentNpcs[id] = seedData.fromDay; }
-      else state.entities[id] = createEntity(id, seedData);
+      else state.entities[id] = Entity.createEntity(id, seedData);
     }
     state.zones = ZoneBuilder.buildZones(LOCATIONS);
-    ZoneBuilder.seedPopulation(state, { locations: LOCATIONS, populationTables: POPULATION_TABLES, random, createEntity });
+    ZoneBuilder.seedPopulation(state, { locations: LOCATIONS, populationTables: POPULATION_TABLES, random, createEntity: Entity.createEntity });
     for (const id of Object.keys(state.entities)) remember(state, id, 'world', { kind: 'origin', text: '青茅山的雨季刚刚开始。', facts: { region: '青茅山' } });
     relation(state, 'player', 'fangyuan').fear = 4;
     relation(state, 'player', 'fangzheng').trust = 6;
@@ -1087,5 +1068,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

@@ -317,6 +317,7 @@ test('invalid actions are rejected without mutating the original state', () => {
 test('engine registries expose component queries, goal handlers, interactions and domain events', () => {
   let state = open(S.newWorld({ seed: 'engine-api' }), 'observe');
   assert.ok(S.ENGINE.COMPONENTS.includes('memory'));
+  assert.equal(typeof S.ENTITY.createEntity, 'function');
   assert.equal(typeof S.NPC_AI.selectGoal, 'function');
   assert.ok(S.ENGINE.queryWith(state, 'identity', 'position', 'memory').length >= 10);
   const before = S.snapshot(state).eventStream.length;

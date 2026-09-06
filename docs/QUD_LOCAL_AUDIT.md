@@ -27,7 +27,7 @@
 
 | Qud 观察 | `gu-rpg` 对应层 | 目的 |
 | --- | --- | --- |
-| Game Object + Parts | `entities[id]` + `identity/position/needs/cultivation/memory/inventory` | 同一实体可拥有不同能力，玩家和 NPC 走同一条规则路径 |
+| Game Object + Parts | `src/entity.js` 工厂 + `entities[id]` + `identity/position/needs/cultivation/memory/inventory` | 同一实体可拥有不同能力，玩家和 NPC 走同一条规则路径 |
 | Event types / before-after events | `dispatch → action/resolve_event → event queue/listeners → log/events.history` | 所有状态变化可追踪、可回放、可保存，派生区域后果由监听器组合 |
 | GoalHandlers | `src/npc-ai.js` + NPC `goals.active/queue` + `schedule` | 日程只是默认偏好，记忆、恐惧和世界压力可覆盖它；目标执行仍由运行时注册 |
 | Factions.xml | `factions` + `relationships` | 势力拥有影响力、紧张度、态度，玩家行为会改变关系图 |
