@@ -94,6 +94,26 @@ test('environment affordances expose composable observe, forage, relic search an
   assert.ok(state.facts['scouted:riverbank'] >= 1);
 });
 
+test('environment hazards use registered effects shared by players and NPCs', () => {
+  let state = open(S.newWorld({ seed: 'environment-effects' }), 'observe');
+  state = ok(state, { type: 'action', id: 'travel', location: 'village' });
+  state = ok(state, { type: 'action', id: 'travel', location: 'bambooForest' });
+  state.zones.bambooForest.danger = 100;
+  state.rng = 1;
+  state = ok(state, { type: 'action', id: 'interact', affordanceId: 'forage' });
+  assert.equal(S.EFFECTS.has(state.entities.player, 'environmentExposure'), true);
+  assert.equal(S.EFFECTS.has(state.entities.player, 'terrainFatigue'), true);
+  assert.ok(state.events.recent.some(event => event.type === 'environment.effect_applied' && event.payload.entityId === 'player'));
+  const npc = S.ENTITY.createEntity('hazard-npc', { name: '危险感知者', location: 'bambooForest' });
+  state.entities[npc.id] = npc;
+  S.EFFECTS.apply(npc, 'environmentExposure', { duration: 6, intensity: 90, clock: state.clock, state, data: { location: 'bambooForest', danger: 90 } });
+  const relation = (world, a, b) => world.relationships[[a, b].sort().join('::')] || { trust: 0, fear: 0 };
+  assert.ok(S.NPC_AI.goalScore(state, npc, 'survive', { day: S.day, relation }) > S.NPC_AI.goalScore({ ...state, clock: state.clock }, { ...npc, effects: { active: [], sequence: 0 } }, 'survive', { day: S.day, relation }));
+  state = ok(state, { type: 'action', id: 'wait', hours: 6 });
+  assert.equal(S.EFFECTS.has(state.entities.player, 'environmentExposure'), false);
+  assert.ok(state.events.recent.some(event => event.type === 'environment.effect_expired' && event.payload.entityId === 'player'));
+});
+
 test('zone builder reconstructs content-driven zones without depending on the UI', () => {
   const zones = S.ZONE_BUILDER.buildZones(S.LOCATIONS);
   assert.equal(Object.keys(zones).length, Object.keys(S.LOCATIONS).length);
@@ -1250,6 +1270,7 @@ test('engine registries expose component queries, goal handlers, interactions an
   assert.ok(snap.engine.registries.actions.includes('accept_contract'));
   for (const id of ['wait', 'travel', 'cultivate', 'study', 'gather', 'interact', 'rest', 'challenge', 'refine', 'equip_gu', 'unequip_gu', 'talk', 'influence', 'blessed_land_action', 'front_action', 'shadow_network_action', 'dream_realm_action', 'coalition_action', 'attack', 'gu', 'guard', 'flee']) assert.ok(snap.engine.registries.actions.includes(id), `${id} should be action-registered`);
   for (const id of ['observeZone', 'forage', 'searchRelic', 'scoutZone']) assert.ok(snap.engine.registries.interactions.includes(id), `${id} should be interaction-registered`);
+  for (const id of ['environmentExposure', 'terrainFatigue']) assert.ok(snap.engine.registries.effects?.[id], `${id} should be effect-registered`);
   assert.ok(snap.engine.registries.directorRules.includes('starHostPlan'));
   assert.ok(snap.engine.registries.directorRules.length >= 29);
   assert.ok(snap.engine.registries.directorRules.includes('marketArrival'));

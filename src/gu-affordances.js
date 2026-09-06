@@ -7,7 +7,7 @@
   // Qud analogue: a zone exposes affordances through interaction handlers.
   // The UI may list them, but the simulation remains the authority that
   // decides whether an affordance is currently valid and what it changes.
-  function register({ engine, locations, random, clamp, remember, log, consequence, damageEntity, advance, copy }) {
+  function register({ engine, locations, random, clamp, remember, log, consequence, damageEntity, effect, advance, copy }) {
     const definitions = new Map();
     const locationTags = (state, p) => state.locations?.[p.position.location]?.tags || locations[p.position.location]?.tags || [];
     const locationDefinition = (state, p) => state.locations?.[p.position.location] || locations[p.position.location] || {};
@@ -16,6 +16,10 @@
     const emit = (state, type, payload) => engine.emit(state, type, payload);
     const actorName = actor => actor.id === 'player' ? '你' : actor.identity?.name || actor.id;
     const advanceIfRequested = (state, context, hours, reason) => { if (context.advanceTime !== false) advance(state, hours, reason); };
+    const applyTerrainRisk = (state, actor, location, zone, duration = 6) => {
+      effect?.apply(actor, 'environmentExposure', { duration, intensity: zone.danger, source: `zone:${location}`, clock: state.clock, state, data: { location, danger: zone.danger } });
+      effect?.apply(actor, 'terrainFatigue', { duration: Math.max(2, Math.ceil(duration / 2)), intensity: 1, source: `zone:${location}`, clock: state.clock, state, data: { location } });
+    };
 
     function add(id, definition) {
       definitions.set(id, { id, ...definition });
@@ -70,7 +74,7 @@
         }
         zone.activity += 12; zone.visits = (zone.visits || 0) + 1;
         emit(state, 'world.resource_gathered', { actorId: p.id, location: loc, gathered, resources: copy(inventory) });
-        if (random(state) < zone.danger / 260) { damageEntity(state, p.id, 4 + zone.danger * 0.08, 'world', 'environment'); p.needs.safety -= 8; }
+        if (random(state) < zone.danger / 260) { damageEntity(state, p.id, 4 + zone.danger * 0.08, 'world', 'environment'); p.needs.safety -= 8; applyTerrainRisk(state, p, loc, zone); }
         p.cultivation.insight += random(state) < 0.35 ? 1 : 0;
         log(state, 'environment_forage', `${actorName(p)}在${locations[loc].name}采集了资源，区域活动和竞争痕迹同时上升。`, { actorId: p.id, location: loc, gathered });
         advanceIfRequested(state, context, 2, 'forage');
@@ -92,6 +96,7 @@
         const quality = clamp(0.25 + p.cultivation.insight * 0.012 + (zone.danger > 45 ? 0.12 : 0), 0, 0.95);
         const found = random(state) < quality;
         zone.activity += 8; zone.visits = (zone.visits || 0) + 1; p.needs.energy -= 5; p.needs.safety -= zone.danger > 55 ? 4 : 1;
+        if (zone.danger > 45) applyTerrainRisk(state, p, loc, zone, 8);
         if (found) {
           p.cultivation.insight += 3; state.facts.relicInterest = (state.facts.relicInterest || 0) + 1; state.facts[`relicClue:${loc}`] = (state.facts[`relicClue:${loc}`] || 0) + 1;
           remember(state, p.id, loc, { kind: 'relic-clue', valence: 3, confidence: quality, text: `${actorName(p)}在${locations[loc].name}找到一段尚未完整的遗藏线索。`, facts: { relicClue: true, relicLocation: loc, relicConfidence: quality } });
@@ -118,6 +123,7 @@
         const { state, p } = context;
         const zone = zoneFor(state, p); const loc = p.position.location; const front = Object.values(state.worldWar?.fronts || {}).find(item => item.active && item.location === loc);
         p.needs.energy -= 6; p.needs.safety -= 3; p.cultivation.insight += 2; zone.activity += 5; state.facts[`scouted:${loc}`] = (state.facts[`scouted:${loc}`] || 0) + 1;
+        if (zone.danger > 45) applyTerrainRisk(state, p, loc, zone, 6);
         if (front) { front.pressure = Math.max(0, front.pressure - 2); front.lastActionDay = Math.floor(state.clock / 24) + 1; }
         remember(state, p.id, 'world', { kind: 'zone-scout', valence: 2, confidence: 0.72, text: `${actorName(p)}侦查了${locations[loc].name}，把危险、活动和可能的补给缺口记入判断。`, facts: { scoutedLocation: loc, frontId: front?.id || null, danger: zone.danger } });
         emit(state, 'zone.scouted', { actorId: p.id, location: loc, danger: zone.danger, activity: zone.activity, frontId: front?.id || null });

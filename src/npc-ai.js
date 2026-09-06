@@ -30,6 +30,8 @@
     const observed = knownFact(npc, location, 'observedResources');
     const observedDanger = knownFact(npc, location, 'observedDanger');
     const relicClue = knownFact(npc, location, 'relicClue');
+    const exposure = npc.effects?.active?.find(item => item.kind === 'environmentExposure');
+    const fatigue = npc.effects?.active?.find(item => item.kind === 'terrainFatigue');
     let score = queueIndex >= 0 ? 2.2 - queueIndex * 0.18 : 0.05;
     if (goal === 'avoidPlayer') score += rel.fear * 0.06 + (faction?.attitude < -25 ? 3 : 0);
     if (goal === 'avoidPlayer') score += suspicion * 0.045;
@@ -50,6 +52,7 @@
       score += Math.min(1.2, knownSupply * 0.03) * (observed ? observed.confidence : 0.25);
     }
     if (goal === 'patrol' && observedDanger) score += Math.min(1.1, Number(observedDanger.value || 0) * 0.012) * observedDanger.confidence;
+    if (goal === 'avoidPlayer' || goal === 'survive' || goal === 'returnHome') score += (Number(exposure?.intensity || 0) * 0.018) + (fatigue ? 0.35 : 0);
     if (goal === 'protectClan' || goal === 'protectBrother' || goal === 'protectFather' || goal === 'protectDaughter') score += loyalty * 0.025;
     if (goal === 'trade' || goal === 'auction') score += greed * 0.018;
     const recent = (npc.goals.history || []).filter(item => item.goal === goal && day(state) - item.day <= 1).length;
