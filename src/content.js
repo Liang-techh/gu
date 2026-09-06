@@ -104,6 +104,28 @@
     wujiLegacy: { name: '无极遗产', color: '#65736c', influence: 58, tension: 78, attitude: -10 }
   };
 
+  // Content-owned faction interests. Runtime systems consume this contract;
+  // keeping it beside faction seeds makes trade, logistics and AI policy data
+  // replaceable with another novel/world content pack.
+  const FACTION_INTERESTS = {
+    guYue: { market: { buy: ['food', 'water'], sell: ['moonPetal'], motive: '维持山寨生存' }, resourceBias: { food: 0.12, water: 0.16 }, war: { logistics: 0.25, mobilization: 0.1 } },
+    caravans: { market: { buy: ['water', 'food'], sell: ['moonPetal', 'relicFragment'], motive: '流动补给与套利' }, resourceBias: { water: 0.2, food: 0.14 }, war: { logistics: 0.18, mobilization: 0.05 } },
+    shang: { market: { buy: ['moonPetal', 'relicFragment'], sell: ['food', 'water'], motive: '控制稀缺资源' }, resourceBias: { moonPetal: 0.2, relicFragment: 0.28 }, war: { logistics: 0.12, mobilization: 0.08 } },
+    demonic: { market: { buy: ['relicFragment', 'moonPetal'], sell: ['food'], motive: '高风险机会' }, resourceBias: { relicFragment: 0.25, moonPetal: 0.18 }, war: { logistics: 0.04, mobilization: 0.22 } },
+    auctionImmortals: { market: { buy: ['relicFragment', 'moonPetal'], sell: ['water', 'food'], motive: '信息与稀缺品溢价' }, resourceBias: { relicFragment: 0.3, moonPetal: 0.2 }, war: { logistics: 0.1, mobilization: 0.12 } },
+    centralSects: { market: { buy: ['relicFragment', 'water'], sell: ['food', 'moonPetal'], motive: '传承与秩序' }, resourceBias: { relicFragment: 0.18, water: 0.12 }, war: { logistics: 0.32, mobilization: 0.2 } },
+    northernTribes: { market: { buy: ['food', 'water'], sell: ['relicFragment'], motive: '战争后勤' }, resourceBias: { food: 0.22, water: 0.18 }, war: { logistics: 0.5, mobilization: 0.65 } },
+    black: { market: { buy: ['food', 'water'], sell: ['relicFragment'], motive: '军帐供给与战线推进' }, resourceBias: { food: 0.28, water: 0.24 }, war: { logistics: 0.75, mobilization: 0.8 } },
+    shadowSect: { market: { buy: ['relicFragment', 'moonPetal'], sell: ['food'], motive: '隐秘资源与重建' }, resourceBias: { relicFragment: 0.24, moonPetal: 0.2 }, war: { logistics: 0.2, mobilization: 0.55 } },
+    heavenlyCourt: { market: { buy: ['relicFragment', 'water'], sell: ['food', 'moonPetal'], motive: '人道秩序与天庭供给' }, resourceBias: { relicFragment: 0.22, water: 0.16 }, war: { logistics: 0.72, mobilization: 0.72 } },
+    longLifeHeaven: { market: { buy: ['food', 'water'], sell: ['relicFragment'], motive: '北原军需与霸权' }, resourceBias: { food: 0.26, water: 0.2 }, war: { logistics: 0.7, mobilization: 0.78 } },
+    twoHeavensForces: { market: { buy: ['food', 'water'], sell: ['relicFragment'], motive: '两天战场求生' }, resourceBias: { food: 0.3, water: 0.25 }, war: { logistics: 0.65, mobilization: 0.9 } },
+    southernSuperClans: { market: { buy: ['food', 'water'], sell: ['moonPetal'], motive: '南疆家族资源与防线' }, resourceBias: { food: 0.2, water: 0.18 }, war: { logistics: 0.55, mobilization: 0.6 } },
+    westernDesertFang: { market: { buy: ['water', 'relicFragment'], sell: ['food', 'moonPetal'], motive: '西漠商路与家族战争' }, resourceBias: { water: 0.3, relicFragment: 0.15 }, war: { logistics: 0.45, mobilization: 0.55 } },
+    easternSeaImmortals: { market: { buy: ['water', 'relicFragment'], sell: ['food', 'moonPetal'], motive: '东海贸易与情报' }, resourceBias: { water: 0.25, relicFragment: 0.14 }, war: { logistics: 0.3, mobilization: 0.35 } }
+  };
+  for (const id of Object.keys(FACTION_SEEDS)) FACTION_INTERESTS[id] ||= { market: { buy: ['food'], sell: ['water'], motive: '维持势力运转' }, resourceBias: {}, war: { logistics: 0.1, mobilization: 0.1 } };
+
   const GU_SEEDS = {
     moonlight: { name: '月光蛊', rank: 1, kind: 'mortal', food: 'moonPetal', power: 12 },
     wineWorm: { name: '酒虫', rank: 1, kind: 'mortal', food: 'wine', power: 8 },
@@ -412,5 +434,5 @@
     ] }
   ];
 
-  return { CONTENT_VERSION: 6, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
+  return { CONTENT_VERSION: 6, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
 });

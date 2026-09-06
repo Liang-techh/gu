@@ -35,14 +35,20 @@
 
   function ensureFaction(faction) {
     if (!faction) return null;
-    faction.market ||= { volume: 0, treasury: Math.max(10, Math.round((faction.influence || 10) * 0.5)), goods: {}, lastClock: -1, motive: FACTION_POLICIES[faction.id]?.motive || '维持势力运转' };
+    const policy = faction.interests?.market || FACTION_POLICIES[faction.id];
+    faction.market ||= { volume: 0, treasury: Math.max(10, Math.round((faction.influence || 10) * 0.5)), goods: {}, lastClock: -1, motive: policy?.motive || '维持势力运转', policy: policy ? { ...policy } : null };
     faction.market.goods ||= {};
+    faction.market.motive ||= policy?.motive || '维持势力运转';
+    faction.market.policy ||= policy ? { ...policy } : null;
     faction.market.volume = Math.max(0, Number(faction.market.volume) || 0);
     faction.market.treasury = Math.max(0, Number(faction.market.treasury) || 0);
     return faction.market;
   }
 
-  function createRuntime({ engine, clamp, random }) {
+  function createRuntime({ engine, clamp, random, factionInterests = {} }) {
+    function policyFor(faction) {
+      return faction?.interests?.market || factionInterests[faction?.id]?.market || FACTION_POLICIES[faction?.id] || null;
+    }
     function quote(state, goodId, amount = 1) {
       const market = ensure(state); const good = GOODS[goodId];
       if (!good) throw new Error(`未知商品：${goodId}`);
@@ -83,7 +89,7 @@
       npc.inventory ||= {};
       const location = npc.position.location;
       const stableRoll = [...String(npc.id)].reduce((sum, char) => sum + char.charCodeAt(0), state.clock) % 100;
-      const policy = FACTION_POLICIES[faction?.id];
+      const policy = policyFor(faction);
       ensureFaction(faction);
       const policyGoods = policy?.buy || [];
       const locationGood = location === 'riverbank' || location === 'caravanCamp' ? 'water' : location === 'bambooForest' ? 'moonPetal' : stableRoll < 50 ? 'food' : 'water';

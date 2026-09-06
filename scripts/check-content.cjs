@@ -13,6 +13,13 @@ const locationIds = new Set(Object.keys(C.LOCATIONS));
 const factionIds = new Set(Object.keys(C.FACTION_SEEDS));
 const npcIds = new Set(Object.keys(C.NPC_SEEDS));
 const goalIds = new Set(S.ENGINE.registries().goals);
+const goodIds = new Set(Object.keys(S.MARKET.GOODS));
+
+for (const factionId of factionIds) {
+  const interests = C.FACTION_INTERESTS[factionId];
+  if (!interests?.market || !interests.war) fail(`faction ${factionId} has incomplete content interests`);
+  for (const good of [...(interests?.market?.buy || []), ...(interests?.market?.sell || [])]) if (!goodIds.has(good)) fail(`faction ${factionId} interest references missing good ${good}`);
+}
 
 for (const [id, location] of Object.entries(C.LOCATIONS)) {
   if (!Array.isArray(location.neighbors) || !location.neighbors.length) fail(`location ${id} has no neighbors`);

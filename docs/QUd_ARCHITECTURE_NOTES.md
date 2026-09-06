@@ -38,7 +38,7 @@
 
 `XRL.World.Faction` 不只是名称：它拥有玩家声誉、对其他势力的 feeling、rank、兴趣列表、秘密买卖偏好、圣地和可继承的父势力关系。Faction 可以决定交易、情报购买、敬拜、敌对和任务反应。
 
-当前项目已经有势力 influence/attitude/tension、关系网络、情报案件和市场；`market.js` 已将部分势力兴趣抽象成可配置的买入品、卖出品和动机，并把交易量、金库与持仓倾向写回 `faction.market`。后续应把这组政策继续迁入内容包，避免长期依赖代码内默认表。
+当前项目已经有势力 influence/attitude/tension、关系网络、情报案件和市场；`src/content.js` 的 `FACTION_INTERESTS` 现在声明各势力的买入品、卖出品、动机、资源偏置和战争动员/后勤压力。`market.js` 只负责通用 quote/trade 结算，并把交易量、金库与持仓倾向写回 `faction.market`；Zone 离线居民也读取同一份兴趣，形成 faction → economy → region → AI 的反馈链。
 
 ## 已迁移与未迁移
 

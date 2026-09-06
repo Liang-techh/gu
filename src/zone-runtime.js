@@ -109,12 +109,19 @@
     return true;
   }
 
-  function applyResources(zone, days, summary, allowRelic = false) {
+  function resourceFactor(state, zoneId, key) {
+    const residents = [...Object.values(state.entities || {}), ...Object.values(state.entityCache || {})].filter(entity => entity.position?.location === zoneId && entity.faction);
+    if (!residents.length) return 1;
+    const bias = residents.reduce((sum, entity) => sum + Number(state.factions?.[entity.faction]?.interests?.resourceBias?.[key] || 0), 0) / residents.length;
+    return Math.max(0.5, Math.min(1.8, 1 + bias));
+  }
+
+  function applyResources(state, zoneId, zone, days, summary, allowRelic = false) {
     const rates = { water: 2, moonPetal: 3, food: 1, relicFragment: allowRelic ? 0.2 : 0 };
     const caps = { water: 12, moonPetal: 16, food: 8, relicFragment: 3 };
     for (const [key, rate] of Object.entries(rates)) {
       if (zone.resources?.[key] === undefined) continue;
-      const amount = rate * days;
+      const amount = rate * days * resourceFactor(state, zoneId, key);
       const before = zone.resources[key];
       zone.resources[key] = Math.min(caps[key], before + amount);
       summary.resourceYield[key] = (summary.resourceYield[key] || 0) + (zone.resources[key] - before);
@@ -157,8 +164,9 @@
       entity.body.maxHealth = Math.max(1, Number(entity.body.maxHealth) || 60);
       entity.body.health = clamp(Number(entity.body.health) || 0, 0, entity.body.maxHealth);
       const goals = entity.goals?.queue || [];
+      const warPressure = Number(state.factions?.[entity.faction]?.interests?.war?.mobilization || 0);
       const neighbors = state.locations?.[locationId]?.neighbors || [];
-      const shouldMove = neighbors.length && (zone.danger > 70 || goals.includes('travel') || goals.includes('returnHome')) && stableRoll(`${state.clock}:${entity.id}:${locationId}`) < Math.min(0.9, summary.days * 0.45);
+      const shouldMove = neighbors.length && (zone.danger > 70 || goals.includes('travel') || goals.includes('returnHome') || (warPressure > 0.6 && (goals.includes('patrol') || goals.includes('prepareWar')))) && stableRoll(`${state.clock}:${entity.id}:${locationId}`) < Math.min(0.9, summary.days * (warPressure > 0.6 ? 0.55 : 0.45));
       if (shouldMove) {
         const destination = [...neighbors].sort((a, b) => (state.zones[a]?.danger || 0) - (state.zones[b]?.danger || 0) || a.localeCompare(b))[0];
         entity.position.location = destination;
@@ -170,7 +178,7 @@
         entity.memory.episodes.unshift({ clock: state.clock, subjectId: destination, kind: 'offline-move', valence: zone.danger > 70 ? -1 : 0, text: `在离线期间从${locationId}迁往${destination}。` });
         entity.memory.episodes = entity.memory.episodes.slice(0, 24);
       }
-      if (zone.danger > 80 && stableRoll(`${state.clock}:conflict:${entity.id}`) < Math.min(0.5, summary.days * 0.12)) {
+      if ((zone.danger > 80 || warPressure > 0.75) && stableRoll(`${state.clock}:conflict:${entity.id}`) < Math.min(0.5, summary.days * (warPressure > 0.75 ? 0.16 : 0.12))) {
         entity.body.health = Math.max(0, entity.body.health - Math.max(1, Math.round(zone.danger * 0.04)));
         summary.residentConflicts += 1;
         if (entity.body.health <= 0) { entity.alive = false; summary.residentDeaths += 1; }
@@ -190,7 +198,7 @@
     zone.activity = Math.max(0, activityBefore + summary.activityDelta);
     summary.dangerDelta = zone.activity > 45 ? 1.5 * days : -0.5 * days;
     zone.danger = clamp((Number(zone.danger) || 0) + summary.dangerDelta, 0, 100);
-    applyResources(zone, days, summary, Boolean(state.flags?.relicDiscovered));
+    applyResources(state, locationId, zone, days, summary, Boolean(state.flags?.relicDiscovered));
     runtime.offline.hours += hours;
     runtime.offline.ticks += summary.ticks;
     runtime.offline.conflicts += (zone.danger > 70 ? summary.ticks : 0) + summary.residentConflicts;
@@ -211,7 +219,7 @@
     zone.activity = Math.max(0, zone.activity - 12);
     zone.danger = clamp(zone.danger + (zone.activity > 45 ? 2 : -1), 0, 100);
     const summary = summaryFor(zone, 24, state.clock);
-    applyResources(zone, 1, summary, Boolean(state.flags?.relicDiscovered));
+    applyResources(state, zone.id, zone, 1, summary, Boolean(state.flags?.relicDiscovered));
     zone.weather = random(state) < 0.65 ? '雨' : random(state) < 0.5 ? '晴' : '雾';
     runtime.lastSettlementClock = state.clock;
     runtime.lastCachedClock = state.clock;

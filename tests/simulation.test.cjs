@@ -573,6 +573,8 @@ test('NPC trade goals mutate a shared market and enter the rumor/history pipelin
   state = ok(state, { type: 'action', id: 'wait', hours: 4 });
   assert.ok(state.market.transactions.length >= 1);
   assert.ok(state.factions.caravans.market.volume >= 1);
+  assert.equal(state.factions.caravans.market.motive, S.FACTION_INTERESTS.caravans.market.motive);
+  assert.ok(state.factions.black.interests.war.mobilization > 0.7);
   assert.ok(state.market.supply.water !== beforeSupply || state.market.supply.food !== 20);
   assert.ok(state.events.recent.some(event => event.type === 'market.trade'));
   assert.ok(state.log.some(event => event.type === 'market_trade'));

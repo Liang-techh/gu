@@ -32,7 +32,7 @@
   if (!Knowledge) throw new Error('GuSimulationKnowledge must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
-  const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS } = Content;
+  const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS } = Content;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const copy = value => JSON.parse(JSON.stringify(value));
   const hash = value => {
@@ -147,7 +147,7 @@
       log: [],
       version: 1
     };
-    for (const [id, faction] of Object.entries(FACTION_SEEDS)) state.factions[id] = { id, ...copy(faction), relations: {} };
+    for (const [id, faction] of Object.entries(FACTION_SEEDS)) state.factions[id] = { id, ...copy(faction), interests: copy(FACTION_INTERESTS[id] || {}), relations: {} };
     state.entities.player = Entity.createEntity('player', {
       name: String(options.name || '古月族人').slice(0, 20), role: '玩家', faction: 'guYue', location: 'academy',
       cultivation: { rank: 1, stage: 0, aptitude: APTITUDE[aptitudeName], aptitudeName, progress: 0, essence: 32, essenceMax: 50, vitality: 100, insight: 8 },
@@ -285,6 +285,8 @@
     p.needs.energy = clamp(p.needs.energy, 0, 100);
     p.needs.hunger = clamp(p.needs.hunger, 0, 100);
     for (const faction of Object.values(state.factions)) {
+      faction.interests ||= copy(FACTION_INTERESTS[faction.id] || {});
+      marketRuntime.ensureFaction(faction);
       faction.influence = clamp(faction.influence, 0, 100);
       faction.tension = clamp(faction.tension, 0, 100);
       faction.attitude = clamp(faction.attitude, -100, 100);
@@ -803,7 +805,7 @@
   Engine.registerComponent('brain', { ensure: entity => Brain.ensure(entity), onAttach: ({ entity, value }) => value || Brain.ensure(entity) });
   repeatableRuntime = RepeatableSystems.createRuntime({ engine: Engine, random, clamp, relation, remember, log, damageEntity, advance });
   pursuitRuntime = Pursuit.createRuntime({ engine: Engine, createEntity: Entity.createEntity, locations: LOCATIONS, random, clamp, relation, remember, log, advance, knowledge: Knowledge });
-  marketRuntime = Market.createRuntime({ engine: Engine, clamp, random });
+  marketRuntime = Market.createRuntime({ engine: Engine, clamp, random, factionInterests: FACTION_INTERESTS });
   agencyRuntime = Agency.createRuntime({ engine: Engine, locations: LOCATIONS, random, clamp, relation, remember, log, advance, knowledge: Knowledge, market: marketRuntime });
   directorRulesRuntime = DirectorRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES });
   eventRulesRuntime = EventRules.createRuntime({ engine: Engine, day, sourceNotes: SOURCE_NOTES, activateSeed, relation, remember, log, affectFaction, advance, clamp, applyOpening, pursuit: pursuitRuntime });
@@ -815,5 +817,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, FACTION_INTERESTS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, CONDITION: Condition, BODY: Body, BRAIN: Brain, GOAL_HANDLER: Brain.goalHandler, KNOWLEDGE: Knowledge, IDENTITY: Identity, PURSUIT: pursuitRuntime, AGENCY: agencyRuntime, MARKET: marketRuntime, CONTRACTS: contractRuntime, REPEATABLE_SYSTEMS: repeatableRuntime, DIRECTOR_RULES: directorRulesRuntime, EVENT_RULES: eventRulesRuntime, ZONE_BUILDER: ZoneBuilder, ZONE_RUNTIME: ZoneRuntime, NPC_AI: NpcAI, DEFAULT_GOALS: DefaultGoals, CONVERSATION_RUNTIME: Conversation, RUMOR: Rumor, ACTION_CATALOG: ActionCatalog, DIRECTOR: Director, INTENT: Intent, ABILITY: Ability, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });
