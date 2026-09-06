@@ -243,5 +243,24 @@
     { id: 'inheritance-scout', title: '三王传承的侦查报告', giver: 'weiyang', availableFromDay: 40, flags: ['threeKingsAwakened'], locations: ['threeForkMountain'], objective: { type: 'inheritanceRound', count: 5 }, reward: { insight: 8, faction: { id: 'shang', attitude: 6 } } }
   ];
 
-  return { CONTENT_VERSION: 3, CONTENT_INDEX, CONTRACT_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
+  const CONVERSATION_DEFS = [
+    { id: 'fangzheng-proof', speaker: 'fangzheng', title: '方正的证明', availableFromDay: 2, locations: ['academy'], choices: [
+      { id: 'encourage', label: '鼓励他按自己的方式证明', text: '我不需要你替我赢下所有人的判断，但我会记住你愿意让我自己走一步。', effects: { trust: 8, insight: 1, npcFacts: { encouraged: true }, valence: 3 } },
+      { id: 'pressure', label: '提醒他别被家族期待绑住', text: '如果你只按照别人安排的样子成长，下一次考验来临时，你连自己输给了谁都不知道。', effects: { trust: -2, fear: 2, progress: 3, npcFacts: { warned: true }, valence: 0 } }
+    ] },
+    { id: 'shangxinci-mercy', speaker: 'shangxinci', title: '商心慈的取舍', availableFromDay: 32, flags: ['merchantCityOpened'], locations: ['merchantCity'], minTrust: 3, choices: [
+      { id: 'protect', label: '支持她保护弱者', text: '商路不只运送元石，也会运送一个人还愿意相信别人的理由。', effects: { trust: 8, faction: { id: 'shang', attitude: 2, tension: -1 }, playerFacts: { shangMercy: true }, valence: 4 } },
+      { id: 'profit', label: '劝她先把利益做大', text: '善意若没有力量护住，很快就会变成别人账本上的一行成本。', effects: { trust: 2, faction: { id: 'shang', attitude: 3 }, insight: 3, playerFacts: { shangProfit: true }, valence: 1 } }
+    ] },
+    { id: 'taibaiyunsheng-relief', speaker: 'taibaiyunsheng', title: '战争与休养', availableFromDay: 62, flags: ['northernFrontierOpened'], locations: ['blackTribeCamp'], choices: [
+      { id: 'relief', label: '支持中小部族休养', text: '如果每一次胜利都把部族的后代耗尽，那便不是活下来的战争。', effects: { trust: 7, faction: { id: 'northernTribes', attitude: 4, tension: -2 }, playerFacts: { reliefAdvocate: true }, valence: 4 } },
+      { id: 'campaign', label: '承认黑盟必须继续推进', text: '停下来也许能救下一批人，但敌人不会因为我们的仁慈而停止计算。', effects: { trust: 2, faction: { id: 'black', attitude: 3 }, progress: 4, playerFacts: { campaignRealist: true }, valence: 1 } }
+    ] },
+    { id: 'heiloulan-kingdom', speaker: 'heiloulan', title: '王庭资格', availableFromDay: 62, flags: ['blackCampaign'], locations: ['blackTribeCamp'], minTrust: 0, choices: [
+      { id: 'pledge', label: '承诺为军帐争取资格', text: '王庭不是奖赏，它是让胜者继续支配资源的资格。你准备好承担它的代价了吗？', effects: { trust: 6, faction: { id: 'black', attitude: 4 }, playerFacts: { blackPledge: true }, valence: 3 } },
+      { id: 'question', label: '追问战争的代价', text: '你问得很直接。也许只有记得代价的人，才不会把王庭当成一张空白的王座。', effects: { trust: 1, insight: 5, npcFacts: { questionedCost: true }, valence: 2 } }
+    ] }
+  ];
+
+  return { CONTENT_VERSION: 3, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
 });

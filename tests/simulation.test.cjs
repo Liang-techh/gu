@@ -86,6 +86,16 @@ test('content-driven NPC contracts persist through acceptance, objective progres
   assert.ok(state.history.events.some(item => item.type === 'contract'));
 });
 
+test('content-driven conversations apply conditional choices to relations, memory and history', () => {
+  let state = open(S.newWorld({ seed: 'conversation' }), 'observe');
+  state = ok(state, { type: 'action', id: 'wait', hours: 25 });
+  assert.ok(S.CONVERSATION_RUNTIME.list(S.CONVERSATION_DEFS, state, 'fangzheng', { day: S.day }).some(item => item.id === 'fangzheng-proof'));
+  state = ok(state, { type: 'action', id: 'conversation', target: 'fangzheng', conversationId: 'fangzheng-proof', choiceId: 'encourage' });
+  assert.ok(state.relationships['fangzheng::player'].trust > 6);
+  assert.equal(state.entities.fangzheng.memory.facts.player.encouraged, true);
+  assert.ok(state.history.events.some(item => item.type === 'conversation'));
+});
+
 test('NPCs run schedules while the player waits instead of freezing the world', () => {
   let state = open(S.newWorld({ seed: 'schedule' }), 'observe');
   const start = state.entities.fangyuan.position.location;

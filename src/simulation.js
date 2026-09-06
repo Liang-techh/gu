@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'));
-  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity);
-})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./engine.js'), require('./content.js'), require('./history.js'), require('./zone-builder.js'), require('./npc-ai.js'), require('./entity.js'), require('./conversation.js'));
+  else root.GuSimulation = factory(root.GuSimulationEngine, root.GuSimulationContent, root.GuSimulationHistory, root.GuSimulationZoneBuilder, root.GuSimulationNpcAI, root.GuSimulationEntity, root.GuSimulationConversation);
+})(globalThis, function (Engine, Content, History, ZoneBuilder, NpcAI, Entity, Conversation) {
   'use strict';
 
   if (!Engine) throw new Error('GuSimulationEngine must load before simulation.js');
@@ -10,9 +10,10 @@
   if (!ZoneBuilder) throw new Error('GuSimulationZoneBuilder must load before simulation.js');
   if (!NpcAI) throw new Error('GuSimulationNpcAI must load before simulation.js');
   if (!Entity) throw new Error('GuSimulationEntity must load before simulation.js');
+  if (!Conversation) throw new Error('GuSimulationConversation must load before simulation.js');
 
   const SCHEMA_VERSION = 2;
-  const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS } = Content;
+  const { CONTENT_VERSION, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS } = Content;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const copy = value => JSON.parse(JSON.stringify(value));
   const hash = value => {
@@ -750,6 +751,14 @@
     advance(state, 5, 'tower_floor');
   }
 
+  function performConversation(state, command, p) {
+    const npc = requireSameLocation(state, command.target);
+    const result = Conversation.resolve(CONVERSATION_DEFS, state, command, { day, relation, remember, log, affectFaction });
+    Engine.emit(state, 'social.conversation', { actorId: p.id, targetId: npc.id, conversationId: result.definition.id, choiceId: result.choice.id });
+    relation(state, 'player', npc.id).lastSeen = state.clock;
+    advance(state, 1, 'conversation');
+  }
+
   function registerActionHandlers() {
     Engine.registerAction('accept_contract', ({ state, command }) => acceptContract(state, command.contractId));
     Engine.registerAction('complete_contract', ({ state, command }) => completeContract(state, command.contractId));
@@ -757,6 +766,7 @@
     Engine.registerAction('inheritance_round', ({ state, p }) => performInheritanceRound(state, p));
     Engine.registerAction('frontier_patrol', ({ state, p }) => performFrontierPatrol(state, p));
     Engine.registerAction('tower_floor', ({ state, p }) => performTowerFloor(state, p));
+    Engine.registerAction('conversation', ({ state, command, p }) => performConversation(state, command, p));
   }
 
   function relValence(state, npcId) {
@@ -1068,5 +1078,5 @@
   registerEventListeners();
   registerActionHandlers();
   registerSystemHandlers();
-  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
+  return { SCHEMA_VERSION, CONTENT_VERSION, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, LOCATIONS, FACTION_SEEDS, GU_SEEDS, SOURCE_NOTES, ENGINE: Engine, ENTITY: Entity, ZONE_BUILDER: ZoneBuilder, NPC_AI: NpcAI, CONVERSATION_RUNTIME: Conversation, newWorld, dispatch, interpret, validate, snapshot, day, hour, phase };
 });

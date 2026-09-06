@@ -15,6 +15,7 @@
 - 独立区域构建器 [src/zone-builder.js](<D:\Caves of Qud\gu-rpg\src\zone-builder.js>)：按地点标签生成资源状态，并按人口表重建环境居民；
 - 独立 NPC AI 层 [src/npc-ai.js](<D:\Caves of Qud\gu-rpg\src\npc-ai.js>)：目标选择、日程导航、需求驱动和同场记忆通过依赖注入接入运行时；
 - 独立实体/组件工厂 [src/entity.js](<D:\Caves of Qud\gu-rpg\src\entity.js>)：玩家、关键 NPC 和环境居民共用同一套组件默认值与校验入口；
+- 内容驱动对话运行时 [src/conversation.js](<D:\Caves of Qud\gu-rpg\src\conversation.js>)：地点、旗标、信任门槛和对话选项后果统一写入关系、势力、记忆与历史；
 - 内容包已覆盖第一卷青茅山后段、第二卷白骨山—商家城—三叉山—天梯山，以及第三卷北原草原—黑家军营—王庭福地—八十八角真阳楼的首批区域链；
 - 商家城演武与三王传承不是一次性剧情：可以反复行动，积累连胜、声望、轮次、难度、资源和伤势；
 - 北原巡逻与真阳楼闯层是第三卷的重复系统：补给、战争压力、伤亡、楼层难度和探索记录会持续变化；
@@ -61,7 +62,7 @@ python -m http.server 4173
 ## 验证状态
 
 ```text
-npm test       23/23 passing
+npm test       24/24 passing
 npm run check:canon  46/46 term/source checks
 ```
 
