@@ -1,4 +1,4 @@
-# 蛊真人 · 青茅山 Simulation-First RPG
+# 蛊真人 · Simulation-First RPG
 
 这是一个从《蛊真人》小说原文素材重建的持续世界 RPG 原型。它不把小说强行展开成固定分支树，而是让玩家、NPC、势力、资源、记忆和时间共同推进世界。
 
@@ -16,9 +16,10 @@
 - 独立 NPC AI 层 [src/npc-ai.js](<D:\Caves of Qud\gu-rpg\src\npc-ai.js>)：目标选择、日程导航、需求驱动和同场记忆通过依赖注入接入运行时；
 - 独立实体/组件工厂 [src/entity.js](<D:\Caves of Qud\gu-rpg\src\entity.js>)：玩家、关键 NPC 和环境居民共用同一套组件默认值与校验入口；
 - 内容驱动对话运行时 [src/conversation.js](<D:\Caves of Qud\gu-rpg\src\conversation.js>)：地点、旗标、信任门槛和对话选项后果统一写入关系、势力、记忆与历史；
-- 内容包已覆盖第一卷青茅山后段、第二卷白骨山—商家城—三叉山—天梯山，以及第三卷北原草原—黑家军营—王庭福地—八十八角真阳楼的首批区域链；
+- 内容包已覆盖第一卷青茅山后段、第二卷白骨山—商家城—三叉山—天梯山、第三卷北原草原—黑家军营—王庭福地—八十八角真阳楼，以及第四卷狐仙福地—中洲—仙鹤门—仙蛊拍卖会的首批区域链；
 - 商家城演武与三王传承不是一次性剧情：可以反复行动，积累连胜、声望、轮次、难度、资源和伤势；
 - 北原巡逻与真阳楼闯层是第三卷的重复系统：补给、战争压力、伤亡、楼层难度和探索记录会持续变化；
+- 狐仙福地回归、中洲宗门视线、仙蛊拍卖与宗门压力是第四卷的连续导演事件：旗标、市场情报、宗门关系和福地压力会跨区域保留；
 - `identity / position / needs / cultivation / personality / schedule / goals / memory / inventory` 组件；
 - 事件历史、导演事件、可订阅事件监听器和统一 `dispatch` 结算入口；
 - 委托、演武、传承、北原巡逻和真阳楼闯层等高频动作通过 Action Registry 注册，规则验证与 UI 解耦；
@@ -63,7 +64,7 @@ python -m http.server 4173
 
 ```text
 npm test       24/24 passing
-npm run check:canon  46/46 term/source checks
+npm run check:canon  55/55 term/source checks
 ```
 
-当前是可运行的青茅山垂直切片，不声称已经完成 Qud 级别的格点物理、身体部位、液体/温度、完整历史生成和全卷内容。后续系统会继续以可测试的组件/事件模块逐层加入。
+当前是可运行的多区域垂直切片，不声称已经完成 Qud 级别的格点物理、液体/温度、完整历史生成和全书内容。后续系统会继续以可测试的组件/事件模块逐卷加入。

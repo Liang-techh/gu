@@ -151,13 +151,14 @@
       factions: {},
       relationships: {},
       facts: {},
-      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false, northernFrontierOpened: false, blackCampaign: false, imperialCourtOpened: false, trueYangTowerFormed: false },
+      flags: { openingRiteResolved: false, moonlightRumor: false, relicDiscovered: false, marketArrived: false, auctionHeld: false, allianceCouncil: false, wolfTide: false, tournamentAnnounced: false, investigationArrived: false, merchantCityOpened: false, arenaTrial: false, threeKingsAwakened: false, heavenClimbRumor: false, northernFrontierOpened: false, blackCampaign: false, imperialCourtOpened: false, trueYangTowerFormed: false, foxFairyLandOpened: false, centralContinentOpened: false, immortalAuctionOpened: false, sectPressureActive: false },
       events: { active: null, pending: [], history: [], sequence: 0 },
       combat: null,
       arena: { location: 'merchantCity', active: false, matches: 0, wins: 0, losses: 0, streak: 0, reputation: 0 },
       inheritance: { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false },
       frontier: { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 },
       tower: { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false },
+      central: { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, sectPressure: 0 },
       director: { pressure: 0, lastTick: 0, thread: [], beat: 'opening' },
       log: [],
       version: 1
@@ -295,6 +296,26 @@
       { id: 'enter', label: '寻找进入真阳楼的资格', hint: '开启塔楼闯关，但会暴露你的行动轨迹。' },
       { id: 'assist', label: '帮助部族稳定后勤', hint: '提升北原势力关系，延缓个人探索。' },
       { id: 'watch', label: '观察楼层显化规律', hint: '获得塔楼情报，等待更安全的窗口。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'foxFairyLandReturn', priority: 160, when: state => state.flags.trueYangTowerFormed && !state.flags.foxFairyLandOpened && day(state) >= 90 && state.entities.player.position.location === 'foxFairyLand', build: () => ({ id: 'foxFairyLandReturn', type: 'base', title: '回归狐仙福地', text: '北原的风雪暂时留在身后。狐仙福地重新成为你的基地：魂魄需要休整，资源需要经营，外部势力却已经开始沿着传承和智慧的线索追来。', source: SOURCE_NOTES.foxReturn, choices: [
+      { id: 'recover', label: '先休整并经营福地', hint: '恢复行动资源，降低短期压力。' },
+      { id: 'prepare', label: '立即准备防御', hint: '提高福地防御与宗门警戒，但消耗资源。' },
+      { id: 'hide', label: '隐藏回归消息', hint: '减少外界注意，延缓中洲势力介入。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'centralContinentArrival', priority: 170, when: state => state.flags.foxFairyLandOpened && !state.flags.centralContinentOpened && day(state) >= 96 && state.entities.player.position.location === 'centralContinent', build: () => ({ id: 'centralContinentArrival', type: 'sect', title: '中洲宗门的视线', text: '中洲的道路不只连接地点，也连接宗门的情报网。仙鹤门、灵缘斋和其他古派开始根据你的北原经历重新估价。', source: SOURCE_NOTES.sectPressure, choices: [
+      { id: 'sect', label: '接触宗门使者', hint: '获得宗门关系，但暴露更多个人信息。' },
+      { id: 'trade', label: '只交换资源与情报', hint: '保持中立，打开市场网络。' },
+      { id: 'avoid', label: '避开宗门视线', hint: '降低短期风险，但失去合法援助。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'immortalAuction', priority: 180, when: state => state.flags.centralContinentOpened && !state.flags.immortalAuctionOpened && day(state) >= 105 && state.entities.player.position.location === 'immortalAuction', build: () => ({ id: 'immortalAuction', type: 'market', title: '中洲仙蛊拍卖大会', text: '拍卖会把仙蛊、蛊方、情报和各大势力的关系网放在同一个大厅里。价格不是唯一成本，出价本身也会告诉别人你正在寻找什么。', source: SOURCE_NOTES.immortalAuction, choices: [
+      { id: 'bid', label: '参加竞拍', hint: '消耗元石与关系，获得稀缺资源的机会。' },
+      { id: 'observe', label: '观察各方需求', hint: '获得价格和势力情报，保留资源。' },
+      { id: 'rumor', label: '出售北原情报', hint: '获得资金，但会让更多人追踪你的过去。' }
+    ] }) });
+    Engine.registerDirectorRule({ id: 'sectPressure', priority: 190, when: state => state.flags.immortalAuctionOpened && !state.flags.sectPressureActive && day(state) >= 115 && state.entities.player.position.location === 'foxFairyLand', build: () => ({ id: 'sectPressure', type: 'siege', title: '宗门对狐仙福地的压力', text: '拍卖会之后，宗门不再满足于旁观。方正的师徒关系、狐仙福地的资源和你的北原行踪被卷进同一场攻防，福地的安全不再是默认前提。', source: SOURCE_NOTES.sectPressure, choices: [
+      { id: 'defend', label: '启动福地防御', hint: '消耗资源，降低入侵风险。' },
+      { id: 'negotiate', label: '与仙鹤门谈判', hint: '把方正和宗门关系转化为缓冲。' },
+      { id: 'ambush', label: '诱敌深入再反击', hint: '提高收益和风险，留下长期敌意。' }
     ] }) });
   }
 
@@ -496,6 +517,42 @@
       log(state, 'choice', `你处理了八十八角真阳楼显化：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.towerFormation });
       return true;
     });
+    Engine.registerEvent('foxFairyLandReturn', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.foxFairyLandOpened = true; state.central.foxOpened = true;
+      if (choice === 'recover') { p.needs.energy = Math.min(100, p.needs.energy + 24); p.cultivation.insight += 5; state.frontier.campaignPressure = Math.max(0, state.frontier.campaignPressure - 5); }
+      if (choice === 'prepare') { state.central.sectPressure += 3; state.zones.foxFairyLand.activity += 8; p.inventory.stones = Math.max(0, p.inventory.stones - 2); }
+      if (choice === 'hide') { state.director.pressure = Math.max(0, state.director.pressure - 1); state.facts.hiddenReturn = true; }
+      log(state, 'choice', `你处理了回归狐仙福地：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.foxReturn });
+      return true;
+    });
+    Engine.registerEvent('centralContinentArrival', ({ state, choice, event }) => {
+      state.flags.centralContinentOpened = true; state.central.centralOpened = true;
+      activateSeed(state, 'tianhe');
+      if (choice === 'sect') { state.factions.centralSects.attitude += 5; state.factions.immortalCrane.influence += 3; state.central.sectPressure += 2; }
+      if (choice === 'trade') { state.factions.auctionImmortals.influence += 4; state.entities.player.inventory.stones += 3; }
+      if (choice === 'avoid') { state.director.pressure += 1; state.central.sectPressure = Math.max(0, state.central.sectPressure - 1); }
+      log(state, 'choice', `你处理了中洲宗门的视线：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.sectPressure });
+      return true;
+    });
+    Engine.registerEvent('immortalAuction', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.immortalAuctionOpened = true; state.central.auctionActive = true; activateSeed(state, 'qinbaisheng');
+      if (choice === 'bid') { p.inventory.stones = Math.max(0, p.inventory.stones - 3); state.central.lotsSold += 1; p.cultivation.insight += 8; state.factions.auctionImmortals.influence += 4; }
+      if (choice === 'observe') { p.cultivation.insight += 12; state.central.sectPressure += 1; }
+      if (choice === 'rumor') { p.inventory.stones += 6; state.central.sectPressure += 4; state.facts.auctionIntel = true; }
+      log(state, 'choice', `你处理了中洲拍卖大会：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.immortalAuction });
+      return true;
+    });
+    Engine.registerEvent('sectPressure', ({ state, choice, event }) => {
+      const p = state.entities.player;
+      state.flags.sectPressureActive = true; state.central.sectPressure += 5;
+      if (choice === 'defend') { p.inventory.stones = Math.max(0, p.inventory.stones - 4); state.central.sectPressure = Math.max(0, state.central.sectPressure - 3); state.zones.foxFairyLand.danger += 4; }
+      if (choice === 'negotiate') { activateSeed(state, 'tianhe'); relation(state, 'player', 'tianhe').trust += 8; state.factions.immortalCrane.attitude += 5; }
+      if (choice === 'ambush') { state.central.sectPressure += 4; state.factions.centralSects.tension += 6; p.cultivation.progress += 12; }
+      log(state, 'choice', `你处理了宗门对狐仙福地的压力：${event.choices.find(c => c.id === choice).label}。`, { source: SOURCE_NOTES.sectPressure });
+      return true;
+    });
   }
 
   function normalize(state) {
@@ -506,10 +563,12 @@
     state.inheritance ||= { location: 'threeForkMountain', active: false, attempts: 0, round: 0, difficulty: 1, discoveries: [], completed: false };
     state.frontier ||= { location: 'northernPlains', opened: false, supply: 72, campaignPressure: 0, battles: 0, casualties: 0 };
     state.tower ||= { location: 'trueYangTower', formed: false, floors: 0, attempts: 0, discoveries: [], active: false };
+    state.central ||= { foxOpened: false, centralOpened: false, auctionActive: false, lotsSold: 0, sectPressure: 0 };
     state.arena.matches = Math.max(0, Number(state.arena.matches) || 0); state.arena.wins = Math.max(0, Number(state.arena.wins) || 0); state.arena.losses = Math.max(0, Number(state.arena.losses) || 0); state.arena.streak = Math.max(0, Number(state.arena.streak) || 0); state.arena.reputation = Math.max(0, Number(state.arena.reputation) || 0);
     state.inheritance.attempts = Math.max(0, Number(state.inheritance.attempts) || 0); state.inheritance.round = Math.max(0, Number(state.inheritance.round) || 0); state.inheritance.difficulty = Math.max(1, Number(state.inheritance.difficulty) || 1); state.inheritance.discoveries ||= [];
     state.frontier.supply = clamp(Number(state.frontier.supply) || 0, 0, 100); state.frontier.campaignPressure = clamp(Number(state.frontier.campaignPressure) || 0, 0, 100); state.frontier.battles = Math.max(0, Number(state.frontier.battles) || 0); state.frontier.casualties = Math.max(0, Number(state.frontier.casualties) || 0);
     state.tower.floors = Math.max(0, Number(state.tower.floors) || 0); state.tower.attempts = Math.max(0, Number(state.tower.attempts) || 0); state.tower.discoveries ||= [];
+    state.central.lotsSold = Math.max(0, Number(state.central.lotsSold) || 0); state.central.sectPressure = clamp(Number(state.central.sectPressure) || 0, 0, 100);
     p.cultivation.rank = clamp(p.cultivation.rank, 1, 9);
     p.cultivation.stage = clamp(p.cultivation.stage, 0, 3);
     p.cultivation.essenceMax = Math.max(20, Math.round(34 + p.cultivation.aptitude * 38 + p.cultivation.stage * 8 + (p.cultivation.rank - 1) * 12));
@@ -1067,7 +1126,7 @@
       combat: copy(state.combat || null),
       nearby: Engine.query(state, e => e.id !== 'player' && e.alive && e.position.location === p.position.location).map(e => ({ id: e.id, name: e.identity.name, role: e.identity.role, goal: e.goals.active, relationship: copy(relation(state, 'player', e.id)), memory: e.memory.episodes[0] || null })),
       factions: Object.values(state.factions).map(f => ({ id: f.id, name: f.name, influence: f.influence, tension: f.tension, attitude: f.attitude })),
-      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
+      activeEvent: copy(state.events.active), zone: copy(state.zones[p.position.location]), arena: copy(state.arena), inheritance: copy(state.inheritance), frontier: copy(state.frontier), tower: copy(state.tower), central: copy(state.central), contracts: copy(state.contracts), eventStream: copy(state.events.pending || []), engine: { components: Engine.COMPONENTS, registries: Engine.registries() }, history: History.summary(state), log: state.log.slice(0, 20).map(copy)
     };
   }
 

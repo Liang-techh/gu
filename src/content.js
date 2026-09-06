@@ -21,7 +21,11 @@
     northernPlains: { name: '北原草原', type: 'wilderness', neighbors: ['heavenClimbMountain', 'blackTribeCamp'], tags: ['wild', 'route', 'war'], population: 'northernRoad' },
     blackTribeCamp: { name: '黑家大军营地', type: 'military', neighbors: ['northernPlains', 'imperialCourt'], tags: ['war', 'market', 'politics'], population: 'blackCamp' },
     imperialCourt: { name: '王庭福地', type: 'sacred', neighbors: ['blackTribeCamp', 'trueYangTower'], tags: ['sacred', 'safe', 'politics'], population: 'imperialCourt' },
-    trueYangTower: { name: '八十八角真阳楼', type: 'ruin', neighbors: ['imperialCourt'], tags: ['inheritance', 'danger', 'tower'], population: 'trueYangTower' }
+    trueYangTower: { name: '八十八角真阳楼', type: 'ruin', neighbors: ['imperialCourt', 'foxFairyLand'], tags: ['inheritance', 'danger', 'tower'], population: 'trueYangTower' },
+    foxFairyLand: { name: '狐仙福地', type: 'blessedLand', neighbors: ['trueYangTower', 'centralContinent'], tags: ['blessed', 'resource', 'portal'], population: 'foxFairyLand' },
+    centralContinent: { name: '中洲', type: 'continent', neighbors: ['foxFairyLand', 'immortalAuction', 'immortalCraneSect'], tags: ['politics', 'sect', 'route'], population: 'centralContinent' },
+    immortalAuction: { name: '中洲拍卖会', type: 'market', neighbors: ['centralContinent'], tags: ['market', 'politics', 'immortal'], population: 'immortalAuction' },
+    immortalCraneSect: { name: '仙鹤门', type: 'sect', neighbors: ['centralContinent'], tags: ['sect', 'politics', 'safe'], population: 'immortalCraneSect' }
   };
 
   const POPULATION_TABLES = {
@@ -39,7 +43,11 @@
     northernRoad: [{ role: '北原侦察蛊师', faction: 'northernTribes', goals: ['patrol', 'collectRumors'], weight: 5 }, { role: '野外狼骑', faction: 'northernTribes', goals: ['hunt', 'avoidPlayer'], weight: 3 }],
     blackCamp: [{ role: '黑家军士', faction: 'black', goals: ['patrol', 'protectClan'], weight: 5 }, { role: '中小部族族长', faction: 'northernTribes', goals: ['trade', 'protectClan'], weight: 2 }],
     imperialCourt: [{ role: '王庭侍从', faction: 'black', goals: ['maintainOrder', 'collectRumors'], weight: 5 }, { role: '部族使者', faction: 'northernTribes', goals: ['trade', 'prepareAlliance'], weight: 3 }],
-    trueYangTower: [{ role: '真阳楼闯关者', faction: 'northernTribes', goals: ['findRelic', 'proveWorth'], weight: 5 }, { role: '楼外谋士', faction: 'demonic', goals: ['collectRumors', 'avoidPlayer'], weight: 2 }]
+    trueYangTower: [{ role: '真阳楼闯关者', faction: 'northernTribes', goals: ['findRelic', 'proveWorth'], weight: 5 }, { role: '楼外谋士', faction: 'demonic', goals: ['collectRumors', 'avoidPlayer'], weight: 2 }],
+    foxFairyLand: [{ role: '福地凡人', faction: 'centralSects', goals: ['maintainOrder', 'secureResources'], weight: 4 }, { role: '荒兽', faction: null, goals: ['forage', 'avoidPlayer'], weight: 4 }],
+    centralContinent: [{ role: '中洲蛊师', faction: 'centralSects', goals: ['collectRumors', 'proveWorth'], weight: 5 }, { role: '宗门使者', faction: 'spiritAffinity', goals: ['prepareAlliance', 'trade'], weight: 3 }],
+    immortalAuction: [{ role: '拍卖会来客', faction: 'auctionImmortals', goals: ['trade', 'collectRumors'], weight: 6 }, { role: '拍卖会护卫', faction: 'centralSects', goals: ['maintainOrder', 'patrol'], weight: 3 }],
+    immortalCraneSect: [{ role: '仙鹤门弟子', faction: 'immortalCrane', goals: ['study', 'proveWorth'], weight: 6 }, { role: '飞鹤驭兽师', faction: 'immortalCrane', goals: ['patrol', 'protectClan'], weight: 3 }]
   };
 
   const FACTION_SEEDS = {
@@ -53,7 +61,11 @@
     black: { name: '黑家盟军', color: '#4b5668', influence: 74, tension: 46, attitude: 0 },
     northernTribes: { name: '北原诸部族', color: '#a8794d', influence: 58, tension: 52, attitude: -4 },
     dongfang: { name: '东方盟军', color: '#8b6d9e', influence: 55, tension: 48, attitude: -8 },
-    giantSun: { name: '巨阳遗产与真阳楼', color: '#d6a735', influence: 90, tension: 30, attitude: 0 }
+    giantSun: { name: '巨阳遗产与真阳楼', color: '#d6a735', influence: 90, tension: 30, attitude: 0 },
+    centralSects: { name: '中洲十大古派', color: '#718bb4', influence: 82, tension: 34, attitude: -2 },
+    immortalCrane: { name: '仙鹤门', color: '#e8e2d2', influence: 62, tension: 26, attitude: 2 },
+    spiritAffinity: { name: '灵缘斋', color: '#c989ad', influence: 66, tension: 28, attitude: 4 },
+    auctionImmortals: { name: '中洲散修与拍卖会来客', color: '#9c8a6d', influence: 54, tension: 38, attitude: 0 }
   };
 
   const GU_SEEDS = {
@@ -195,6 +207,20 @@
       cultivation: { rank: 4, stage: 1, aptitude: 0.76 },
       schedule: { morning: 'northernPlains', afternoon: 'blackTribeCamp', evening: 'northernPlains', night: 'northernPlains' },
       goals: ['gainRecognition', 'prepareAlliance', 'trade']
+    },
+    tianhe: {
+      name: '天鹤上人', role: '仙鹤门长老', faction: 'immortalCrane', location: 'immortalCraneSect', fromDay: 92,
+      personality: { ambition: 68, caution: 74, loyalty: 86, greed: 12, curiosity: 82 },
+      cultivation: { rank: 6, stage: 2, aptitude: 0.88 },
+      schedule: { morning: 'immortalCraneSect', afternoon: 'immortalCraneSect', evening: 'centralContinent', night: 'immortalCraneSect' },
+      goals: ['protectClan', 'train', 'collectRumors']
+    },
+    qinbaisheng: {
+      name: '秦百胜', role: '拍卖会组织者', faction: 'auctionImmortals', location: 'immortalAuction', fromDay: 100,
+      personality: { ambition: 84, caution: 76, loyalty: 42, greed: 72, curiosity: 92 },
+      cultivation: { rank: 6, stage: 1, aptitude: 0.8 },
+      schedule: { morning: 'immortalAuction', afternoon: 'immortalAuction', evening: 'centralContinent', night: 'immortalAuction' },
+      goals: ['trade', 'collectRumors', 'maintainOrder']
     }
   };
 
@@ -214,12 +240,15 @@
     northernWar: { source: 'reference/novel/第3卷：魔头乱世/第101章.txt', note: '北原黑盟大军、部族军帐和战争后勤把势力竞争扩展为持续战争区域。' },
     imperialCourt: { source: 'reference/novel/第3卷：魔头乱世/第149章.txt', note: '王庭福地与八十八角真阳楼将历史遗产、血脉资格和周期性探索变成区域规则。' },
     tribeCrisis: { source: 'reference/novel/第3卷：魔头乱世/第200章.txt', note: '中小部族在真阳楼攻略中的伤亡与求援，提供战争压力、休养和资源交换的模拟依据。' },
-    towerFormation: { source: 'reference/novel/第3卷：魔头乱世/第149章.txt', note: '真阳楼由风雪与王庭福地条件共同成形，塔楼探索应受世界状态影响而非固定开门。' }
+    towerFormation: { source: 'reference/novel/第3卷：魔头乱世/第149章.txt', note: '真阳楼由风雪与王庭福地条件共同成形，塔楼探索应受世界状态影响而非固定开门。' },
+    foxReturn: { source: 'reference/novel/第4卷：魔君纵横/第1章.txt', note: '北原旅途结束后回归狐仙福地，福地成为经营、休整和继续谋划的持久基地。' },
+    sectPressure: { source: 'reference/novel/第4卷：魔君纵横/第50章.txt', note: '仙鹤门与方正的师徒关系把宗门任务、个人情感和福地攻防连接起来。' },
+    immortalAuction: { source: 'reference/novel/第4卷：魔君纵横/第100章.txt', note: '中洲拍卖大会汇聚散修、超级势力和仙蛊资源，适合构造成价格、关系和情报共同变化的市场系统。' }
   };
 
   const CONTENT_INDEX = {
-    id: 'gu-frontier-v3',
-    title: '蛊真人 · 南疆—北原 simulation-first 内容包',
+    id: 'gu-multi-region-v4',
+    title: '蛊真人 · 南疆—北原—中洲 simulation-first 内容包',
     volumes: [{ id: 'volume-1', title: '第1卷：魔性不改', arcs: [
       { id: 'opening', chapters: ['第6章.txt', '第7章.txt', '第14章.txt'], sourceKeys: ['opening', 'academy', 'relic'] },
       { id: 'market-and-wolf', chapters: ['第109章.txt', '第110章.txt', '第112章.txt', '第123章.txt'], sourceKeys: ['market', 'auction', 'wolf'] },
@@ -232,6 +261,10 @@
     { id: 'volume-3', title: '第3卷：魔头乱世', arcs: [
       { id: 'northern-war', chapters: ['第101章.txt', '第109章.txt', '第124章.txt'], sourceKeys: ['northernWar', 'tribeCrisis'] },
       { id: 'imperial-court', chapters: ['第149章.txt', '第200章.txt', '第243章.txt'], sourceKeys: ['imperialCourt', 'towerFormation'] }
+    ] },
+    { id: 'volume-4', title: '第4卷：魔君纵横', arcs: [
+      { id: 'return-to-blessed-land', chapters: ['第1章.txt', '第10章.txt'], sourceKeys: ['foxReturn', 'sectPressure'] },
+      { id: 'immortal-auction', chapters: ['第100章.txt', '第200章.txt'], sourceKeys: ['immortalAuction'] }
     ] }
   ]
   };
@@ -262,5 +295,5 @@
     ] }
   ];
 
-  return { CONTENT_VERSION: 3, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
+  return { CONTENT_VERSION: 4, CONTENT_INDEX, CONTRACT_DEFS, CONVERSATION_DEFS, APTITUDE, LOCATIONS, POPULATION_TABLES, FACTION_SEEDS, GU_SEEDS, NPC_SEEDS, SOURCE_NOTES };
 });

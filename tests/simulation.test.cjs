@@ -14,9 +14,10 @@ function open(state, choice = 'observe') {
 
 test('world starts from novel-derived opening but resolves through an event contract', () => {
   const state = S.newWorld({ name: '测试者', aptitude: '乙等', seed: 'rain' });
-  assert.equal(state.content.id, 'gu-frontier-v3');
+  assert.equal(state.content.id, 'gu-multi-region-v4');
   assert.equal(S.CONTENT_INDEX.volumes[0].id, 'volume-1');
   assert.equal(S.CONTENT_INDEX.volumes[2].id, 'volume-3');
+  assert.equal(S.CONTENT_INDEX.volumes[3].id, 'volume-4');
   assert.equal(state.history.origin.contentId, state.content.id);
   assert.equal(state.events.active.id, 'openingRite');
   assert.equal(state.entities.fangyuan.identity.name, '古月方源');
@@ -228,7 +229,8 @@ test('volume three content pack turns northern war and true yang tower into stat
     marketArrival: 'listen', auction: 'observe', allianceCouncil: 'aid', wolfTide: 'mobilize',
     threeClanTournament: 'observe', ironInvestigation: 'cooperate', merchantCityArrival: 'enter',
     merchantArena: 'recruit', threeKingsInheritance: 'scout', heavenClimbTransmission: 'follow',
-    northernWarArrival: 'enter', blackCampaign: 'mediate', imperialCourtOpening: 'relief', trueYangTowerFormation: 'enter'
+    northernWarArrival: 'enter', blackCampaign: 'mediate', imperialCourtOpening: 'relief', trueYangTowerFormation: 'enter',
+    foxFairyLandReturn: 'recover', centralContinentArrival: 'trade', immortalAuction: 'observe', sectPressure: 'negotiate'
   };
   const advance = hours => {
     for (let i = 0; i < hours / 12; i++) {
@@ -268,6 +270,24 @@ test('volume three content pack turns northern war and true yang tower into stat
   state = ok(state, { type: 'action', id: 'tower_floor' });
   assert.equal(state.tower.attempts, 2);
   assert.ok(state.history.events.some(event => event.type === 'tower_floor'));
+  state = ok(state, { type: 'action', id: 'travel', location: 'foxFairyLand' });
+  advance(288);
+  state = ok(state, { type: 'action', id: 'travel', location: 'centralContinent' });
+  advance(168);
+  state = ok(state, { type: 'action', id: 'travel', location: 'immortalAuction' });
+  advance(288);
+  state = ok(state, { type: 'action', id: 'travel', location: 'centralContinent' });
+  advance(0);
+  state = ok(state, { type: 'action', id: 'travel', location: 'foxFairyLand' });
+  advance(240);
+  assert.equal(state.flags.foxFairyLandOpened, true);
+  assert.equal(state.flags.centralContinentOpened, true);
+  assert.equal(state.flags.immortalAuctionOpened, true);
+  assert.equal(state.flags.sectPressureActive, true);
+  assert.equal(state.entities.tianhe.identity.name, '天鹤上人');
+  assert.equal(state.entities.qinbaisheng.identity.name, '秦百胜');
+  assert.ok(state.central.sectPressure > 0);
+  assert.ok(state.history.events.some(event => event.data?.source?.source?.endsWith('第100章.txt')));
 });
 
 test('free intent parser only returns commands; state changes remain rule-owned', () => {

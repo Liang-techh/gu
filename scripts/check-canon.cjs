@@ -20,7 +20,10 @@ const checks = [
   ['northernWar', ['北原', '黑盟大军', '黑楼兰', '王帐']],
   ['imperialCourt', ['王庭福地', '八十八角真阳楼', '巨阳仙尊']],
   ['tribeCrisis', ['中小型', '太白云生', '灭族']],
-  ['towerFormation', ['八十八角真阳楼', '王庭福地', '真阳楼']]
+  ['towerFormation', ['八十八角真阳楼', '王庭福地', '真阳楼']],
+  ['foxReturn', ['狐仙福地', '北原', '方源']],
+  ['sectPressure', ['仙鹤门', '方正', '福地']],
+  ['immortalAuction', ['拍卖大会', '秦百胜', '仙蛊']]
 ];
 const failures = [];
 let total = 0;
