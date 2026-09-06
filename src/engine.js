@@ -16,6 +16,8 @@
   const actionHooks = new Map();
   const systemHandlers = new Map();
   const componentDefinitions = new Map();
+  const componentEventHandlers = new Map();
+  const initializedComponents = new WeakMap();
   const directorRules = [];
 
   function has(entity, ...names) {
@@ -57,16 +59,69 @@
   function registerComponent(id, definition = {}) {
     if (!id || typeof definition !== 'object') throw new Error('组件定义必须有名称和对象');
     componentDefinitions.set(id, { ...definition, id });
+    for (const [type, spec] of Object.entries(definition.events || {})) {
+      const event = typeof spec === 'function' ? { handler: spec } : spec;
+      if (event?.handler) registerComponentEvent(id, type, event.id || `${id}:${type}`, event.handler, event.priority, event.phase);
+    }
+    if (typeof definition.onEvent === 'function') registerComponentEvent(id, '*', `${id}:onEvent`, definition.onEvent, definition.eventPriority, definition.eventPhase);
     return componentDefinitions.get(id);
+  }
+
+  function registerComponentEvent(component, type, id, handler, priority = 0, phase = 'resolve') {
+    if (!component || !type || !id || typeof handler !== 'function') throw new Error('组件事件监听器必须有组件、事件、名称和函数');
+    if (!['before', 'resolve', 'after'].includes(phase)) throw new Error('组件事件阶段必须是 before、resolve 或 after');
+    const byType = componentEventHandlers.get(component) || new Map();
+    const listeners = byType.get(type) || [];
+    const next = { id, handler, priority: Number(priority) || 0, phase };
+    const index = listeners.findIndex(listener => listener.id === id && listener.phase === phase);
+    if (index >= 0) listeners[index] = next;
+    else listeners.push(next);
+    byType.set(type, listeners);
+    componentEventHandlers.set(component, byType);
+    return handler;
   }
 
   function initializeComponents(state) {
     for (const entity of Object.values(state.entities || {})) {
+      const initialized = initializedComponents.get(entity) || new Set();
       for (const definition of componentDefinitions.values()) {
         if (typeof definition.ensure === 'function') definition.ensure(entity, state);
+        if (entity[definition.id] !== undefined && !initialized.has(definition.id)) {
+          definition.onInitialize?.({ state, entity, component: definition.id, value: entity[definition.id] });
+          initialized.add(definition.id);
+        }
       }
+      initializedComponents.set(entity, initialized);
     }
     return state;
+  }
+
+  function serializeEntity(entity) {
+    const output = JSON.parse(JSON.stringify(entity));
+    for (const definition of componentDefinitions.values()) {
+      if (entity[definition.id] === undefined || typeof definition.serialize !== 'function') continue;
+      const value = definition.serialize({ entity, component: definition.id, value: entity[definition.id] });
+      if (value !== undefined) output[definition.id] = value;
+    }
+    return output;
+  }
+
+  function serializeState(state) {
+    const output = JSON.parse(JSON.stringify(state));
+    for (const [id, entity] of Object.entries(state.entities || {})) output.entities[id] = serializeEntity(entity);
+    return output;
+  }
+
+  function deserializeState(state) {
+    for (const entity of Object.values(state.entities || {})) {
+      for (const definition of componentDefinitions.values()) {
+        if (entity[definition.id] === undefined || typeof definition.deserialize !== 'function') continue;
+        const value = definition.deserialize({ state, entity, component: definition.id, value: entity[definition.id] });
+        if (value !== undefined) entity[definition.id] = value;
+        definition.onLoad?.({ state, entity, component: definition.id, value: entity[definition.id] });
+      }
+    }
+    return initializeComponents(state);
   }
 
   function findPath(locations, from, to) {
@@ -107,9 +162,22 @@
       const listeners = [...(eventListeners.get(type) || []), ...(eventListeners.get('*') || [])]
         .filter(listener => listener.phase === phase)
         .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
-      for (const listener of listeners) {
+      const componentListeners = [];
+      for (const [entityId, entity] of Object.entries(state.entities || {})) {
+        for (const definition of componentDefinitions.values()) {
+          if (entity[definition.id] === undefined) continue;
+          const byType = componentEventHandlers.get(definition.id);
+          if (!byType) continue;
+          for (const listener of [...(byType.get(type) || []), ...(byType.get('*') || [])]) {
+            if (listener.phase !== phase) continue;
+            componentListeners.push({ ...listener, id: `${entityId}:${definition.id}:${listener.id}`, component: definition.id, entityId, entity, handler: listener.handler });
+          }
+        }
+      }
+      const allListeners = [...listeners, ...componentListeners].sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
+      for (const listener of allListeners) {
         if (phase !== 'after' && event.cancelled) break;
-        const result = listener.handler({ state, event, phase });
+        const result = listener.handler({ state, event, phase, entity: listener.entity, entityId: listener.entityId, component: listener.component, value: listener.entity?.[listener.component] });
         if (result === true) event.handled = true;
         if (result === false || result?.cancelled) { event.cancelled = true; event.status = 'cancelled'; }
         if (result?.consumed) { event.consumed = true; event.status = 'consumed'; }
@@ -259,7 +327,7 @@
       events: [...eventHandlers.keys()],
       listeners: Object.fromEntries([...eventListeners.entries()].map(([type, listeners]) => [type, listeners.map(listener => listener.id)])),
       listenerPhases: Object.fromEntries([...eventListeners.entries()].map(([type, listeners]) => [type, listeners.map(listener => ({ id: listener.id, phase: listener.phase, priority: listener.priority }))])),
-      components: Object.fromEntries([...componentDefinitions.entries()].map(([id, definition]) => [id, { lifecycle: ['ensure', 'onAttach', 'onDetach', 'onPatch'].filter(name => typeof definition[name] === 'function') }])),
+      components: Object.fromEntries([...componentDefinitions.entries()].map(([id, definition]) => [id, { lifecycle: ['ensure', 'onAttach', 'onDetach', 'onPatch', 'onInitialize', 'onLoad', 'serialize', 'deserialize'].filter(name => typeof definition[name] === 'function'), events: Object.fromEntries([...(componentEventHandlers.get(id)?.entries() || [])].map(([type, listeners]) => [type, listeners.map(listener => ({ id: listener.id, phase: listener.phase, priority: listener.priority }))])) }])),
       actions: [...actionHandlers.keys()],
       actionHooks: Object.fromEntries([...actionHooks.entries()].map(([key, hooks]) => [key, hooks.map(hook => hook.id)])),
       systems: Object.fromEntries([...systemHandlers.entries()].map(([phase, systems]) => [phase, systems.map(system => system.id)])),
@@ -267,5 +335,5 @@
     };
   }
 
-  return { COMPONENTS, has, query, queryWith, attach, detach, patchComponent, registerComponent, initializeComponents, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerEventPhaseListener, legacyEventListenerRegistration, registerAction, registerActionHook, runAction, registerSystem, runSystems, registerDirectorRule, findDirectorEvents, findDirectorEvent, registries };
+  return { COMPONENTS, has, query, queryWith, attach, detach, patchComponent, registerComponent, registerComponentEvent, initializeComponents, serializeEntity, serializeState, deserializeState, findPath, emit, drain, registerGoal, runGoal, registerInteraction, runInteraction, registerEvent, runEvent, registerEventListener, registerEventPhaseListener, legacyEventListenerRegistration, registerAction, registerActionHook, runAction, registerSystem, runSystems, registerDirectorRule, findDirectorEvents, findDirectorEvent, registries };
 });

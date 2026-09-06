@@ -637,6 +637,17 @@ test('entity conflict uses body components, combat events and NPC memory', () =>
   assert.ok(state.history.events.some(event => event.type === 'ability_used'));
 });
 
+test('body component constraints can disable a gu ability without deleting the gu', () => {
+  const state = open(S.newWorld({ seed: 'body-components' }), 'observe');
+  const player = state.entities.player;
+  player.inventory.gu = { moonlight: { refined: true, progress: 100 } };
+  player.abilities.gu = ['moonlight'];
+  player.body.limbs.rightArm = 10;
+  assert.equal(S.BODY.disabled(player, 'rightArm'), true);
+  assert.throws(() => S.ABILITY.activate(player, 'moonlight', S.GU_SEEDS, S.BODY), /部位/);
+  assert.equal(player.inventory.gu.moonlight.refined, true);
+});
+
 test('runtime conditions affect NPC intent and expire through the hourly system', () => {
   let state = open(S.newWorld({ seed: 'conditions' }), 'observe');
   state = ok(state, { type: 'action', id: 'talk', target: 'fangzheng', mode: 'threaten' });
@@ -680,6 +691,20 @@ test('component lifecycles and event settlement are extensible without special-c
   const phased = S.ENGINE.emit(state, 'test.phases', {});
   assert.deepEqual(phased.phases, ['before', 'resolve', 'after']);
   assert.deepEqual(phases, ['before', 'after']);
+  S.ENGINE.registerComponent('testEventComponent', {
+    onInitialize: ({ entity }) => { entity.testEventComponent.initialized = true; },
+    serialize: ({ value }) => ({ ...value }),
+    deserialize: ({ value }) => ({ ...value })
+  });
+  const componentEvents = [];
+  S.ENGINE.registerComponentEvent('testEventComponent', 'test.component', 'capture', ({ entity, value }) => { componentEvents.push(`${entity.id}:${value.initialized}`); });
+  state.entities.player.testEventComponent = { initialized: false };
+  S.ENGINE.initializeComponents(state);
+  S.ENGINE.emit(state, 'test.component', {});
+  assert.deepEqual(componentEvents, ['player:true']);
+  const saved = S.ENGINE.serializeState(state);
+  const restored = S.ENGINE.deserializeState(JSON.parse(JSON.stringify(saved)));
+  assert.equal(restored.entities.player.testEventComponent.initialized, true);
 });
 
 test('engine registries expose component queries, goal handlers, interactions and domain events', () => {

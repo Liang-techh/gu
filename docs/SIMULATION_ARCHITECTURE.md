@@ -98,6 +98,8 @@ Projection / UI / 存档 / 日志
 - `body`：生命、伤口和部位耐久；冲突系统只能通过伤害事件修改它。
 - `abilities`：蛊术与技能能力槽，供行动系统消耗和验证。
 
+`src/body.js` 把 Body 从普通 JSON 字段提升为可组合运行时：部位完整度、失能阈值、随机命中、伤口记录和治疗都有独立 API。`src/ability.js` 在发动蛊术时读取 Body 约束，因此伤势会改变可用能力，而不是只改变一条生命值；伤害结算仍通过 `combat.damage` 领域事件通知记忆、状态和势力系统。
+
 NPC 行为运行时位于 `src/npc-ai.js`。它只依赖组件查询、地点图、时钟、随机源和 GoalHandler 回调：先把恐惧、饥饿、安全感、性格、势力紧张、玩家关系和近期目标历史转换成效用分数，再沿地点图移动，最后执行目标并记录遭遇记忆。具体的 `secureResources`、`prepareAlliance` 等目标仍由内容规则注册，因此同一 AI 层可以服务青茅山 NPC、北原部族或未来其他内容包；`goals.history` 会降低短期重复目标，避免 NPC 只按数组轮询。
 
 `src/goal-handler.js` 是可恢复的目标栈运行时：`pushGoal`、`pushChildGoal`、`insertGoalAsParent`、`pop`、`moveTowards` 和 `takeAction` 对齐 Qud 的 GoalHandler/MoveTo/Wait 边界。NPC 每个 AI 周期只推进当前 handler 的一个步骤；移动未完成时不会提前执行目标，抵达后才调用注册的目标处理器，子目标完成后把控制权交还父目标。栈帧包含父子关系、阶段、尝试次数、最后动作时钟和结果，能够存档、审计和继续执行。

@@ -22,14 +22,16 @@
     return !!inventoryGu?.refined || ensure(entity).gu.includes(guId);
   }
 
-  function activate(entity, guId, seeds) {
+  function activate(entity, guId, seeds, body = null) {
     const seed = seeds[guId];
     if (!seed) throw new Error(`未知蛊虫能力：${guId}`);
     if (!ready(entity, guId)) throw new Error(`尚未炼化${seed.name}`);
     const cost = Math.max(1, Number(seed.cost) || 8);
+    const requiredLimbs = seed.requiredLimbs || ['rightArm'];
+    if (body && !body.canUse(entity, { requiredLimbs, minLimbIntegrity: seed.minLimbIntegrity || 20 })) throw new Error(`${seed.name}所需的部位已无法稳定催动`);
     if ((entity.cultivation.essence || 0) < cost) throw new Error(`催动${seed.name}需要至少 ${cost} 点真元`);
     entity.cultivation.essence -= cost;
-    return { id: guId, name: seed.name, cost, power: Number(seed.power) || 1, kind: seed.kind || 'mortal', rank: seed.rank || 1 };
+    return { id: guId, name: seed.name, cost, power: Number(seed.power) || 1, kind: seed.kind || 'mortal', rank: seed.rank || 1, requiredLimbs };
   }
 
   return { ensure, learn, ready, activate };
